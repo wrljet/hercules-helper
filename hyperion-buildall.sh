@@ -43,9 +43,9 @@ echo ${TARGET_DIR}
 # fatal: unable to auto-detect email address (got 'bill@mint20-vm.(none)')
 #
 
-# Set up go git knows who we are (for the merges)
-git config --global user.email "wrljet@gmail.com"
-git config --global user.name "Bill Lewis"
+# Set up so git knows who we are (for the merges)
+# git config --global user.email "wrljet@gmail.com"
+# git config --global user.name "Bill Lewis"
 git config --global pager.branch false
 
 #-----------------------------------------------------------------------------
@@ -91,9 +91,9 @@ cd ${BUILD_DIR}
 mkdir sdl4x
 mkdir ${TARGET_DIR}
 
-# Grab our modified SDL-Hercules repo
+# Grab unmodified SDL-Hercules Hyperion repo
 cd sdl4x
-git clone https://github.com/wrljet/hyperion.git
+git clone https://github.com/SDL-Hercules-390/hyperion.git
 cd hyperion
 git branch -va
 #git checkout build-mods-reqs
