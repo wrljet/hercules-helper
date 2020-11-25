@@ -16,7 +16,7 @@
 # then run this script.
 #
 #    mkdir herctest && cd herctest
-#    ~/hyperion-buildall.sh 2>&1 | tee ~/hyperion-buildall.log
+#    ~/hyperion-buildall.sh 2>&1 | tee ./hyperion-buildall.log
 
 # Show all commands as they are being run
 set -x
@@ -193,10 +193,10 @@ read -p "Hit return to continue (configure step)"
 # Compile and link
 read -p "Hit return to continue (make step)"
 make clean
-time make -j$(nproc) 2>&1 | tee ~/hyperion-buildall-make.log
+time make -j$(nproc) 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make.log
 
 read -p "Hit return to continue (tests step)"
-time make check 2>&1 | tee ~/hyperion-buildall-make-check.log
+time make check 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-check.log
 # time ./tests/runtest ./tests
 
 # Failed test "mainsize" on openSUSE 15.1 with 4GB RAM
