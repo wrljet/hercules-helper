@@ -24,6 +24,35 @@ set -x
 # Stop on error
 set -e
 
+TRACE=false
+PROMPTS=false
+
+# Process command line
+POSITIONAL=()
+while [[ $# -gt 0 ]]
+do
+key="$1"
+
+case $key in
+    -t|--trace)
+    TRACE=true
+    shift # past argument
+    ;;
+    -p|--prompts)
+    PROMPTS=true
+    shift # past argument
+    ;;
+    *)    # unknown option
+    POSITIONAL+=("$1") # save it in an array for later
+    shift # past argument
+    ;;
+esac
+done
+set -- "${POSITIONAL[@]}" # restore positional parameters
+
+echo "TRACE       = ${TRACE}"
+echo "PROMPTS     = ${PROMPTS}"
+
 BUILD_DIR=$(pwd)
 
 # Target directory prefix
@@ -216,6 +245,92 @@ time make check 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-check.log
 
 read -p "Hit return to continue (step: install)"
 time make install 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-install.log
+
+echo "-----------------------------------------------------------------"
+echo "Done!"
+
+
+# This last group of helper functions were taken from Fish's extpkgs.sh
+
+#------------------------------------------------------------------------------
+#                              push_shopt
+#------------------------------------------------------------------------------
+push_shopt()
+{
+  if [[ -z $shopt_idx ]]; then shopt_idx="-1"; fi
+  shopt_idx=$(( $shopt_idx + 1 ))
+  shopt_opt[ $shopt_idx ]=$2
+  shopt -q $2
+  shopt_val[ $shopt_idx ]=$?
+  eval shopt $1 $2
+}
+
+#------------------------------------------------------------------------------
+#                              pop_shopt
+#------------------------------------------------------------------------------
+pop_shopt()
+{
+  if [[ -n $shopt_idx ]] && (( $shopt_idx >= 0 )); then
+    if (( ${shopt_val[ $shopt_idx ]} == 0 )); then
+      eval shopt -s ${shopt_opt[ $shopt_idx ]}
+    else
+      eval shopt -u ${shopt_opt[ $shopt_idx ]}
+    fi
+    shopt_idx=$(( $shopt_idx - 1 ))
+  fi
+}
+
+#------------------------------------------------------------------------------
+#                               trace
+#------------------------------------------------------------------------------
+trace()
+{
+  if [[ -n $debug ]]  || \
+     [[ -n $DEBUG ]]; then
+    logmsg  "++ $1"
+  fi
+}
+
+#------------------------------------------------------------------------------
+#                               logmsg
+#------------------------------------------------------------------------------
+logmsg()
+{
+  stdmsg  "stdout"  "$1"
+}
+
+#------------------------------------------------------------------------------
+#                               errmsg
+#------------------------------------------------------------------------------
+errmsg()
+{
+  stdmsg  "stderr"  "$1"
+  set_rc1
+}
+
+#------------------------------------------------------------------------------
+#                               stdmsg
+#------------------------------------------------------------------------------
+stdmsg()
+{
+  local  _stdxxx="$1"
+  local  _msg="$2"
+
+  push_shopt -s nocasematch
+
+  if [[ $_stdxxx != "stdout" ]]  && \
+     [[ $_stdxxx != "stderr" ]]; then
+    _stdxxx=stdout
+  fi
+
+  if [[ $_stdxxx == "stdout" ]]; then
+    echo "$_msg"
+  else
+    echo "$_msg" 1>&2
+  fi
+
+  pop_shopt
+}
 
 # ---- end of script ----
 
