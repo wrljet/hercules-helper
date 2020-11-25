@@ -3,6 +3,11 @@
 # Complete SDL-Hercules build using wrljet github mods
 # Updated: 25 NOV 2020
 #
+# The most recent version of this script can be ontained with:
+#   git clone https://github.com/wrljet/hercules-helper.git
+# or
+#   wget https://github.com/wrljet/hercules-helper/archive/main.zip
+#
 # Please report errors in this to me so everyone can benefit.
 #
 # Bill Lewis  wrljet@gmail.com
@@ -139,17 +144,18 @@ declare -a pgms=("crypto" "decNumber" "SoftFloat" "telnet")
 for pgm in "${pgms[@]}"; do
     echo "-----------------------------------------------------------------"
     echo "$pgm"
-    git clone "https://github.com/wrljet/$pgm.git" "$pgm-0"
-
-    pushd "$pgm-0" > /dev/null;
-    echo "$PWD >"
-
-    git checkout master
-    git checkout build-mods-i686
-    git checkout master
-    git merge build-mods-i686 --no-ff --no-edit
-
-    popd > /dev/null;
+    git clone -b build-mods-i686 "https://github.com/wrljet/$pgm.git" "$pgm-0"
+#   git clone "https://github.com/wrljet/$pgm.git" "$pgm-0"
+#
+#   pushd "$pgm-0" > /dev/null;
+#   echo "$PWD >"
+#
+#   git checkout master
+#   git checkout build-mods-i686
+#   git checkout master
+#   git merge build-mods-i686 --no-ff --no-edit
+#
+#   popd > /dev/null;
 done
 
 read -p "Hit return to continue (build extpkgs step)"
