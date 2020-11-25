@@ -71,7 +71,7 @@ if [ -f /etc/debian_version ]; then
 fi
 
 # Build Regina Rexx, which we use to run the Hercules tests
-read -p "Hit return to continue (build regina rexx step)"
+read -p "Hit return to continue (step: build regina rexx)"
 wget http://www.wrljet.com/ibm360/regina-rexx-3.9.3.tar.gz
 tar xfz regina-rexx-3.9.3.tar.gz 
 cd regina-rexx-3.9.3/
@@ -91,7 +91,7 @@ export CPPFLAGS=-I${BUILD_DIR}/rexx/include
 which rexx
 
 #
-read -p "Hit return to continue (hercules clone step)"
+read -p "Hit return to continue (step: hercules clone)"
 cd ${BUILD_DIR}
 mkdir sdl4x
 mkdir ${TARGET_DIR}
@@ -112,7 +112,7 @@ git branch -va
 
 util/bldlvlck 
 
-read -p "Hit return to continue (git clone extpkgs step)"
+read -p "Hit return to continue (step: git clone extpkgs)"
 cd ${BUILD_DIR}
 mkdir extpkgs
 cd extpkgs/
@@ -158,7 +158,7 @@ for pgm in "${pgms[@]}"; do
 #   popd > /dev/null;
 done
 
-read -p "Hit return to continue (build extpkgs step)"
+read -p "Hit return to continue (step: build extpkgs)"
 cd ${BUILD_DIR}
 cd extpkgs
 
@@ -169,7 +169,7 @@ cd ${BUILD_DIR}/sdl4x/hyperion
 
 # ./autogen.sh
 
-read -p "Hit return to continue (configure step)"
+read -p "Hit return to continue (step: configure)"
 ./configure \
     --enable-optimization="-O3 -march=native" \
     --enable-extpkgs=${BUILD_DIR}/extpkgs \
@@ -191,11 +191,11 @@ read -p "Hit return to continue (configure step)"
 #   --enable-optimization="-O3 -pipe" \
 
 # Compile and link
-read -p "Hit return to continue (make step)"
+read -p "Hit return to continue (step: make)"
 make clean
 time make -j$(nproc) 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make.log
 
-read -p "Hit return to continue (tests step)"
+read -p "Hit return to continue (step: tests)"
 time make check 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-check.log
 # time ./tests/runtest ./tests
 
@@ -213,6 +213,9 @@ time make check 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-check.log
 
 # Quickie test to see if hercules works at all
 # sudo ./hercules
+
+read -p "Hit return to continue (step: install)"
+time make install 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-install.log
 
 # ---- end of script ----
 
