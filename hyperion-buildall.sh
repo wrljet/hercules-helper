@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Complete SDL-Hercules-390 build using wrljet github mods
-# Updated: 25 NOV 2020
+# Updated: 30 NOV 2020
 #
 # The most recent version of this script can be ontained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
-# or
+# or:
 #   wget https://github.com/wrljet/hercules-helper/archive/main.zip
 #
 # Please report errors in this to me so everyone can benefit.
@@ -13,10 +13,27 @@
 # Bill Lewis  wrljet@gmail.com
 
 #-----------------------------------------------------------------------------
+#
 # To run, create a build directory and cd to it, then run this script.
 #
 #  $ mkdir herctest && cd herctest
-#  $ ~/hercules-helper/hyperion-buildall.sh -v --prompts 2>&1 | tee ./hyperion-buildall.log
+#  $ ~/hercules-helper/hyperion-buildall.sh -v --prompts --install 2>&1 | tee ./hyperion-buildall.log
+#
+# Be sure to run hyperion-prepare.sh one time before this build script.
+# hyperion-prepare.sh will ensure all required packages are installed.
+#
+
+usage="usage: $(basename "$0") [-h|--help] [-t|--trace] [-v|--verbose] [--install] [--sudo]
+
+Perform a full build, test, and installation of Hercules Hyperion from github sources
+
+where:
+  -h, --help      display this help
+  -t, --trace     display every command (set -x)
+  -v, --verbose   display lots of messages
+  -p, --prompts   display a prompt before each major step
+  -i, --install   run \'make install\' after building
+  -s, --sudo      use \'sudo\' for installing"
 
 #-----------------------------------------------------------------------------
 # git may report:
@@ -53,6 +70,8 @@ fi
 TRACE=false
 VERBOSE=false
 PROMPTS=false
+INSTALL=false
+SUDO=false
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -60,8 +79,18 @@ do
 key="$1"
 
 case $key in
+    -h|--help)
+    echo "$usage"
+    exit
+    ;;
+
     -t|--trace)
     TRACE=true
+    shift # past argument
+    ;;
+
+    -v|--verbose)
+    VERBOSE=true
     shift # past argument
     ;;
 
@@ -70,8 +99,13 @@ case $key in
     shift # past argument
     ;;
 
-    -v|--verbose)
-    VERBOSE=true
+    -i|--install)
+    INSTALL=true
+    shift # past argument
+    ;;
+
+    -s|--sudo)
+    SUDO=true
     shift # past argument
     ;;
 
@@ -154,6 +188,8 @@ verbose_msg "Options:"
 verbose_msg "TRACE            : ${TRACE}"
 verbose_msg "VERBOSE          : ${VERBOSE}"
 verbose_msg "PROMPTS          : ${PROMPTS}"
+verbose_msg "INSTALL          : ${INSTALL}"
+verbose_msg "SUDO             : ${SUDO}"
 
 # Detect type of system we're running on and display info
 detect_system
@@ -189,8 +225,10 @@ echo "Processing started: $start_time"
 
 #-----------------------------------------------------------------------------
 # Build Regina Rexx, which we use to run the Hercules tests
+echo "-----------------------------------------------------------------
+"
 if ($PROMPTS); then
-    read -p "Hit return to continue (Step: Build regina rexx)"
+    read -p "Hit return to continue (Step: Build Regina Rexx [used for test scripts])"
 fi
 
 # Remove any existing Regina, download and untar
@@ -213,11 +251,13 @@ time make install
 export PATH=${BUILD_DIR}/rexx/bin:$PATH
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BUILD_DIR}/rexx/lib
 export CPPFLAGS=-I${BUILD_DIR}/rexx/include
-which rexx
+echo "which rexx: $(which rexx)"
 
 #
+echo "-----------------------------------------------------------------
+"
 if ($PROMPTS); then
-    read -p "Hit return to continue (Step: Hercules clone)"
+    read -p "Hit return to continue (Step: Hercules git clone)"
 fi
 
 cd ${BUILD_DIR}
@@ -241,6 +281,8 @@ git branch -va
 
 util/bldlvlck 
 
+echo "-----------------------------------------------------------------
+"
 if ($PROMPTS); then
     read -p "Hit return to continue (Step: git clone extpkgs)"
 fi
@@ -277,7 +319,8 @@ rm -rf *
 declare -a pgms=("crypto" "decNumber" "SoftFloat" "telnet")
 
 for pgm in "${pgms[@]}"; do
-    echo "-----------------------------------------------------------------"
+    echo "-----------------------------------------------------------------
+"
     echo "$pgm"
     git clone -b build-mods-i686 "https://github.com/wrljet/$pgm.git" "$pgm-0"
 #   git clone "https://github.com/wrljet/$pgm.git" "$pgm-0"
@@ -293,8 +336,10 @@ for pgm in "${pgms[@]}"; do
 #   popd > /dev/null;
 done
 
+echo "-----------------------------------------------------------------
+"
 if ($PROMPTS); then
-    read -p "Hit return to continue (Step: Build extpkgs)"
+    read -p "Hit return to continue (Step: Build external packages)"
 fi
 
 cd ${BUILD_DIR}
@@ -305,8 +350,20 @@ DEBUG=1 ./extpkgs.sh  c d s t
 
 cd ${BUILD_DIR}/sdl4x/hyperion
 
-# ./autogen.sh
+if [[ "$(uname -m)" == x86* ]]; then
+    echo "Skipping autogen step on x86* architecture"
+else
+    echo "-----------------------------------------------------------------
+"
+    if ($PROMPTS); then
+	read -p "Hit return to continue (Step: autogen.sh)"
 
+	./autogen.sh
+    fi
+fi
+
+echo "-----------------------------------------------------------------
+"
 if ($PROMPTS); then
     read -p "Hit return to continue (Step: configure)"
 fi
@@ -332,6 +389,8 @@ fi
 #   --enable-optimization="-O3 -pipe" \
 
 # Compile and link
+echo "-----------------------------------------------------------------
+"
 if ($PROMPTS); then
     read -p "Hit return to continue (Step: make)"
 fi
@@ -339,6 +398,8 @@ fi
 make clean
 time make -j$(nproc) 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make.log
 
+echo "-----------------------------------------------------------------
+"
 if ($PROMPTS); then
     read -p "Hit return to continue (Step: tests)"
 fi 
@@ -361,13 +422,26 @@ time make check 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-check.log
 # Quickie test to see if hercules works at all
 # sudo ./hercules
 
-if ($PROMPTS); then
-    read -p "Hit return to continue (step: install)"
+if ($INSTALL); then
+  echo "-----------------------------------------------------------------
+"
+  if ($SUDO); then
+    if ($PROMPTS); then
+        read -p "Hit return to continue (step: install [with sudo])"
+    fi
+
+    sudo time make install 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-install.log
+  else
+    if ($PROMPTS); then
+        read -p "Hit return to continue (step: install [without sudo])"
+    fi
+
+    time make install 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-install.log
+  fi
 fi
 
-time make install 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-install.log
-
-echo "-----------------------------------------------------------------"
+echo "-----------------------------------------------------------------
+"
 echo "Done!"
 
 end_time=$(date)
@@ -376,6 +450,7 @@ echo "Processing ended:   $end_time"
 elapsed_seconds="$(( $(TZ=UTC0 printf '%(%s)T\n' '-1') - start_seconds ))"
 verbose_msg "total elapsed seconds: $elapsed_seconds"
 echo "Overall elpased time: $( TZ=UTC0 printf '%(%H:%M:%S)T\n' "$elapsed_seconds" )"
+#------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
 # This last group of helper functions were taken from Fish's extpkgs.sh
