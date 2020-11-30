@@ -31,7 +31,7 @@ Be sure to run hyperion-prepare.sh one time before the buildall script.
 ## hyperion-buildall.sh
 
 This script will perform a complete build of Hercules and its external
-packages, plus Regina Rexx, and run all the automated tests, and optionally install.
+packages, plus Regina Rexx, run all the automated tests, and optionally install.
 
 ```
 usage="usage: $(basename "$0") [-h|--help] [-t|--trace] [-v|--verbose] [--install] [--sudo]
@@ -49,6 +49,9 @@ where:
 
 To use, create a build directory and cd to it, then run this script.
 It is recommended to use the --verbose, --prompts, and --install options.
+
+Teeing the output to a log file will help track down problems.
+Addition separate log files for major steps will be created automatically.
 
 ```
 $ mkdir herctest && cd herctest
