@@ -7,7 +7,7 @@ These scripts extend the existing functionality of SDL-Hercules-390 gists/extpkg
 This is a temporary testbed and will be updated occassionally and/or merged
 into SDL-Hercules-390 and its documentation when completed.
 
-The most recent version of this script can be ontained with:
+The most recent version of this script can be obtained with:
 ```
    git clone https://github.com/wrljet/hercules-helper.git
 ```
@@ -36,7 +36,7 @@ packages, plus Regina Rexx, run all the automated tests, and optionally install.
 ```
 usage="usage: $(basename "$0") [-h|--help] [-t|--trace] [-v|--verbose] [--install] [--sudo]
 
-Perform a full build, test, and installation of Hercules Hyperion from github sources
+Perform a full build, test, and installation of Hercules Hyperion from GitHub sources
 
 where:
   -h, --help      display this help

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Complete SDL-Hercules-390 build using wrljet github mods
+# Complete SDL-Hercules-390 build using wrljet GitHub mods
 # Updated: 30 NOV 2020
 #
-# The most recent version of this script can be ontained with:
+# The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
 # or:
 #   wget https://github.com/wrljet/hercules-helper/archive/master.zip
@@ -25,7 +25,7 @@
 
 usage="usage: $(basename "$0") [-h|--help] [-t|--trace] [-v|--verbose] [--install] [--sudo]
 
-Perform a full build, test, and installation of Hercules Hyperion from github sources
+Perform a full build, test, and installation of Hercules Hyperion from GitHub sources
 
 where:
   -h, --help      display this help

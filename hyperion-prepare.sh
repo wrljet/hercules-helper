@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Prepare system for building SDL-Hercules-390
-# Updated: 25 NOV 2020
+# Updated: 30 NOV 2020
 # FIXME update packages for CentOS
 #
-# The most recent version of this script can be ontained with:
+# The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
 # or
 #   wget https://github.com/wrljet/hercules-helper/archive/main.zip
