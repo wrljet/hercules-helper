@@ -6,7 +6,7 @@
 # The most recent version of this script can be ontained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
 # or:
-#   wget https://github.com/wrljet/hercules-helper/archive/main.zip
+#   wget https://github.com/wrljet/hercules-helper/archive/master.zip
 #
 # Please report errors in this to me so everyone can benefit.
 #

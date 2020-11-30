@@ -4,20 +4,50 @@ Utility scripts to help with building and deploying the Hercules emulator
 
 These scripts extend the existing functionality of SDL-Hercules-390 gists/extpkgs.
 
-This is a temporary testbed and will be merged into SDL-Hercules-390 and
-its documentation when completed.
+This is a temporary testbed and will be updated occassionally and/or merged
+into SDL-Hercules-390 and its documentation when completed.
+
+The most recent version of this script can be ontained with:
+```
+   git clone https://github.com/wrljet/hercules-helper.git
+```
+or:
+```
+   wget https://github.com/wrljet/hercules-helper/archive/master.zip
+```
+
+Please report errors in this to me so everyone can benefit.
 
 ## hyperion-prepare.sh
 
 This script will prepare a Linux system by installing the required
 development tool packages.
 
+Be sure to run hyperion-prepare.sh one time before the buildall script.
+
 ## hyperion-buildall.sh
 
-This script will perform a complete build of Hercules, and Regina Rexx,
-and run all the automated tests.
+This script will perform a complete build of Hercules and its external
+packages, plus Regina Rexx, and run all the automated tests, and optionally install.
 
 ```
-./hyperion-buildall.sh --prompts
+usage="usage: $(basename "$0") [-h|--help] [-t|--trace] [-v|--verbose] [--install] [--sudo]
+
+Perform a full build, test, and installation of Hercules Hyperion from github sources
+
+where:
+  -h, --help      display this help
+  -t, --trace     display every command (set -x)
+  -v, --verbose   display lots of messages
+  -p, --prompts   display a prompt before each major step
+  -i, --install   run \'make install\' after building
+  -s, --sudo      use \'sudo\' for installing"
+```
+
+To use, create a build directory and cd to it, then run this script.
+
+```
+$ mkdir herctest && cd herctest
+$ ~/hercules-helper/hyperion-buildall.sh -v --prompts --install 2>&1 | tee ./hyperion-buildall.log
 ```
 
