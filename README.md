@@ -16,6 +16,9 @@ or:
    wget https://github.com/wrljet/hercules-helper/archive/master.zip
 ```
 
+You will have to mark the bash scripts as executable before running them.
+
+
 Please report errors in this to me so everyone can benefit.
 
 ## hyperion-prepare.sh
@@ -45,9 +48,10 @@ where:
 ```
 
 To use, create a build directory and cd to it, then run this script.
+It is recommended to use the --verbose, --prompts, and --install options.
 
 ```
 $ mkdir herctest && cd herctest
-$ ~/hercules-helper/hyperion-buildall.sh -v --prompts --install 2>&1 | tee ./hyperion-buildall.log
+$ ~/hercules-helper/hyperion-buildall.sh -verbose --prompts --install 2>&1 | tee ./hyperion-buildall.log
 ```
 
