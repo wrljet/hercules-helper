@@ -53,7 +53,15 @@ It is recommended to use the --verbose, --prompts, and --install options.
 Teeing the output to a log file will help track down problems.
 Addition separate log files for major steps will be created automatically.
 
+The full process is:
+
 ```
+$ cd ~
+$ git clone https://github.com/wrljet/hercules-helper.git
+$ chmod +x ~/hercules-helper/*.sh
+
+$ ~/hercules-helper/hyperion-prepare.sh
+
 $ mkdir herctest && cd herctest
 $ ~/hercules-helper/hyperion-buildall.sh -verbose --prompts --install 2>&1 | tee ./hyperion-buildall.log
 ```
