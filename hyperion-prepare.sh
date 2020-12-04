@@ -15,8 +15,10 @@
 # - initial commit to GitHub
 #
 # Updated:  4 DEC 2020
+# - disallow running as the root user
 # - corrected parsing for differing CentOS 7.8 ansd 8.2 version strings
 # - update package list for CentOS
+# - on CentOS 7, CMAKE 3.x is built from source
 
 # Checks for, and installs, required packages based on system type.
 #   git
@@ -128,7 +130,7 @@ detect_system()
 
 	CENTOS_VERS=$(rpm --query centos-release) || true
 	CENTOS_VERS="${CENTOS_VERS#centos-release-}"
-	CENTOS_VERS="${CENTOS_VERS/\-/\.}"
+	CENTOS_VERS="${CENTOS_VERS/-/.}"
 
 	VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
 	VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
@@ -200,6 +202,38 @@ if [[ $VERSION_ID == centos* ]]; then
 		sudo yum -y install $package
 	    fi
 	done
+
+	if [[ $VERSION_MAJOR -eq 7 ]]; then
+
+	    echo "-----------------------------------------------------------------"
+# cmake presence: /usr/local/bin/cmake
+# /usr/local/bin/cmake status: 0
+            which_cmake=$(which cmake)
+            which_status=$?
+
+	    echo "CMAKE presence: $which_cmake"
+            echo "(which cmake) status: $which_status"
+
+            if [ $which_status -eq 1 ]; then
+		echo "On CentOS 7, there is no package for CMAKE 3.x"
+		echo "Building from source..."
+
+		mkdir -p ~/tools
+		pushd ~/tools > /dev/null;
+
+		if [ ! -f cmake-3.12.3.tar.gz ]; then
+		    wget https://cmake.org/files/v3.12/cmake-3.12.3.tar.gz
+                fi
+
+		tar xfz cmake-3.12.3.tar.gz
+		cd cmake-3.12.3/
+		./bootstrap --prefix=/usr/local
+		make -j$(nproc)
+		sudo make install
+		cmake --version
+		popd > /dev/null;
+            fi
+        fi
     else
 	echo "CentOS version 6 or earlier found, and not supported"
         exit 1
