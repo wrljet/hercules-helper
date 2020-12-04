@@ -85,6 +85,8 @@ if [ "$EUID" -eq 0 ]; then
     echo    # move to a new line
     echo "For information, see:"
     echo "https://askubuntu.com/questions/16178/why-is-it-bad-to-log-in-as-root"
+    echo "https://wiki.debian.org/sudo/"
+    echo "https://phoenixnap.com/kb/how-to-create-add-sudo-user-centos"
     echo    # move to a new line
     read -p "Hit return to exit" -n 1 -r
     echo    # move to a new line
