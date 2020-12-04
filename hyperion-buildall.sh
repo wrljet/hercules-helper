@@ -172,15 +172,18 @@ detect_system()
     if [[ $VERSION_ID == centos* ]]; then
 	echo "We have a CentOS system"
 
-	# centos-release-7-8.2003.0.el7.centos.x86_64
+	# CENTOS_VERS="centos-release-7-8.2003.0.el7.centos.x86_64"
+	# CENTOS_VERS="centos-release-8.2-2.2004.0.2.el8.x86_64"
+
 	CENTOS_VERS=$(rpm --query centos-release) || true
-	VERSION_MAJOR=$(echo ${CENTOS_VERS#centos-release-} | cut -f1 -d-)
-	VERSION_MINOR=$(echo ${CENTOS_VERS#centos-release-} | cut -f1 -d. | cut -f2 -d-)
+	CENTOS_VERS="${CENTOS_VERS#centos-release-}"
+	CENTOS_VERS="${CENTOS_VERS/\-/\.}"
+
+	VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
+	VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
 
 	echo "VERSION_MAJOR : $VERSION_MAJOR"
-	if [[ $VERSION_MAJOR -ge 7 ]]; then
-	    echo "CentOS version 7 or later found"
-        fi
+	echo "VERSION_MINOR : $VERSION_MINOR"
     fi
 }
 

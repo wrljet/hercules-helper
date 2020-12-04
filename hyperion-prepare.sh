@@ -1,8 +1,6 @@
 #!/bin/bash
 
 # Prepare system for building SDL-Hercules-390
-# Updated: 30 NOV 2020
-# FIXME update packages for CentOS
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -12,6 +10,13 @@
 # Please report errors in this to me so everyone can benefit.
 #
 # Bill Lewis  wrljet@gmail.com
+
+# Updated: 30 NOV 2020
+# - initial commit to GitHub
+#
+# Updated:  4 DEC 2020
+# - corrected parsing for differing CentOS 7.8 ansd 8.2 version strings
+# - update package list for CentOS
 
 # Checks for, and installs, required packages based on system type.
 #   git
@@ -118,15 +123,18 @@ detect_system()
     if [[ $VERSION_ID == centos* ]]; then
 	echo "We have a CentOS system"
 
-	# centos-release-7-8.2003.0.el7.centos.x86_64
+	# CENTOS_VERS="centos-release-7-8.2003.0.el7.centos.x86_64"
+	# CENTOS_VERS="centos-release-8.2-2.2004.0.2.el8.x86_64"
+
 	CENTOS_VERS=$(rpm --query centos-release) || true
-	VERSION_MAJOR=$(echo ${CENTOS_VERS#centos-release-} | cut -f1 -d-)
-	VERSION_MINOR=$(echo ${CENTOS_VERS#centos-release-} | cut -f1 -d. | cut -f2 -d-)
+	CENTOS_VERS="${CENTOS_VERS#centos-release-}"
+	CENTOS_VERS="${CENTOS_VERS/\-/\.}"
+
+	VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
+	VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
 
 	echo "VERSION_MAJOR : $VERSION_MAJOR"
-	if [[ $VERSION_MAJOR -ge 7 ]]; then
-	    echo "CentOS version 7 or later found"
-        fi
+	echo "VERSION_MINOR : $VERSION_MINOR"
     fi
 }
 
@@ -167,17 +175,15 @@ fi
 # CentOS 7
 
 if [[ $VERSION_ID == centos* ]]; then
-    echo "We have a CentOS system"
-
-    # centos-release-7-8.2003.0.el7.centos.x86_64
-    CENTOS_VERS=$(rpm --query centos-release) || true
-    VERSION_MAJOR=$(echo ${CENTOS_VERS#centos-release-} | cut -f1 -d-)
-    VERSION_MINOR=$(echo ${CENTOS_VERS#centos-release-} | cut -f1 -d. | cut -f2 -d-)
-    echo "VERSION_MAJOR = $VERSION_MAJOR"
     if [[ $VERSION_MAJOR -ge 7 ]]; then
 	echo "CentOS version 7 or later found"
 
-	declare -a centos_packages=("git" "bzip2-devel" "zlib-devel")
+	declare -a centos_packages=( \
+            "git" \
+            "gcc" "make" "autoconf" "automake" "flex" "gawk" "m4"
+	    "cmake3"
+	    "bzip2-devel" "zlib-devel"
+	)
 
 	for package in "${centos_packages[@]}"; do
 	    echo "-----------------------------------------------------------------"
@@ -194,6 +200,9 @@ if [[ $VERSION_ID == centos* ]]; then
 		sudo yum -y install $package
 	    fi
 	done
+    else
+	echo "CentOS version 6 or earlier found, and not supported"
+        exit 1
     fi
 fi
 
