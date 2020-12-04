@@ -77,6 +77,20 @@ if ($TRACE); then
     set -x # For debugging, show all commands as they are being run
 fi
 
+if [ "$EUID" -eq 0 ]; then
+    echo    # move to a new line
+    echo "Running this as root is dangerous and can cause misconfiguration issues"
+    echo "or damage to your system.  Run as a normal user, and the parts that need"
+    echo "it will ask for your sudo password (if required)."
+    echo    # move to a new line
+    echo "For information, see:"
+    echo "https://askubuntu.com/questions/16178/why-is-it-bad-to-log-in-as-root"
+    echo    # move to a new line
+    read -p "Hit return to exit" -n 1 -r
+    echo    # move to a new line
+    exit 1
+fi
+
 #------------------------------------------------------------------------------
 #                               verbose_msg
 #------------------------------------------------------------------------------
