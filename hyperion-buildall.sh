@@ -12,6 +12,16 @@
 #
 # Bill Lewis  wrljet@gmail.com
 
+# Updated: 30 NOV 2020
+# - initial commit to GitHub
+#
+# Updated:  4 DEC 2020
+# - corrected parsing for differing CentOS 7.8 ansd 8.2 version strings
+#
+# Updated:  5 DEC 2020
+# - issue 'setcap' commands so hercules will run without root permissions
+# - write out hercules-setvars.sh to create required environment variables
+
 #-----------------------------------------------------------------------------
 #
 # To run, create a build directory and cd to it, then run this script.
@@ -22,6 +32,13 @@
 # Be sure to run hyperion-prepare.sh one time before this build script.
 # hyperion-prepare.sh will ensure all required packages are installed.
 #
+
+#-----------------------------------------------------------------------------
+# Overall working build diretory is the current directory
+BUILD_DIR=$(pwd)
+
+# Prefix (target) directory
+INSTALL_DIR=$(pwd)/herc4x
 
 usage="usage: $(basename "$0") [-h|--help] [-t|--trace] [-v|--verbose] [--install] [--sudo]
 
@@ -71,7 +88,7 @@ TRACE=false
 VERBOSE=false
 PROMPTS=false
 INSTALL=false
-SUDO=false
+USESUDO=false
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -105,7 +122,7 @@ case $key in
     ;;
 
     -s|--sudo)
-    SUDO=true
+    USESUDO=true
     shift # past argument
     ;;
 
@@ -121,6 +138,38 @@ if [[ "${TRACE}" == true ]]; then
     # Show all commands as they are being run
     set -x
 fi
+
+#------------------------------------------------------------------------------
+#                              push_shopt
+#
+# helper functions from Fish's extpkgs.sh
+#------------------------------------------------------------------------------
+push_shopt()
+{
+  if [[ -z $shopt_idx ]]; then shopt_idx="-1"; fi
+  shopt_idx=$(( $shopt_idx + 1 ))
+  shopt_opt[ $shopt_idx ]=$2
+  shopt -q $2
+  shopt_val[ $shopt_idx ]=$?
+  eval shopt $1 $2
+}
+
+#------------------------------------------------------------------------------
+#                              pop_shopt
+#
+# helper functions from Fish's extpkgs.sh
+#------------------------------------------------------------------------------
+pop_shopt()
+{
+  if [[ -n $shopt_idx ]] && (( $shopt_idx >= 0 )); then
+    if (( ${shopt_val[ $shopt_idx ]} == 0 )); then
+      eval shopt -s ${shopt_opt[ $shopt_idx ]}
+    else
+      eval shopt -u ${shopt_opt[ $shopt_idx ]}
+    fi
+    shopt_idx=$(( $shopt_idx - 1 ))
+  fi
+}
 
 #------------------------------------------------------------------------------
 #                               verbose_msg
@@ -192,20 +241,13 @@ verbose_msg "TRACE            : ${TRACE}"
 verbose_msg "VERBOSE          : ${VERBOSE}"
 verbose_msg "PROMPTS          : ${PROMPTS}"
 verbose_msg "INSTALL          : ${INSTALL}"
-verbose_msg "SUDO             : ${SUDO}"
+verbose_msg "USESUDO          : ${USESUDO}"
 
 # Detect type of system we're running on and display info
 detect_system
 
-#-----------------------------------------------------------------------------
-# Overall working build diretory is the current director
-BUILD_DIR=$(pwd)
-
-# Prefix (target) directory
-PREFIX_DIR=$(pwd)/herc4x
-
 echo "BUILD_DIR        : ${BUILD_DIR}"
-echo "PREFIX_DIR       : ${PREFIX_DIR}"
+echo "INSTALL_DIR      : ${INSTALL_DIR}"
 
 #-----------------------------------------------------------------------------
 
@@ -265,7 +307,7 @@ fi
 
 cd ${BUILD_DIR}
 mkdir -p sdl4x
-mkdir -p ${PREFIX_DIR}
+mkdir -p ${INSTALL_DIR}
 
 # Grab unmodified SDL-Hercules Hyperion repo
 cd sdl4x
@@ -374,8 +416,10 @@ fi
 ./configure \
     --enable-optimization="-O3 -march=native" \
     --enable-extpkgs=${BUILD_DIR}/extpkgs \
-    --prefix=${PREFIX_DIR} \
+    --prefix=${INSTALL_DIR} \
     --enable-regina-rexx
+
+./config.status --config
 
 # Debian 10 x86_64, gcc 8.3.0
 # CBUC test fails without this
@@ -390,6 +434,16 @@ fi
 
 # WRL original for Pi 4 64-bit
 #   --enable-optimization="-O3 -pipe" \
+
+# Enable cap_sys_nice so Hercules can be run as a normal user
+# FIXME this doesn't work with 'make check', so we use 'setcap' instead
+#   --enable-capabilities
+# which dpkg-query
+# dpkg-query --show libcap-dev
+# sudo apt-get install libcap-dev
+# dpkg-query --show libcap-dev
+# find / -name capability.h -print
+
 
 # Compile and link
 echo "-----------------------------------------------------------------
@@ -428,7 +482,7 @@ time make check 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-check.log
 if ($INSTALL); then
   echo "-----------------------------------------------------------------
 "
-  if ($SUDO); then
+  if ($USESUDO); then
     if ($PROMPTS); then
         read -p "Hit return to continue (step: install [with sudo])"
     fi
@@ -441,50 +495,80 @@ if ($INSTALL); then
 
     time make install 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-install.log
   fi
+
+  echo "-----------------------------------------------------------------
+"
+  echo "setcap operations so Hercules can run without elevated privileges:"
+  sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/hercules
+  echo "sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/hercules"
+  sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/herclin
+  echo "sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/herclin"
+  sudo setcap 'cap_net_admin+ep' ${INSTALL_DIR}/bin/hercifc
+  echo "sudo setcap 'cap_net_admin+ep' ${INSTALL_DIR}/bin/hercifc"
 fi
 
 echo "-----------------------------------------------------------------
 "
-echo "Done!"
 
 end_time=$(date)
-echo "Processing ended:   $end_time"
+echo "Overall build processing ended:   $end_time"
 
 elapsed_seconds="$(( $(TZ=UTC0 printf '%(%s)T\n' '-1') - start_seconds ))"
 verbose_msg "total elapsed seconds: $elapsed_seconds"
 echo "Overall elpased time: $( TZ=UTC0 printf '%(%H:%M:%S)T\n' "$elapsed_seconds" )"
+echo    # move to a new line
+
+if true; then
+    cat <<FOE > ${BUILD_DIR}/hercules-setvars.sh
+#!/bin/bash
+#
+# Set up environment variables for Hercules
+#
+# e.g.
+#  export PATH=${INSTALL_DIR}/bin:${BUILD_DIR}/rexx/bin:$PATH
+#  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${INSTALL_DIR}/lib:${BUILD_DIR}/rexx/lib
+#
+# This script was created by $0, $(date)
+#
+
+newpath="${INSTALL_DIR}/bin"
+if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
+  # export PATH="\${PATH:+"\$PATH:"}\$newpath"
+    export PATH="\$newpath\${PATH:+":\$PATH"}"
+fi
+
+newpath="${BUILD_DIR}/rexx/bin"
+if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
+  # export PATH="\${PATH:+"\$PATH:"}\$newpath"
+    export PATH="\$newpath\${PATH:+":\$PATH"}"
+fi
+
+newpath="${INSTALL_DIR}/lib"
+if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
+  # export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}\$newpath"
+    export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
+fi
+
+newpath="${BUILD_DIR}/rexx/lib"
+if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
+  # export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}\$newpath"
+    export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
+fi
+
+FOE
+
+    chmod +x ${BUILD_DIR}/hercules-setvars.sh
+
+    echo "To set the required environment variables, run:"
+    echo "    source ${BUILD_DIR}/hercules-setvars.sh"
+fi
+
+echo "Done!"
+
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
 # This last group of helper functions were taken from Fish's extpkgs.sh
-
-#------------------------------------------------------------------------------
-#                              push_shopt
-#------------------------------------------------------------------------------
-push_shopt()
-{
-  if [[ -z $shopt_idx ]]; then shopt_idx="-1"; fi
-  shopt_idx=$(( $shopt_idx + 1 ))
-  shopt_opt[ $shopt_idx ]=$2
-  shopt -q $2
-  shopt_val[ $shopt_idx ]=$?
-  eval shopt $1 $2
-}
-
-#------------------------------------------------------------------------------
-#                              pop_shopt
-#------------------------------------------------------------------------------
-pop_shopt()
-{
-  if [[ -n $shopt_idx ]] && (( $shopt_idx >= 0 )); then
-    if (( ${shopt_val[ $shopt_idx ]} == 0 )); then
-      eval shopt -s ${shopt_opt[ $shopt_idx ]}
-    else
-      eval shopt -u ${shopt_opt[ $shopt_idx ]}
-    fi
-    shopt_idx=$(( $shopt_idx - 1 ))
-  fi
-}
 
 #------------------------------------------------------------------------------
 #                               trace
