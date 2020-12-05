@@ -197,7 +197,7 @@ if [[ $VERSION_ID == centos* ]]; then
 	echo "CentOS version 7 or later found"
 
 	declare -a centos_packages=( \
-            "git" \
+            "git" "wget" \
             "gcc" "make" "autoconf" "automake" "flex" "gawk" "m4"
 	    "cmake3"
 	    "bzip2-devel" "zlib-devel"
