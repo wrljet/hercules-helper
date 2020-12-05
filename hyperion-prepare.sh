@@ -170,7 +170,7 @@ if [[ $VERSION_ID == debian* || $VERSION_ID == ubuntu* ]]; then
     declare -a debian_packages=( \
         "git" \
         "build-essential" "autoconf" "automake" "cmake" "flex" "gawk" \
-	"libbz2-dev" "zlib1g-dev"
+	"libbz2-dev" "zlib1g-dev" "wget"
     )
 
     for package in "${debian_packages[@]}"; do
