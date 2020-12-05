@@ -21,6 +21,8 @@
 # Updated:  5 DEC 2020
 # - issue 'setcap' commands so hercules will run without root permissions
 # - write out hercules-setvars.sh to create required environment variables
+# - show the system language
+# - display improvements
 
 #-----------------------------------------------------------------------------
 #
@@ -186,7 +188,8 @@ verbose_msg()
 #------------------------------------------------------------------------------
 detect_system()
 {
-    echo "System stats:"
+    verbose_msg " "  # move to a new line
+    verbose_msg "System stats:"
 
     machine=$(uname -m)
     # echo "Machine is $machine"
@@ -214,12 +217,12 @@ detect_system()
 	VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
 	VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
 
-	echo "OS               : $VERSION_DISTRO variant"
-	echo "OS Version       : $VERSION_MAJOR"
+	verbose_msg "OS               : $VERSION_DISTRO variant"
+	verbose_msg "OS Version       : $VERSION_MAJOR"
     fi
 
     if [[ $VERSION_ID == centos* ]]; then
-	echo "We have a CentOS system"
+	verbose_msg "We have a CentOS system"
 
 	# CENTOS_VERS="centos-release-7-8.2003.0.el7.centos.x86_64"
 	# CENTOS_VERS="centos-release-8.2-2.2004.0.2.el8.x86_64"
@@ -231,9 +234,13 @@ detect_system()
 	VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
 	VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
 
-	echo "VERSION_MAJOR : $VERSION_MAJOR"
-	echo "VERSION_MINOR : $VERSION_MINOR"
+	verbose_msg "VERSION_MAJOR : $VERSION_MAJOR"
+	verbose_msg "VERSION_MINOR : $VERSION_MINOR"
     fi
+
+    # show the default language
+    # i.e. LANG=en_US.UTF-8
+    verbose_msg "Language         : $(env | grep LANG)"
 }
 
 verbose_msg "Options:"
@@ -266,6 +273,8 @@ echo "g++ presence     : $(which g++ || true)"
 
 start_seconds="$(TZ=UTC0 printf '%(%s)T\n' '-1')"
 start_time=$(date)
+
+echo # move to a new line
 echo "Processing started: $start_time"
 
 #-----------------------------------------------------------------------------

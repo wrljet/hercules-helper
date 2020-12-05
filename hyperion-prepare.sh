@@ -19,6 +19,12 @@
 # - corrected parsing for differing CentOS 7.8 ansd 8.2 version strings
 # - update package list for CentOS
 # - on CentOS 7, CMAKE 3.x is built from source
+# - added wget as a required package for CentOS
+#
+# Updated:  5 DEC 2020
+# - added m4 as a required package for Debian
+# - show the system language
+# - display improvements
 
 # Checks for, and installs, required packages based on system type.
 #   git
@@ -134,12 +140,12 @@ detect_system()
 	VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
 	VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
 
-	echo "OS               : $VERSION_DISTRO variant"
-	echo "OS Version       : $VERSION_MAJOR"
+	verbose_msg "OS               : $VERSION_DISTRO variant"
+	verbose_msg "OS Version       : $VERSION_MAJOR"
     fi
 
     if [[ $VERSION_ID == centos* ]]; then
-	echo "We have a CentOS system"
+	verbose_msg "We have a CentOS system"
 
 	# CENTOS_VERS="centos-release-7-8.2003.0.el7.centos.x86_64"
 	# CENTOS_VERS="centos-release-8.2-2.2004.0.2.el8.x86_64"
@@ -151,9 +157,13 @@ detect_system()
 	VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
 	VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
 
-	echo "VERSION_MAJOR : $VERSION_MAJOR"
-	echo "VERSION_MINOR : $VERSION_MINOR"
+	verbose_msg "VERSION_MAJOR : $VERSION_MAJOR"
+	verbose_msg "VERSION_MINOR : $VERSION_MINOR"
     fi
+
+    # show the default language
+    # i.e. LANG=en_US.UTF-8
+    verbose_msg "Language         : $(env | grep LANG)"
 }
 
 verbose_msg "TRACE            : ${TRACE}"
