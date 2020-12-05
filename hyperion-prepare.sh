@@ -200,7 +200,7 @@ if [[ $VERSION_ID == centos* ]]; then
             "git" \
             "gcc" "make" "autoconf" "automake" "flex" "gawk" "m4"
 	    "cmake3"
-	    "bzip2-devel" "zlib-devel"
+	    "bzip2-devel" "zlib-devel" "wget"
 	)
 
 	for package in "${centos_packages[@]}"; do
