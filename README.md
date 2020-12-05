@@ -18,8 +18,10 @@ or:
 
 You will have to mark the bash scripts as executable before running them.
 
+Please don't run this process as root.  The scripts will prompt for your
+sudo password where required.
 
-Please report errors in this to me so everyone can benefit.
+Report errors in this to me so everyone can benefit.
 
 ## hyperion-prepare.sh
 
