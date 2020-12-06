@@ -148,6 +148,7 @@ detect_system()
         verbose_msg "We have a CentOS system"
 
         # CENTOS_VERS="centos-release-7-8.2003.0.el7.centos.x86_64"
+        # CENTOS_VERS="centos-release-7.9.2009.1.el7.centos.x86_64"
         # CENTOS_VERS="centos-release-8.2-2.2004.0.2.el8.x86_64"
 
         CENTOS_VERS=$(rpm --query centos-release) || true

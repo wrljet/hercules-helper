@@ -229,7 +229,7 @@ detect_system()
 
         CENTOS_VERS=$(rpm --query centos-release) || true
         CENTOS_VERS="${CENTOS_VERS#centos-release-}"
-        CENTOS_VERS="${CENTOS_VERS/\-/\.}"
+        CENTOS_VERS="${CENTOS_VERS/-/.}"
 
         VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
         VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
