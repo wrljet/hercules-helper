@@ -261,6 +261,29 @@ if [[ $VERSION_ID == centos* ]]; then
             fi
 
         fi
+
+        # run on all CentOS, after CMAKE
+        echo "-----------------------------------------------------------------"
+
+        which_cc1=$(find / -name cc1 -print 2>&1 | grep cc1)
+        echo "cc1 presence:       $which_cc1"
+
+        which_cc1plus=$(find / -name cc1plus -print 2>&1 | grep cc1plus)
+        which_status=$?
+        echo "cc1plus presence:   $which_cc1plus"
+
+        if [ -z $which_cc1plus ]; then
+            echo "On CentOS and there is no cc1plus"
+
+            if [ ! -z $which_cc1 ]; then
+                echo "We do have cc1; linking cc1plus to cc1"
+                sudo ln -s "$which_cc1" /usr/bin/cc1plus
+            else
+                echo "We do not have cc1 either; full gcc-c++ package is required"
+            fi
+        fi
+
+        echo    # move to a new line
     else
         echo "CentOS version 6 or earlier found, and not supported"
         exit 1
