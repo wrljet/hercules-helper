@@ -268,8 +268,15 @@ if [ -f /etc/debian_version ]; then
 fi
 
 echo "Machine arch     : $(uname -m)"
+echo "gcc presence     : $(which gcc || true)"
 echo "gcc              : $(gcc --version | head -1)"
 echo "g++ presence     : $(which g++ || true)"
+
+which_cc1=$(find / -name cc1 -print 2>&1 | grep cc1)
+echo "cc1 presence     : $which_cc1"
+
+which_cc1plus=$(find / -name cc1plus -print 2>&1 | grep cc1plus)
+echo "cc1plus presence : $which_cc1plus"
 
 start_seconds="$(TZ=UTC0 printf '%(%s)T\n' '-1')"
 start_time=$(date)
@@ -428,6 +435,8 @@ fi
     --prefix=${INSTALL_DIR} \
     --enable-regina-rexx
 
+echo    # move to a new line
+echo "./config.status --config ..."
 ./config.status --config
 
 # Debian 10 x86_64, gcc 8.3.0
