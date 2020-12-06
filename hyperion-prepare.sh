@@ -105,7 +105,7 @@ fi
 verbose_msg()
 {
     if ($VERBOSE); then
-	echo "$1"
+        echo "$1"
     fi
 }
 
@@ -135,30 +135,30 @@ detect_system()
     # Look for Debian/Ubuntu/Mint
 
     if [[ $VERSION_ID == debian* || $VERSION_ID == ubuntu* ]]; then
-	# if [[ $(lsb_release -rs) == "18.04" ]]; then
-	VERSION_DISTRO=Debian
-	VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
-	VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
+        # if [[ $(lsb_release -rs) == "18.04" ]]; then
+        VERSION_DISTRO=Debian
+        VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
+        VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
 
-	verbose_msg "OS               : $VERSION_DISTRO variant"
-	verbose_msg "OS Version       : $VERSION_MAJOR"
+        verbose_msg "OS               : $VERSION_DISTRO variant"
+        verbose_msg "OS Version       : $VERSION_MAJOR"
     fi
 
     if [[ $VERSION_ID == centos* ]]; then
-	verbose_msg "We have a CentOS system"
+        verbose_msg "We have a CentOS system"
 
-	# CENTOS_VERS="centos-release-7-8.2003.0.el7.centos.x86_64"
-	# CENTOS_VERS="centos-release-8.2-2.2004.0.2.el8.x86_64"
+        # CENTOS_VERS="centos-release-7-8.2003.0.el7.centos.x86_64"
+        # CENTOS_VERS="centos-release-8.2-2.2004.0.2.el8.x86_64"
 
-	CENTOS_VERS=$(rpm --query centos-release) || true
-	CENTOS_VERS="${CENTOS_VERS#centos-release-}"
-	CENTOS_VERS="${CENTOS_VERS/-/.}"
+        CENTOS_VERS=$(rpm --query centos-release) || true
+        CENTOS_VERS="${CENTOS_VERS#centos-release-}"
+        CENTOS_VERS="${CENTOS_VERS/-/.}"
 
-	VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
-	VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
+        VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
+        VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
 
-	verbose_msg "VERSION_MAJOR : $VERSION_MAJOR"
-	verbose_msg "VERSION_MINOR : $VERSION_MINOR"
+        verbose_msg "VERSION_MAJOR : $VERSION_MAJOR"
+        verbose_msg "VERSION_MINOR : $VERSION_MINOR"
     fi
 
     # show the default language
@@ -180,23 +180,23 @@ if [[ $VERSION_ID == debian* || $VERSION_ID == ubuntu* ]]; then
     declare -a debian_packages=( \
         "git" \
         "build-essential" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
-	"libbz2-dev" "zlib1g-dev"
+        "libbz2-dev" "zlib1g-dev"
     )
 
     for package in "${debian_packages[@]}"; do
-	echo "-----------------------------------------------------------------"
+        echo "-----------------------------------------------------------------"
         echo "Checking for package: $package"
 
-	is_installed=$(/usr/bin/dpkg-query --show --showformat='${db:Status-Status}\n' $package)
-	status=$?
+        is_installed=$(/usr/bin/dpkg-query --show --showformat='${db:Status-Status}\n' $package)
+        status=$?
 
-	# install if missing
-	if [ $status -eq 0 ] && [ "$is_installed" == "installed" ]; then
-	    echo "package: $package is already installed"
-	else
-	    echo "installing package: $package"
-	    sudo apt-get -y install $package
-	fi
+        # install if missing
+        if [ $status -eq 0 ] && [ "$is_installed" == "installed" ]; then
+            echo "package: $package is already installed"
+        else
+            echo "installing package: $package"
+            sudo apt-get -y install $package
+        fi
     done
 fi
 
@@ -204,64 +204,65 @@ fi
 
 if [[ $VERSION_ID == centos* ]]; then
     if [[ $VERSION_MAJOR -ge 7 ]]; then
-	echo "CentOS version 7 or later found"
+        echo "CentOS version 7 or later found"
 
-	declare -a centos_packages=( \
+        declare -a centos_packages=( \
             "git" "wget" \
             "gcc" "make" "autoconf" "automake" "flex" "gawk" "m4"
-	    "cmake3"
-	    "bzip2-devel" "zlib-devel"
-	)
+            "cmake3"
+            "bzip2-devel" "zlib-devel"
+        )
 
-	for package in "${centos_packages[@]}"; do
-	    echo "-----------------------------------------------------------------"
+        for package in "${centos_packages[@]}"; do
+            echo "-----------------------------------------------------------------"
 
-	    #yum list installed bzip2-devel  > /dev/null 2>&1 ; echo $?
-	    yum list installed $package
-	    status=$?
+            #yum list installed bzip2-devel  > /dev/null 2>&1 ; echo $?
+            yum list installed $package
+            status=$?
 
-	    # install if missing
-	    if [ $status -eq 0 ]; then
-		echo "package $package is already installed"
-	    else
-		echo "installing package: $package"
-		sudo yum -y install $package
-	    fi
-	done
+            # install if missing
+            if [ $status -eq 0 ]; then
+                echo "package $package is already installed"
+            else
+                echo "installing package: $package"
+                sudo yum -y install $package
+            fi
+        done
 
-	if [[ $VERSION_MAJOR -eq 7 ]]; then
+        if [[ $VERSION_MAJOR -eq 7 ]]; then
 
-	    echo "-----------------------------------------------------------------"
+            echo "-----------------------------------------------------------------"
 # cmake presence: /usr/local/bin/cmake
 # /usr/local/bin/cmake status: 0
             which_cmake=$(which cmake)
             which_status=$?
 
-	    echo "CMAKE presence: $which_cmake"
+            echo "CMAKE presence: $which_cmake"
             echo "(which cmake) status: $which_status"
 
             if [ $which_status -eq 1 ]; then
-		echo "On CentOS 7, there is no package for CMAKE 3.x"
-		echo "Building from source..."
+                echo "On CentOS 7, there is no package for CMAKE 3.x"
+                echo "Building from source..."
 
-		mkdir -p ~/tools
-		pushd ~/tools > /dev/null;
+                mkdir -p ~/tools
+                pushd ~/tools > /dev/null;
 
-		if [ ! -f cmake-3.12.3.tar.gz ]; then
-		    wget https://cmake.org/files/v3.12/cmake-3.12.3.tar.gz
+                if [ ! -f cmake-3.12.3.tar.gz ]; then
+                    wget https://cmake.org/files/v3.12/cmake-3.12.3.tar.gz
                 fi
 
-		tar xfz cmake-3.12.3.tar.gz
-		cd cmake-3.12.3/
-		./bootstrap --prefix=/usr/local
-		make -j$(nproc)
-		sudo make install
-		cmake --version
-		popd > /dev/null;
+                tar xfz cmake-3.12.3.tar.gz
+                cd cmake-3.12.3/
+                ./bootstrap --prefix=/usr/local
+                make -j$(nproc)
+                sudo make install
+                cmake --version
+                popd > /dev/null;
             fi
+
         fi
     else
-	echo "CentOS version 6 or earlier found, and not supported"
+        echo "CentOS version 6 or earlier found, and not supported"
         exit 1
     fi
 fi

@@ -179,7 +179,7 @@ pop_shopt()
 verbose_msg()
 {
     if ($VERBOSE); then
-	echo "$1"
+        echo "$1"
     fi
 }
 
@@ -212,30 +212,30 @@ detect_system()
     # Look for Debian/Ubuntu/Mint
 
     if [[ $VERSION_ID == debian* || $VERSION_ID == ubuntu* ]]; then
-	# if [[ $(lsb_release -rs) == "18.04" ]]; then
-	VERSION_DISTRO=Debian
-	VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
-	VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
+        # if [[ $(lsb_release -rs) == "18.04" ]]; then
+        VERSION_DISTRO=Debian
+        VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
+        VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
 
-	verbose_msg "OS               : $VERSION_DISTRO variant"
-	verbose_msg "OS Version       : $VERSION_MAJOR"
+        verbose_msg "OS               : $VERSION_DISTRO variant"
+        verbose_msg "OS Version       : $VERSION_MAJOR"
     fi
 
     if [[ $VERSION_ID == centos* ]]; then
-	verbose_msg "We have a CentOS system"
+        verbose_msg "We have a CentOS system"
 
-	# CENTOS_VERS="centos-release-7-8.2003.0.el7.centos.x86_64"
-	# CENTOS_VERS="centos-release-8.2-2.2004.0.2.el8.x86_64"
+        # CENTOS_VERS="centos-release-7-8.2003.0.el7.centos.x86_64"
+        # CENTOS_VERS="centos-release-8.2-2.2004.0.2.el8.x86_64"
 
-	CENTOS_VERS=$(rpm --query centos-release) || true
-	CENTOS_VERS="${CENTOS_VERS#centos-release-}"
-	CENTOS_VERS="${CENTOS_VERS/\-/\.}"
+        CENTOS_VERS=$(rpm --query centos-release) || true
+        CENTOS_VERS="${CENTOS_VERS#centos-release-}"
+        CENTOS_VERS="${CENTOS_VERS/\-/\.}"
 
-	VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
-	VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
+        VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
+        VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
 
-	verbose_msg "VERSION_MAJOR : $VERSION_MAJOR"
-	verbose_msg "VERSION_MINOR : $VERSION_MINOR"
+        verbose_msg "VERSION_MAJOR    : $VERSION_MAJOR"
+        verbose_msg "VERSION_MINOR    : $VERSION_MINOR"
     fi
 
     # show the default language
@@ -410,9 +410,9 @@ else
     echo "-----------------------------------------------------------------
 "
     if ($PROMPTS); then
-	read -p "Hit return to continue (Step: autogen.sh)"
+        read -p "Hit return to continue (Step: autogen.sh)"
 
-	./autogen.sh
+        ./autogen.sh
     fi
 fi
 
