@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 30 NOV 2020
+# Updated:  9 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -23,7 +23,11 @@
 # - write out hercules-setvars.sh to create required environment variables
 # - show the system language
 # - display improvements
-
+#
+# Updated:  9 DEC 2020
+# - wrljet build-mods-i686 branch is merged to SDL-Hercules-390, 
+#   so we git clone from that directly
+    
 #-----------------------------------------------------------------------------
 #
 # To run, create a build directory and cd to it, then run this script.
@@ -333,6 +337,12 @@ cd hyperion
 git branch -va
 #git checkout build-mods-reqs
 
+echo "-----------------------------------------------------------------
+"
+if ($PROMPTS); then
+    read -p "Hit return to continue (Step: util/bldlvlck)"
+fi
+
 # Check for required packages and minimum versions.
 # Inspect the output carefully and do not continue if there are
 # any error messages or recommendations unless you know what you're doing.
@@ -353,9 +363,12 @@ rm -rf extpkgs
 mkdir extpkgs
 cd extpkgs/
 
-echo "Cloning extpkgs from https://github.com/wrljet (branch: build-mods-i686)"
+# echo "Cloning extpkgs from https://github.com/wrljet (branch: build-mods-i686)"
+# git clone -b build-mods-i686 https://github.com/wrljet/gists.git
 
-git clone -b build-mods-i686 https://github.com/wrljet/gists.git
+echo "Cloning extpkgs from https://github.com/SDL-Hercules-390"
+git clone https://github.com/SDL-Hercules-390/gists.git
+
 cp gists/extpkgs.sh .
 cp gists/extpkgs.sh.ini .
 
@@ -383,7 +396,8 @@ for pgm in "${pgms[@]}"; do
     echo "-----------------------------------------------------------------
 "
     echo "$pgm"
-    git clone -b build-mods-i686 "https://github.com/wrljet/$pgm.git" "$pgm-0"
+    git clone "https://github.com/SDL-Hercules-390/$pgm.git" "$pgm-0"
+#   git clone -b build-mods-i686 "https://github.com/wrljet/$pgm.git" "$pgm-0"
 #   git clone "https://github.com/wrljet/$pgm.git" "$pgm-0"
 #
 #   pushd "$pgm-0" > /dev/null;
