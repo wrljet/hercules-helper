@@ -25,6 +25,11 @@
 # - added m4 as a required package for Debian
 # - show the system language
 # - display improvements
+#
+# Updated:  6 DEC 2020
+# - another fix for CentOS 7.x detection
+# - improve system status info for debugging
+# - fix configure C pre-processor detection on CentOS
 
 # Checks for, and installs, required packages based on system type.
 #   git
