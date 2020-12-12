@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated:  9 DEC 2020
+# Updated: 11 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -27,6 +27,9 @@
 # Updated:  9 DEC 2020
 # - wrljet build-mods-i686 branch is merged to SDL-Hercules-390, 
 #   so we git clone from that directly
+#
+# Updated: 11 DEC 2020
+# - changes to accomodate NetBSD (in-progress)
     
 #-----------------------------------------------------------------------------
 #
