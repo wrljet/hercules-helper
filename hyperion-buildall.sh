@@ -36,6 +36,7 @@
 #
 # Updated: 13 DEC 2020
 # - changes to accomodate Mint (in-progress)
+# - changes to accomodate Windows WSL2
 # - break out common functions to utilfns.sh include file
 
 #-----------------------------------------------------------------------------
@@ -189,10 +190,17 @@ echo "g++ presence     : $(which g++ || true)"
 
 echo "looking for files ... please wait ..."
 
-which_cc1=$(find / -name cc1 -print 2>&1 | grep cc1)
-echo "cc1 presence     : $which_cc1"
+if [[ $VERSION_WSL -eq 2 ]]; then
+    # echo "Windows WSL2 host system found"
+    # Don't run a search on /mnt because it takes forever
+    which_cc1=$(find / -path /mnt -prune -o -name cc1 -print 2>&1 | grep cc1)
+    which_cc1plus=$(find / -path /mnt -prune -o -name cc1plus -print 2>&1 | grep cc1plus)
+else
+    which_cc1=$(find / -name cc1 -print 2>&1 | grep cc1)
+    which_cc1plus=$(find / -name cc1plus -print 2>&1 | grep cc1plus)
+fi
 
-which_cc1plus=$(find / -name cc1plus -print 2>&1 | grep cc1plus)
+echo "cc1 presence     : $which_cc1"
 echo "cc1plus presence : $which_cc1plus"
 
 start_seconds="$(TZ=UTC0 printf '%(%s)T\n' '-1')"

@@ -40,6 +40,7 @@
 #
 # Updated: 13 DEC 2020
 # - changes to accomodate Mint (in-progress)
+# - changes to accomodate Windows WSL2
 # - break out common functions to utilfns.sh include file
 
 # Checks for, and installs, required packages based on system type.
@@ -116,7 +117,7 @@ if [ "$EUID" -eq 0 ]; then
 fi
 
 # Read in the utility functions
-source utilfns.sh
+source "$(dirname "$0")/utilfns.sh"
 
 verbose_msg "Options:"
 verbose_msg "TRACE            : ${TRACE}"
@@ -126,6 +127,15 @@ verbose_msg "VERBOSE          : ${VERBOSE}"
 detect_system
 
 echo    # print a new line
+
+if [[ $VERSION_WSL -eq 1 ]]; then
+    echo "Not supported under Windows WSL1!"
+    exit 1
+fi
+
+if [[ $VERSION_WSL -eq 2 ]]; then
+    echo "Windows WSL2 host system found"
+fi
 
 case $VERSION_DISTRO in
   debian)

@@ -21,7 +21,7 @@
 verbose_msg()
 {
     if ($VERBOSE); then
-        echo "$1"
+        echo "$@"
     fi
 }
 
@@ -113,6 +113,25 @@ detect_system()
 	# i.e. LANG=en_US.UTF-8
 	verbose_msg "Language         : $(env | grep LANG)"
 
+	# Check if running under Windows WSL
+	VERSION_WSL=0
+
+	verbose_msg -n "Checking for Windows WSL1... "
+	if [[ "$(< /proc/version)" == *@(Microsoft|WSL)* ]]; then
+	    verbose_msg "running on WSL1"
+	    VERSION_WSL=1
+	else
+	    echo "nope"
+	fi
+
+	verbose_msg -n "Checking for Windows WSL2... "
+	if [ $(uname -r | sed -n 's/.*\( *Microsoft *\).*/\1/ip') ]; then
+	    verbose_msg "running on WSL2"
+	    VERSION_WSL=2
+	else
+	    echo "nope"
+	fi
+
     elif [ "${OS_NAME}" = "OpenBSD" -o "${OS_NAME}" = "NetBSD" ]; then
 
 	VERSION_DISTRO=netbsd
@@ -142,6 +161,7 @@ detect_system()
 	verbose_msg "VERSION_STR      : $VERSION_STR"
 
 	# show the default language
+
 	# i.e. LANG=en_US.UTF-8
 	verbose_msg "Language         : <unknown>"
     fi
