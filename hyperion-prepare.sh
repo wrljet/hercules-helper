@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Prepare system for building SDL-Hercules-390
-# Updated: 11 DEC 2020
+# Updated: 12 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -34,6 +34,9 @@
 #
 # Updated: 11 DEC 2020
 # - changes to accomodate NetBSD (in-progress)
+#
+# Updated: 12 DEC 2020
+# - changes to accomodate KDE Neon (in-progress)
 
 # Checks for, and installs, required packages based on system type.
 #   git
@@ -137,17 +140,21 @@ detect_system()
 	VERSION_STR=$(awk -F= '$1=="VERSION_ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
 	# echo "VERSION_STR is $VERSION_STR"
 
+	VERSION_PRETTY_NAME=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+
 	verbose_msg "Memory Total (MB): $(free -m | awk '/^Mem:/{print $2}')"
 	verbose_msg "Memory Free  (MB): $(free -m | awk '/^Mem:/{print $4}')"
 
 	verbose_msg "VERSION_ID       : $VERSION_ID"
 	verbose_msg "VERSION_STR      : $VERSION_STR"
+	verbose_msg "VERSION_PRETTY   : $VERSION_PRETTY_NAME"
 
 	# Look for Debian/Ubuntu/Mint
 
-	if [[ $VERSION_ID == debian* || $VERSION_ID == ubuntu* ]]; then
+	if [[ $VERSION_ID == debian* || $VERSION_ID == ubuntu* || \
+	      $VERSION_ID == neon*   ]]; then
 	    # if [[ $(lsb_release -rs) == "18.04" ]]; then
-	    VERSION_DISTRO=Debian
+	    VERSION_DISTRO=debian
 	    VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
 	    VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
 
@@ -166,6 +173,7 @@ detect_system()
 	    CENTOS_VERS="${CENTOS_VERS#centos-release-}"
 	    CENTOS_VERS="${CENTOS_VERS/-/.}"
 
+	    VERSION_DISTRO=redhat
 	    VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
 	    VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
 
@@ -179,6 +187,7 @@ detect_system()
 
     elif [ "${OS_NAME}" = "OpenBSD" -o "${OS_NAME}" = "NetBSD" ]; then
 
+	VERSION_DISTRO=netbsd
 	VERSION_ID="netbsd"
 
 # for NetBSD:
@@ -218,7 +227,7 @@ detect_system
 
 # Look for Debian/Ubuntu/Mint
 
-if [[ $VERSION_ID == debian* || $VERSION_ID == ubuntu* ]]; then
+if [[ $VERSION_DISTRO == debian  ]]; then
     # if [[ $(lsb_release -rs) == "18.04" ]]; then
 
     declare -a debian_packages=( \

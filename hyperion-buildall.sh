@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 11 DEC 2020
+# Updated: 12 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -30,7 +30,10 @@
 #
 # Updated: 11 DEC 2020
 # - changes to accomodate NetBSD (in-progress)
-    
+#
+# Updated: 12 DEC 2020
+# - changes to accomodate KDE Neon (in-progress)
+
 #-----------------------------------------------------------------------------
 #
 # To run, create a build directory and cd to it, then run this script.
@@ -218,9 +221,10 @@ detect_system()
 
     # Look for Debian/Ubuntu/Mint
 
-    if [[ $VERSION_ID == debian* || $VERSION_ID == ubuntu* ]]; then
+    if [[ $VERSION_ID == debian* || $VERSION_ID == ubuntu* || \
+          $VERSION_DI == neon   ]]; then
         # if [[ $(lsb_release -rs) == "18.04" ]]; then
-        VERSION_DISTRO=Debian
+        VERSION_DISTRO=debian
         VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
         VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
 
@@ -238,6 +242,7 @@ detect_system()
         CENTOS_VERS="${CENTOS_VERS#centos-release-}"
         CENTOS_VERS="${CENTOS_VERS/-/.}"
 
+        VERSION_DISTRO=redhat
         VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
         VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
 
