@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Prepare system for building SDL-Hercules-390
-# Updated: 12 DEC 2020
+# Updated: 13 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -37,6 +37,10 @@
 #
 # Updated: 12 DEC 2020
 # - changes to accomodate KDE Neon (in-progress)
+#
+# Updated: 13 DEC 2020
+# - changes to accomodate Mint (in-progress)
+# - break out common functions to utilfns.sh include file
 
 # Checks for, and installs, required packages based on system type.
 #   git
@@ -96,134 +100,53 @@ if ($TRACE); then
 fi
 
 if [ "$EUID" -eq 0 ]; then
-    echo    # move to a new line
+    echo    # print a new line
     echo "Running this as root is dangerous and can cause misconfiguration issues"
     echo "or damage to your system.  Run as a normal user, and the parts that need"
     echo "it will ask for your sudo password (if required)."
-    echo    # move to a new line
+    echo    # print a new line
     echo "For information, see:"
     echo "https://askubuntu.com/questions/16178/why-is-it-bad-to-log-in-as-root"
     echo "https://wiki.debian.org/sudo/"
     echo "https://phoenixnap.com/kb/how-to-create-add-sudo-user-centos"
-    echo    # move to a new line
+    echo    # print a new line
     read -p "Hit return to exit" -n 1 -r
-    echo    # move to a new line
+    echo    # print a new line
     exit 1
 fi
 
-#------------------------------------------------------------------------------
-#                               verbose_msg
-#------------------------------------------------------------------------------
-verbose_msg()
-{
-    if ($VERBOSE); then
-        echo "$1"
-    fi
-}
+# Read in the utility functions
+source utilfns.sh
 
-#------------------------------------------------------------------------------
-#                               detect_system
-#------------------------------------------------------------------------------
-detect_system()
-{
-    OS_NAME=$(uname -s)
-    verbose_msg "OS Type          : $OS_NAME"
-
-    machine=$(uname -m)
-    verbose_msg "Machine Arch     : $machine"
-
-    if [ "${OS_NAME}" = "Linux" ]; then
-	# awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release
-	VERSION_ID=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-	# echo "VERSION_ID is $VERSION_ID"
-
-	VERSION_STR=$(awk -F= '$1=="VERSION_ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-	# echo "VERSION_STR is $VERSION_STR"
-
-	VERSION_PRETTY_NAME=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-
-	verbose_msg "Memory Total (MB): $(free -m | awk '/^Mem:/{print $2}')"
-	verbose_msg "Memory Free  (MB): $(free -m | awk '/^Mem:/{print $4}')"
-
-	verbose_msg "VERSION_ID       : $VERSION_ID"
-	verbose_msg "VERSION_STR      : $VERSION_STR"
-	verbose_msg "VERSION_PRETTY   : $VERSION_PRETTY_NAME"
-
-	# Look for Debian/Ubuntu/Mint
-
-	if [[ $VERSION_ID == debian* || $VERSION_ID == ubuntu* || \
-	      $VERSION_ID == neon*   ]]; then
-	    # if [[ $(lsb_release -rs) == "18.04" ]]; then
-	    VERSION_DISTRO=debian
-	    VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
-	    VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
-
-	    verbose_msg "OS               : $VERSION_DISTRO variant"
-	    verbose_msg "OS Version       : $VERSION_MAJOR"
-	fi
-
-	if [[ $VERSION_ID == centos* ]]; then
-	    verbose_msg "We have a CentOS system"
-
-	    # CENTOS_VERS="centos-release-7-8.2003.0.el7.centos.x86_64"
-	    # CENTOS_VERS="centos-release-7.9.2009.1.el7.centos.x86_64"
-	    # CENTOS_VERS="centos-release-8.2-2.2004.0.2.el8.x86_64"
-
-	    CENTOS_VERS=$(rpm --query centos-release) || true
-	    CENTOS_VERS="${CENTOS_VERS#centos-release-}"
-	    CENTOS_VERS="${CENTOS_VERS/-/.}"
-
-	    VERSION_DISTRO=redhat
-	    VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
-	    VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
-
-	    verbose_msg "VERSION_MAJOR    : $VERSION_MAJOR"
-	    verbose_msg "VERSION_MINOR    : $VERSION_MINOR"
-	fi
-
-	# show the default language
-	# i.e. LANG=en_US.UTF-8
-	verbose_msg "Language         : $(env | grep LANG)"
-
-    elif [ "${OS_NAME}" = "OpenBSD" -o "${OS_NAME}" = "NetBSD" ]; then
-
-	VERSION_DISTRO=netbsd
-	VERSION_ID="netbsd"
-
-# for NetBSD:
-# [bill@daisy:~/herctest] $ cat /proc/meminfo
-#         total:    used:    free:  shared: buffers: cached:
-# Mem:  66666078208 59402612736 7263465472        0 41681768448 43967352832
-# Swap: 68718448640        0 68718448640
-# MemTotal:  65103592 kB
-# MemFree:    7093228 kB
-# MemShared:        0 kB
-# Buffers:   40704852 kB
-# Cached:    42936868 kB
-# SwapTotal: 67107860 kB
-# SwapFree:  67107860 kB
-
-	NETBSD_MEMINFO=$(cat /proc/meminfo)
-	verbose_msg "Memory Total (MB): $(cat /proc/meminfo | awk '/^Mem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
-	verbose_msg "Memory Free  (MB): $(cat /proc/meminfo | awk '/^Mem:/{mb = $4/1024/1024; printf "%.0f", mb}')"
-
-        # 9.0_STABLE
-	VERSION_STR=$(uname -r)
-
-	verbose_msg "VERSION_ID       : $VERSION_ID"
-	verbose_msg "VERSION_STR      : $VERSION_STR"
-
-	# show the default language
-	# i.e. LANG=en_US.UTF-8
-	verbose_msg "Language         : <unknown>"
-    fi
-}
-
+verbose_msg "Options:"
 verbose_msg "TRACE            : ${TRACE}"
 verbose_msg "VERBOSE          : ${VERBOSE}"
 
 # Detect type of system we're running on and display info
 detect_system
+
+echo    # print a new line
+
+case $VERSION_DISTRO in
+  debian)
+    echo "$VERSION_DISTRO based system found"
+    ;;
+
+  redhat)
+    echo "$VERSION_DISTRO based system found"
+    ;;
+
+  netbsd*)
+    echo "$VERSION_DISTRO based system found"
+    echo "Not yet supported!"
+    exit 1
+    ;;
+
+  *)
+    ;;
+esac
+
+echo    # print a new line
 
 # Look for Debian/Ubuntu/Mint
 
@@ -336,7 +259,7 @@ if [[ $VERSION_ID == centos* ]]; then
             fi
         fi
 
-        echo    # move to a new line
+        echo    # print a new line
     else
         echo "CentOS version 6 or earlier found, and not supported"
         exit 1
