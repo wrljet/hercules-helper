@@ -33,7 +33,7 @@ OpenSUSE  15.1      x86_64    gcc 7.5.0   VMware          not ready yet
 
 RPI OS (beta)       AArch64   gcc 8.3.0   Rasp Pi 4B 8GB  12/13/2020
 Ubuntu Mate 20.10   AArch64   gcc 10.2.0  Rasp Pi 4B 4GB  12/12/2020
-Raspbian  5/27/2020 armv7l    gcc 8.3.0   Rasp Pi 4B 8GB  12/13/2020
+Raspbian  5/27/2020 armv7l    gcc 8.3.0   Rasp Pi 4B 8GB  12/13/2020    CBUC test fails
 
 NetBSD    9.0       amd64     gcc 7.4.0   AMD64 PC        not ready yet
 
