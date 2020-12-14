@@ -41,6 +41,7 @@
 # Updated: 13 DEC 2020
 # - changes to accomodate Mint (in-progress)
 # - changes to accomodate Windows WSL2
+# - changes to accomodate Raspberry Pi 32-bit Raspbian
 # - break out common functions to utilfns.sh include file
 
 # Checks for, and installs, required packages based on system type.

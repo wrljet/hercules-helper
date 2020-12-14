@@ -37,6 +37,7 @@
 # Updated: 13 DEC 2020
 # - changes to accomodate Mint (in-progress)
 # - changes to accomodate Windows WSL2
+# - changes to accomodate Raspberry Pi 32-bit Raspbian
 # - break out common functions to utilfns.sh include file
 
 #-----------------------------------------------------------------------------
@@ -296,11 +297,14 @@ cp gists/extpkgs.sh.ini .
 # Edit extpkgs.sh.ini
 # Change 'x86' to 'aarch64' for 64-bit, or 'arm' for 32-bit, etc.
 
-if [[ "$(uname -m)" == x86* ]]; then
+if   [[ "$(uname -m)" == x86* ]]; then
     echo "Defaulting to x86 machine type in extpkgs.sh.ini"
+elif [[ "$(uname -m)" == armv7l ]]; then
+    mv extpkgs.sh.ini extpkgs.sh.ini-orig
+    sed "s/x86/arm/g" extpkgs.sh.ini-orig > extpkgs.sh.ini
 else
-    mv extpkgs.sh.ini extpkgs.sh.ini-x86
-    sed "s/x86/$(uname -m)/g" extpkgs.sh.ini-x86 > extpkgs.sh.ini
+    mv extpkgs.sh.ini extpkgs.sh.ini-orig
+    sed "s/x86/$(uname -m)/g" extpkgs.sh.ini-orig > extpkgs.sh.ini
 fi
 
 mkdir repos && cd repos

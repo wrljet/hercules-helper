@@ -31,6 +31,9 @@ verbose_msg()
 detect_system()
 {
 
+# $ cat /boot/issue.txt | head -1
+#  Raspberry Pi reference 2020-05-27
+
 # /etc/os-release
 #
 #  NAME="Linux Mint"
@@ -79,8 +82,10 @@ detect_system()
 
 	# Look for Debian/Ubuntu/Mint
 
-	if [[ $VERSION_ID == debian* || $VERSION_ID == ubuntu*    || \
-	      $VERSION_ID == neon*   || $VERSION_ID == linuxmint* ]]; then
+	if [[ $VERSION_ID == debian*  || $VERSION_ID == ubuntu*    || \
+	      $VERSION_ID == neon*    || $VERSION_ID == linuxmint* || \
+	      $VERSION_ID == raspbian*                             ]];
+	then
 	    # if [[ $(lsb_release -rs) == "18.04" ]]; then
 	    VERSION_DISTRO=debian
 	    VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
@@ -89,6 +94,10 @@ detect_system()
 	    verbose_msg "OS               : $VERSION_DISTRO variant"
 	    verbose_msg "OS Version       : $VERSION_MAJOR"
 	fi
+
+	if [[ $VERSION_ID == raspbian* ]]; then
+        echo "$(cat /boot/issue.txt | head -1)"
+    fi
 
 	if [[ $VERSION_ID == centos* ]]; then
 	    verbose_msg "We have a CentOS system"
