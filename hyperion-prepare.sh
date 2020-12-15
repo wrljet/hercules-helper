@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Prepare system for building SDL-Hercules-390
-# Updated: 13 DEC 2020
+# Updated: 15 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -43,6 +43,9 @@
 # - changes to accomodate Windows WSL2
 # - changes to accomodate Raspberry Pi 32-bit Raspbian
 # - break out common functions to utilfns.sh include file
+#
+# Updated: 15 DEC 2020
+# - changes to detect and disallow Raspberry Pi Desktop for PC
 
 # Checks for, and installs, required packages based on system type.
 #   git
@@ -136,6 +139,11 @@ fi
 
 if [[ $VERSION_WSL -eq 2 ]]; then
     echo "Windows WSL2 host system found"
+fi
+
+if [[ $VERSION_RPIDESKTOP -eq 1 ]]; then
+    verbose_msg "Running on Raspberry Pi Desktop (for PC) is not supported!"
+    # exit 1
 fi
 
 case $VERSION_DISTRO in

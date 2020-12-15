@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Utility functions for hercules-helper scripts
-# Updated: 13 DEC 2020
+# Updated: 15 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -14,6 +14,13 @@
 
 # Updated: 13 DEC 2020
 # - initial commit to GitHub
+# - changes to accomodate Mint (in-progress)
+# - changes to accomodate Windows WSL2
+# - changes to accomodate Raspberry Pi 32-bit Raspbian
+# - break out common functions to utilfns.sh include file
+#
+# Updated: 15 DEC 2020
+# - changes to detect and disallow Raspberry Pi Desktop for PC
 
 #------------------------------------------------------------------------------
 #                               verbose_msg
@@ -59,92 +66,110 @@ detect_system()
     verbose_msg "Machine Arch     : $machine"
 
     if [ "${OS_NAME}" = "Linux" ]; then
-	# awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release
-	VERSION_ID=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-	# echo "VERSION_ID is $VERSION_ID"
+        # awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release
+        VERSION_ID=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+        # echo "VERSION_ID is $VERSION_ID"
 
-	VERSION_ID_LIKE=$(awk -F= '$1=="ID_LIKE" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-	# echo "VERSION_ID_LIKE is $VERSION_ID_LIKE"
+        VERSION_ID_LIKE=$(awk -F= '$1=="ID_LIKE" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+        # echo "VERSION_ID_LIKE is $VERSION_ID_LIKE"
 
-	VERSION_PRETTY_NAME=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-	# echo "VERSION_STR is $VERSION_STR"
+        VERSION_PRETTY_NAME=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+        # echo "VERSION_STR is $VERSION_STR"
 
-	VERSION_STR=$(awk -F= '$1=="VERSION_ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-	# echo "VERSION_STR is $VERSION_STR"
+        VERSION_STR=$(awk -F= '$1=="VERSION_ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+        # echo "VERSION_STR is $VERSION_STR"
 
-	verbose_msg "Memory Total (MB): $(free -m | awk '/^Mem:/{print $2}')"
-	verbose_msg "Memory Free  (MB): $(free -m | awk '/^Mem:/{print $4}')"
+        verbose_msg "Memory Total (MB): $(free -m | awk '/^Mem:/{print $2}')"
+        verbose_msg "Memory Free  (MB): $(free -m | awk '/^Mem:/{print $4}')"
 
-	verbose_msg "VERSION_ID       : $VERSION_ID"
-	verbose_msg "VERSION_ID_LIKE  : $VERSION_ID_LIKE"
-	verbose_msg "VERSION_PRETTY   : $VERSION_PRETTY_NAME"
-	verbose_msg "VERSION_STR      : $VERSION_STR"
+        verbose_msg "VERSION_ID       : $VERSION_ID"
+        verbose_msg "VERSION_ID_LIKE  : $VERSION_ID_LIKE"
+        verbose_msg "VERSION_PRETTY   : $VERSION_PRETTY_NAME"
+        verbose_msg "VERSION_STR      : $VERSION_STR"
 
-	# Look for Debian/Ubuntu/Mint
+        # Look for Debian/Ubuntu/Mint
 
-	if [[ $VERSION_ID == debian*  || $VERSION_ID == ubuntu*    || \
-	      $VERSION_ID == neon*    || $VERSION_ID == linuxmint* || \
-	      $VERSION_ID == raspbian*                             ]];
-	then
-	    # if [[ $(lsb_release -rs) == "18.04" ]]; then
-	    VERSION_DISTRO=debian
-	    VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
-	    VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
+        if [[ $VERSION_ID == debian*  || $VERSION_ID == ubuntu*    || \
+              $VERSION_ID == neon*    || $VERSION_ID == linuxmint* || \
+              $VERSION_ID == raspbian*                             ]];
+        then
+            # if [[ $(lsb_release -rs) == "18.04" ]]; then
+            VERSION_DISTRO=debian
+            VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
+            VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
 
-	    verbose_msg "OS               : $VERSION_DISTRO variant"
-	    verbose_msg "OS Version       : $VERSION_MAJOR"
-	fi
+            verbose_msg "OS               : $VERSION_DISTRO variant"
+            verbose_msg "OS Version       : $VERSION_MAJOR"
+        fi
 
-	if [[ $VERSION_ID == raspbian* ]]; then
-        echo "$(cat /boot/issue.txt | head -1)"
-    fi
+        if [[ $VERSION_ID == raspbian* ]]; then
+            echo "$(cat /boot/issue.txt | head -1)"
+        fi
 
-	if [[ $VERSION_ID == centos* ]]; then
-	    verbose_msg "We have a CentOS system"
+        if [[ $VERSION_ID == centos* ]]; then
+            verbose_msg "We have a CentOS system"
 
-	    # CENTOS_VERS="centos-release-7-8.2003.0.el7.centos.x86_64"
-	    # CENTOS_VERS="centos-release-7.9.2009.1.el7.centos.x86_64"
-	    # CENTOS_VERS="centos-release-8.2-2.2004.0.2.el8.x86_64"
+            # CENTOS_VERS="centos-release-7-8.2003.0.el7.centos.x86_64"
+            # CENTOS_VERS="centos-release-7.9.2009.1.el7.centos.x86_64"
+            # CENTOS_VERS="centos-release-8.2-2.2004.0.2.el8.x86_64"
 
-	    CENTOS_VERS=$(rpm --query centos-release) || true
-	    CENTOS_VERS="${CENTOS_VERS#centos-release-}"
-	    CENTOS_VERS="${CENTOS_VERS/-/.}"
+            CENTOS_VERS=$(rpm --query centos-release) || true
+            CENTOS_VERS="${CENTOS_VERS#centos-release-}"
+            CENTOS_VERS="${CENTOS_VERS/-/.}"
 
-	    VERSION_DISTRO=redhat
-	    VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
-	    VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
+            VERSION_DISTRO=redhat
+            VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
+            VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
 
-	    verbose_msg "VERSION_MAJOR    : $VERSION_MAJOR"
-	    verbose_msg "VERSION_MINOR    : $VERSION_MINOR"
-	fi
+            verbose_msg "VERSION_MAJOR    : $VERSION_MAJOR"
+            verbose_msg "VERSION_MINOR    : $VERSION_MINOR"
+        fi
 
-	# show the default language
-	# i.e. LANG=en_US.UTF-8
-	verbose_msg "Language         : $(env | grep LANG)"
+        # show the default language
+        # i.e. LANG=en_US.UTF-8
+        verbose_msg "Language         : $(env | grep LANG)"
 
-	# Check if running under Windows WSL
-	VERSION_WSL=0
+        # Check if running under Windows WSL
+        VERSION_WSL=0
 
-	verbose_msg -n "Checking for Windows WSL1... "
-	if [[ "$(< /proc/version)" == *@(Microsoft|WSL)* ]]; then
-	    verbose_msg "running on WSL1"
-	    VERSION_WSL=1
-	else
-	    echo "nope"
-	fi
+        verbose_msg -n "Checking for Windows WSL1... "
+        if [[ "$(< /proc/version)" == *@(Microsoft|WSL)* ]]; then
+            verbose_msg "running on WSL1"
+            VERSION_WSL=1
+        else
+            echo "nope"
+        fi
 
-	verbose_msg -n "Checking for Windows WSL2... "
-	if [ $(uname -r | sed -n 's/.*\( *Microsoft *\).*/\1/ip') ]; then
-	    verbose_msg "running on WSL2"
-	    VERSION_WSL=2
-	else
-	    echo "nope"
-	fi
+        verbose_msg -n "Checking for Windows WSL2... "
+        if [ $(uname -r | sed -n 's/.*\( *Microsoft *\).*/\1/ip') ]; then
+            verbose_msg "running on WSL2"
+            VERSION_WSL=2
+        else
+            echo "nope"
+        fi
+
+        # Check if running under Raspberry Pi Desktop (for PC)
+
+# Raspberry Pi, native and x86_64 Desktop
+# $ cat /etc/rpi-issue 
+# Raspberry Pi reference 2020-02-12
+# Generated using pi-gen, https://github.com/RPi-Distro/pi-gen, f3b8a04dc10054b328a56fa7570afe6c6d1b856e, stage5
+
+        VERSION_RPIDESKTOP=0
+
+        if [ -f /etc/rpi-issue ]; then
+            if [[ "$(< /etc/rpi-issue)" == *@(Raspberry Pi reference)* &&
+                  "$machine" == "x86_64"                               ]];
+            then
+                verbose_msg "Running on Raspberry Pi Desktop (for PC)"
+                VERSION_RPIDESKTOP=1
+            fi
+        fi
 
     elif [ "${OS_NAME}" = "OpenBSD" -o "${OS_NAME}" = "NetBSD" ]; then
 
-	VERSION_DISTRO=netbsd
-	VERSION_ID="netbsd"
+        VERSION_DISTRO=netbsd
+        VERSION_ID="netbsd"
 
 # for NetBSD:
 # [bill@daisy:~/herctest] $ cat /proc/meminfo
@@ -159,20 +184,20 @@ detect_system()
 # SwapTotal: 67107860 kB
 # SwapFree:  67107860 kB
 
-	NETBSD_MEMINFO=$(cat /proc/meminfo)
-	verbose_msg "Memory Total (MB): $(cat /proc/meminfo | awk '/^Mem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
-	verbose_msg "Memory Free  (MB): $(cat /proc/meminfo | awk '/^Mem:/{mb = $4/1024/1024; printf "%.0f", mb}')"
+        NETBSD_MEMINFO=$(cat /proc/meminfo)
+        verbose_msg "Memory Total (MB): $(cat /proc/meminfo | awk '/^Mem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
+        verbose_msg "Memory Free  (MB): $(cat /proc/meminfo | awk '/^Mem:/{mb = $4/1024/1024; printf "%.0f", mb}')"
 
         # 9.0_STABLE
-	VERSION_STR=$(uname -r)
+        VERSION_STR=$(uname -r)
 
-	verbose_msg "VERSION_ID       : $VERSION_ID"
-	verbose_msg "VERSION_STR      : $VERSION_STR"
+        verbose_msg "VERSION_ID       : $VERSION_ID"
+        verbose_msg "VERSION_STR      : $VERSION_STR"
 
-	# show the default language
+        # show the default language
 
-	# i.e. LANG=en_US.UTF-8
-	verbose_msg "Language         : <unknown>"
+        # i.e. LANG=en_US.UTF-8
+        verbose_msg "Language         : <unknown>"
     fi
 }
 
