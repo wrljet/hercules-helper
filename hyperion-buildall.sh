@@ -234,7 +234,11 @@ wget http://www.wrljet.com/ibm360/regina-rexx-3.9.3.tar.gz
 tar xfz regina-rexx-3.9.3.tar.gz 
 cd regina-rexx-3.9.3/
 
-if [[ "$(uname -m)" == i686* ]]; then
+
+#Raspberry Pi 4B, Raspbian 32-bit
+# uname -m == armv7l
+
+if [[ "$(uname -m)" =~ ^(i686|armv7l) ]]; then
 ./configure --prefix=${BUILD_DIR}/rexx --enable-32bit
 else
 ./configure --prefix=${BUILD_DIR}/rexx
