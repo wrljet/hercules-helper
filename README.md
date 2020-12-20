@@ -16,8 +16,8 @@ or, if you don't have git, or simply prefer:
    wget https://github.com/wrljet/hercules-helper/archive/master.zip
 ```
 
-You will have to mark the bash scripts as executable before running them.
-(with chmod +x)
+You shouldn't have to mark the bash scripts as executable before running them.
+They hopefully will clone ready to run.
 
 Please don't run this process as root.  The scripts will prompt for your
 sudo password where required.
@@ -61,7 +61,6 @@ The full process is:
 ```
 $ cd ~
 $ git clone https://github.com/wrljet/hercules-helper.git
-$ chmod +x ~/hercules-helper/*.sh
 
 $ ~/hercules-helper/hyperion-prepare.sh
 
