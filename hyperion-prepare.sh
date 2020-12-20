@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Prepare system for building SDL-Hercules-390
-# Updated: 15 DEC 2020
+# Updated: 20 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -46,6 +46,9 @@
 #
 # Updated: 15 DEC 2020
 # - changes to detect and disallow Raspberry Pi Desktop for PC
+#
+# Updated: 20 DEC 2020
+# - comment known issue looking for installed state on Ubuntu 12.04
 
 # Checks for, and installs, required packages based on system type.
 #   git
@@ -181,6 +184,10 @@ if [[ $VERSION_DISTRO == debian  ]]; then
     for package in "${debian_packages[@]}"; do
         echo "-----------------------------------------------------------------"
         echo "Checking for package: $package"
+
+	# the following only works on Ubuntu newer than 12.04
+        # another method is:
+        # /usr/bin/dpkg-query -s <packagename> 2>/dev/null | grep -q ^"Status: install ok installed"$
 
         is_installed=$(/usr/bin/dpkg-query --show --showformat='${db:Status-Status}\n' $package)
         status=$?
