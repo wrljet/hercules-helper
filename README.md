@@ -4,19 +4,20 @@ Utility scripts to help with building and deploying the Hercules emulator
 
 These scripts extend the existing functionality of SDL-Hercules-390 gists/extpkgs.
 
-This is a temporary testbed and will be updated occassionally and/or merged
+This is a testbed and will be updated occassionally and/or merged
 into SDL-Hercules-390 and its documentation when completed.
 
 The most recent version of this script can be obtained with:
 ```
    git clone https://github.com/wrljet/hercules-helper.git
 ```
-or:
+or, if you don't have git, or simply prefer:
 ```
    wget https://github.com/wrljet/hercules-helper/archive/master.zip
 ```
 
 You will have to mark the bash scripts as executable before running them.
+(with chmod +x)
 
 Please don't run this process as root.  The scripts will prompt for your
 sudo password where required.
@@ -67,4 +68,19 @@ $ ~/hercules-helper/hyperion-prepare.sh
 $ mkdir herctest && cd herctest
 $ ~/hercules-helper/hyperion-buildall.sh -verbose --prompts --install 2>&1 | tee ./hyperion-buildall.log
 ```
+
+If packages need to be installed you may be asked to supply your sudo password.
+
+You will be prompted a number of times between the major steps, to give you a chance
+to see the results of the last step, and to clue you into what will be happening next.
+
+Hercules will be "installed" if you include the --install option as shown above, into ~/herctest/herc4x
+
+To set the required environment variables after installation, run
+```
+source ~/herctest/hercules-setvars.sh
+```
+
+If anything seems to go wrong, please stop and ask questions at that point.
+Your repair attempts may destroy evidence that would be useful in improving this process for others.
 
