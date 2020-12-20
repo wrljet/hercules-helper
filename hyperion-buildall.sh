@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 15 DEC 2020
+# Updated: 20 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -42,6 +42,10 @@
 #
 # Updated: 15 DEC 2020
 # - changes to detect and disallow Raspberry Pi Desktop for PC
+#
+# Updated: 20 DEC 2020
+# - changes to detect and disallow gcc < 6.3.0 on i686
+# - don't follow mount points while searching for files
 
 #-----------------------------------------------------------------------------
 #
@@ -193,9 +197,118 @@ fi
 #fi
 
 echo "Machine arch     : $(uname -m)"
+echo "CFLAGS           : $CFLAGS"
 echo "gcc presence     : $(which gcc || true)"
 echo "gcc              : $(gcc --version | head -1)"
 echo "g++ presence     : $(which g++ || true)"
+
+# Check for older gcc on i686 systems, that is know to fail CBUC test
+
+as_awk_strverscmp='
+  # Use only awk features that work with 7th edition Unix awk (1978).
+  # My, what an old awk you have, Mr. Solaris!
+  END {
+    while (length(v1) && length(v2)) {
+      # Set d1 to be the next thing to compare from v1, and likewise for d2.
+      # Normally this is a single character, but if v1 and v2 contain digits,
+      # compare them as integers and fractions as strverscmp does.
+      if (v1 ~ /^[0-9]/ && v2 ~ /^[0-9]/) {
+	# Split v1 and v2 into their leading digit string components d1 and d2,
+	# and advance v1 and v2 past the leading digit strings.
+	for (len1 = 1; substr(v1, len1 + 1) ~ /^[0-9]/; len1++) continue
+	for (len2 = 1; substr(v2, len2 + 1) ~ /^[0-9]/; len2++) continue
+	d1 = substr(v1, 1, len1); v1 = substr(v1, len1 + 1)
+	d2 = substr(v2, 1, len2); v2 = substr(v2, len2 + 1)
+	if (d1 ~ /^0/) {
+	  if (d2 ~ /^0/) {
+	    # Compare two fractions.
+	    while (d1 ~ /^0/ && d2 ~ /^0/) {
+	      d1 = substr(d1, 2); len1--
+	      d2 = substr(d2, 2); len2--
+	    }
+	    if (len1 != len2 && ! (len1 && len2 && substr(d1, 1, 1) == substr(d2, 1, 1))) {
+	      # The two components differ in length, and the common prefix
+	      # contains only leading zeros.  Consider the longer to be less.
+	      d1 = -len1
+	      d2 = -len2
+	    } else {
+	      # Otherwise, compare as strings.
+	      d1 = "x" d1
+	      d2 = "x" d2
+	    }
+	  } else {
+	    # A fraction is less than an integer.
+	    exit 1
+	  }
+	} else {
+	  if (d2 ~ /^0/) {
+	    # An integer is greater than a fraction.
+	    exit 2
+	  } else {
+	    # Compare two integers.
+	    d1 += 0
+	    d2 += 0
+	  }
+	}
+      } else {
+	# The normal case, without worrying about digits.
+	d1 = substr(v1, 1, 1); v1 = substr(v1, 2)
+	d2 = substr(v2, 1, 1); v2 = substr(v2, 2)
+      }
+      if (d1 < d2) exit 1
+      if (d1 > d2) exit 2
+    }
+    # Beware Solaris /usr/xgp4/bin/awk (at least through Solaris 10),
+    # which mishandles some comparisons of empty strings to integers.
+    if (length(v2)) exit 1
+    if (length(v1)) exit 2
+  }
+'
+
+hc_gcc_level=$(gcc -dumpversion)
+
+if [[ "$(uname -m)" =~ ^(i686) && $VERSION_DISTRO == debian ]]; then
+    echo # move to a new line
+    echo "Checking for gcc atomics ..."
+
+    as_arg_v1=$hc_gcc_level
+    as_arg_v2="6.3.0"
+
+    set +e
+    awk "$as_awk_strverscmp" v1="$as_arg_v1" v2="$as_arg_v2" /dev/null
+    awk_rc=$?
+    set -e
+
+    case $awk_rc in #(
+      1) :
+        # echo "... 1 found lesser version $hc_gcc_level < $as_arg_v2"
+        hc_cv_gcc_working_atomics=no ;; #(
+      0) :
+        # echo "... 0 found equal version $hc_gcc_level == $as_arg_v2"
+        hc_cv_gcc_working_atomics=yes ;; #(
+      2) :
+        # echo "... 2 found greater version $hc_gcc_level > $as_arg_v2"
+        hc_cv_gcc_working_atomics=yes  ;; #(
+      *) :
+      ;;
+    esac
+
+    if [[ $hc_cv_gcc_working_atomics == no ]]; then
+        echo "gcc versions before $as_arg_v2 will not create a fully functional"
+        echo "Hercules on this 32-bit system. Certain test are known to fail."
+
+        if ($PROMPTS); then
+            if confirm "Continue anyway? [y/N]" ; then
+                echo "OK"
+            else
+                exit 1
+            fi
+        else
+            echo "Giving up"
+            exit 1
+        fi
+    fi
+fi
 
 echo "looking for files ... please wait ..."
 
@@ -205,8 +318,8 @@ if [[ $VERSION_WSL -eq 2 ]]; then
     which_cc1=$(find / -path /mnt -prune -o -name cc1 -print 2>&1 | grep cc1)
     which_cc1plus=$(find / -path /mnt -prune -o -name cc1plus -print 2>&1 | grep cc1plus)
 else
-    which_cc1=$(find / -name cc1 -print 2>&1 | grep cc1)
-    which_cc1plus=$(find / -name cc1plus -print 2>&1 | grep cc1plus)
+    which_cc1=$(find / -mount -name cc1 -print 2>&1 | grep cc1)
+    which_cc1plus=$(find / -mount -name cc1plus -print 2>&1 | grep cc1plus)
 fi
 
 echo "cc1 presence     : $which_cc1"
@@ -235,7 +348,7 @@ tar xfz regina-rexx-3.9.3.tar.gz
 cd regina-rexx-3.9.3/
 
 
-#Raspberry Pi 4B, Raspbian 32-bit
+# Raspberry Pi 4B, Raspbian 32-bit
 # uname -m == armv7l
 
 if [[ "$(uname -m)" =~ ^(i686|armv7l) ]]; then
@@ -394,12 +507,7 @@ echo "./config.status --config ..."
 # CBUC test fails without this
 #   --enable-optimization="-O3 -march=native" \
 
-# Debian 8.11 i686, gcc 5.4.0
-#   --enable-optimization="-O3 -march=native" \
-
-# Debian 9    i686, gcc 6.3
-#   --enable-optimization="-O3 -march=native" \
-#   --enable-optimization="-O3 -march=native -minline-stringops-dynamically -fomit-frame-pointer" \
+# Debian 8 & 9, i686, gcc older then 6.3.0 fails CBUC test
 
 # WRL original for Pi 4 64-bit
 #   --enable-optimization="-O3 -pipe" \

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Utility functions for hercules-helper scripts
-# Updated: 15 DEC 2020
+# Updated: 20 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -203,6 +203,22 @@ detect_system()
 
 #------------------------------------------------------------------------------
 # This last group of helper functions were taken from Fish's extpkgs.sh
+
+#------------------------------------------------------------------------------
+#                              confirm
+#------------------------------------------------------------------------------
+confirm() {
+    # call with a prompt string or use a default
+    read -r -p "${1:-Are you sure? [y/N]} " response
+    case "$response" in
+        [yY][eE][sS]|[yY]) 
+            true
+            ;;
+        *)
+            false
+            ;;
+    esac
+}
 
 #------------------------------------------------------------------------------
 #                              push_shopt
