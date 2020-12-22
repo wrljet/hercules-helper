@@ -1,6 +1,6 @@
 https://github.com/wrljet/hercules-helper
 
-This chart updated:  12/20/2020
+This chart updated:  12/22/2020
 
 VMware indicates VMware 15.5 running on Windows 10 running on Intel i7 CPU
 All builds are compiled natively on the target OS (not cross compiled)
@@ -14,7 +14,7 @@ Target    OS        Target                System
 CentOS    8.2.2004  x86_64    gcc 8.3.1   VMware          12/12/2020
 CentOS    7.9.2009  x86_64    gcc 4.8.5   VMware          12/12/2020
 
-Debian    10.0      x86_64    gcc 8.3.0   VMware          12/12/2020
+Debian    10.0      x86_64    gcc 8.3.0   VMware          12/22/2020
 Debian    10.6      i686      gcc 8.3.0   VMware          12/12/2020
 Debian    9.9       i686      gcc 6.3.0   VMware          12/12/2020
 Debian    8.6       i686      gcc 8.3.0   VMware          12/18/2020
@@ -37,8 +37,8 @@ Mint      20        x86_64    gcc 9.3.0   VMware          12/13/2020
 OpenSUSE  15.1      x86_64    gcc 7.5.0   VMware          not ready yet
 
 RPI OS (beta)       AArch64   gcc 8.3.0   Rasp Pi 4B 8GB  12/13/2020
-Ubuntu Mate 20.10   AArch64   gcc 10.2.0  Rasp Pi 4B 4GB  12/12/2020
-Raspbian  5/27/2020 armv7l    gcc 8.3.0   Rasp Pi 4B 8GB  12/13/2020    CBUC test fails
+Ubuntu Mate 20.10   AArch64   gcc 10.2.0  Rasp Pi 4B 4GB  12/22/2020
+Raspbian  5/27/2020 armv7l    gcc 8.3.0   Rasp Pi 4B 8GB  12/22/2020    CBUC test fails
 
 NetBSD    9.0       amd64     gcc 7.4.0   AMD64 PC        not ready yet
 
