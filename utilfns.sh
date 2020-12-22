@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Utility functions for hercules-helper scripts
-# Updated: 20 DEC 2020
+# Updated: 21 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -21,6 +21,9 @@
 #
 # Updated: 15 DEC 2020
 # - changes to detect and disallow Raspberry Pi Desktop for PC
+#
+# Updated: 21 DEC 2020
+# - detect existing Regina REXX installation
 
 #------------------------------------------------------------------------------
 #                               verbose_msg
@@ -198,6 +201,45 @@ detect_system()
 
         # i.e. LANG=en_US.UTF-8
         verbose_msg "Language         : <unknown>"
+    fi
+}
+
+#------------------------------------------------------------------------------
+#                              detect_regina
+#------------------------------------------------------------------------------
+#
+
+detect_regina()
+{
+    REGINA_VERMAJOR=0
+
+    which_rexx=$(which rexx) || true
+    which_status=$?
+
+    verbose_msg "REXX presence    : $which_rexx"
+    # echo "(which rexx) status: $which_status"
+
+    if [ -z $which_rexx ]; then
+        verbose_msg "REXX             : is not installed"
+    else
+        regina_v=$(rexx -v 2>&1 | grep "Regina")
+        verbose_msg "REXX             : $regina_v"
+
+        regina_name=$(echo ${regina_v} | cut -f1 -d_)
+
+        if [[ $regina_name == "REXX-Regina" ]]; then
+            # echo "we have Regina REXX"
+
+            regina_verstr=$(echo ${regina_v} | cut -f2 -d_)
+            # echo "regina ver string: $regina_verstr"
+            VERSION_REGINA=$(echo ${regina_verstr} | cut -f1 -d.)
+            # echo "regina version major: $VERSION_REGINA"
+            regina_verminor=$(echo ${regina_verstr} | cut -f2 -d. | cut -f1 -d' ')
+            # echo "regina version minor: $regina_verminor"
+            verbose_msg "Regina version   : $VERSION_REGINA.$regina_verminor"
+        else
+            verbose_msg "Found an unknown REXX"
+        fi
     fi
 }
 

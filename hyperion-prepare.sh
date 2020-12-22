@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Prepare system for building SDL-Hercules-390
-# Updated: 20 DEC 2020
+# Updated: 21 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -49,6 +49,10 @@
 #
 # Updated: 20 DEC 2020
 # - comment known issue looking for installed state on Ubuntu 12.04
+#
+# Updated: 21 DEC 2020
+# - detect existing Regina REXX installation
+# - auto install libregina3-dev (on Debian)
 
 # Checks for, and installs, required packages based on system type.
 #   git
@@ -132,6 +136,7 @@ verbose_msg "VERBOSE          : ${VERBOSE}"
 
 # Detect type of system we're running on and display info
 detect_system
+detect_regina
 
 echo    # print a new line
 
@@ -185,7 +190,7 @@ if [[ $VERSION_DISTRO == debian  ]]; then
         echo "-----------------------------------------------------------------"
         echo "Checking for package: $package"
 
-	# the following only works on Ubuntu newer than 12.04
+        # the following only works on Ubuntu newer than 12.04
         # another method is:
         # /usr/bin/dpkg-query -s <packagename> 2>/dev/null | grep -q ^"Status: install ok installed"$
 
@@ -200,6 +205,25 @@ if [[ $VERSION_DISTRO == debian  ]]; then
             sudo apt-get -y install $package
         fi
     done
+
+    if [[ $VERSION_REGINA -ge 3 ]]; then
+        echo "-----------------------------------------------------------------"
+        echo "Found an existing Regina REXX"
+
+        package="libregina3-dev"
+
+        echo "Checking for package: $package"
+        is_installed=$(/usr/bin/dpkg-query --show --showformat='${db:Status-Status}\n' $package)
+        status=$?
+
+        if [ $status -eq 0 ] && [ "$is_installed" == "installed" ]; then
+            echo "package: $package is already installed"
+        else
+            echo "installing package: $package"
+            sudo apt-get -y install $package
+        fi
+    fi
+
 fi
 
 # CentOS 7

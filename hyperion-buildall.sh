@@ -46,6 +46,9 @@
 # Updated: 20 DEC 2020
 # - changes to detect and disallow gcc < 6.3.0 on i686
 # - don't follow mount points while searching for files
+#
+# Updated: 21 DEC 2020
+# - detect existing Regina REXX installation and skip building (Debian only)
 
 #-----------------------------------------------------------------------------
 #
@@ -176,6 +179,7 @@ verbose_msg "USESUDO          : ${USESUDO}"
 
 # Detect type of system we're running on and display info
 detect_system
+detect_regina
 
 echo "BUILD_DIR        : ${BUILD_DIR}"
 echo "INSTALL_DIR      : ${INSTALL_DIR}"
@@ -197,6 +201,7 @@ fi
 #fi
 
 echo "Machine arch     : $(uname -m)"
+echo "CC               : $CC"
 echo "CFLAGS           : $CFLAGS"
 echo "gcc presence     : $(which gcc || true)"
 echo "gcc              : $(gcc --version | head -1)"
@@ -335,35 +340,44 @@ echo "Processing started: $start_time"
 # Build Regina Rexx, which we use to run the Hercules tests
 echo "-----------------------------------------------------------------
 "
-if ($PROMPTS); then
-    read -p "Hit return to continue (Step: Build Regina Rexx [used for test scripts])"
-fi
 
-# Remove any existing Regina, download and untar
-rm -f regina-rexx-3.9.3.tar.gz
-rm -rf regina-rexx-3.9.3/
-
-wget http://www.wrljet.com/ibm360/regina-rexx-3.9.3.tar.gz
-tar xfz regina-rexx-3.9.3.tar.gz 
-cd regina-rexx-3.9.3/
-
-
-# Raspberry Pi 4B, Raspbian 32-bit
-# uname -m == armv7l
-
-if [[ "$(uname -m)" =~ ^(i686|armv7l) ]]; then
-./configure --prefix=${BUILD_DIR}/rexx --enable-32bit
+if [[  $VERSION_REGINA -ge 3 ]]; then
+    echo "Regina REXX is present.  Skipping build from source."
 else
-./configure --prefix=${BUILD_DIR}/rexx
+    if ($PROMPTS); then
+        read -p "Hit return to continue (Step: Build Regina Rexx [used for test scripts])"
+    fi
+
+    # Remove any existing Regina, download and untar
+    rm -f regina-rexx-3.9.3.tar.gz
+    rm -rf regina-rexx-3.9.3/
+
+    wget http://www.wrljet.com/ibm360/regina-rexx-3.9.3.tar.gz
+    tar xfz regina-rexx-3.9.3.tar.gz 
+    cd regina-rexx-3.9.3/
+
+
+    # Raspberry Pi 4B, Raspbian 32-bit
+    # uname -m == armv7l
+
+    #if [[ "$(uname -m)" =~ ^(i686|armv7l) ]]; then
+    if [[ "$(uname -m)" =~ ^(i686) ]]; then
+    regina_configure_cmd="./configure --prefix=${BUILD_DIR}/rexx --enable-32bit"
+    else
+    regina_configure_cmd="./configure --prefix=${BUILD_DIR}/rexx"
+    fi
+
+    echo $regina_configure_cmd
+    eval "$regina_configure_cmd"
+
+    time make
+    time make install
+
+    export PATH=${BUILD_DIR}/rexx/bin:$PATH
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BUILD_DIR}/rexx/lib
+    export CPPFLAGS=-I${BUILD_DIR}/rexx/include
+    echo "which rexx: $(which rexx)"
 fi
-
-time make
-time make install
-
-export PATH=${BUILD_DIR}/rexx/bin:$PATH
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BUILD_DIR}/rexx/lib
-export CPPFLAGS=-I${BUILD_DIR}/rexx/include
-echo "which rexx: $(which rexx)"
 
 #
 echo "-----------------------------------------------------------------
