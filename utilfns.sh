@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Utility functions for hercules-helper scripts
-# Updated: 21 DEC 2020
+# Updated: 22 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -24,6 +24,9 @@
 #
 # Updated: 21 DEC 2020
 # - detect existing Regina REXX installation
+#
+# Updated: 22 DEC 2020
+# - correct Regina REXX detection for different version string formats
 
 #------------------------------------------------------------------------------
 #                               verbose_msg
@@ -222,7 +225,11 @@ detect_regina()
     if [ -z $which_rexx ]; then
         verbose_msg "REXX             : is not installed"
     else
-        regina_v=$(rexx -v 2>&1 | grep "Regina")
+        # rexx -v
+        # REXX-Regina_3.6 5.00 31 Dec 2011
+        # rexx: REXX-Regina_3.9.3 5.00 5 Oct 2019 (32 bit)
+
+        regina_v=$(rexx -v 2>&1 | grep "Regina" | sed "s#^rexx: ##")
         verbose_msg "REXX             : $regina_v"
 
         regina_name=$(echo ${regina_v} | cut -f1 -d_)
