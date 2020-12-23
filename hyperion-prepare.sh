@@ -1,19 +1,50 @@
 #!/usr/bin/env bash
 
 # Prepare system for building SDL-Hercules-390
-# Updated: 21 DEC 2020
+# Updated: 22 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
 # or
-#   wget https://github.com/wrljet/hercules-helper/archive/main.zip
+#   wget https://github.com/wrljet/hercules-helper/archive/master.zip
 #
 # Please report errors in this to me so everyone can benefit.
 #
 # Bill Lewis  wrljet@gmail.com
 
-# Updated: 30 NOV 2020
-# - initial commit to GitHub
+# Changelog:
+#
+# Updated: 21 DEC 2020
+# - detect existing Regina REXX installation
+# - auto install libregina3-dev (on Debian)
+#
+# Updated: 20 DEC 2020
+# - comment known issue looking for installed state on Ubuntu 12.04
+#
+# Updated: 15 DEC 2020
+# - changes to detect and disallow Raspberry Pi Desktop for PC
+#
+# Updated: 13 DEC 2020
+# - changes to accomodate Mint (in-progress)
+# - changes to accomodate Windows WSL2
+# - changes to accomodate Raspberry Pi 32-bit Raspbian
+# - break out common functions to utilfns.sh include file
+#
+# Updated: 12 DEC 2020
+# - changes to accomodate KDE Neon (in-progress)
+#
+# Updated: 11 DEC 2020
+# - changes to accomodate NetBSD (in-progress)
+#
+# Updated:  6 DEC 2020
+# - another fix for CentOS 7.x detection
+# - improve system status info for debugging
+# - fix configure C pre-processor detection on CentOS
+#
+# Updated:  5 DEC 2020
+# - added m4 as a required package for Debian
+# - show the system language
+# - display improvements
 #
 # Updated:  4 DEC 2020
 # - disallow running as the root user
@@ -22,37 +53,8 @@
 # - on CentOS 7, CMAKE 3.x is built from source
 # - added wget as a required package for CentOS
 #
-# Updated:  5 DEC 2020
-# - added m4 as a required package for Debian
-# - show the system language
-# - display improvements
-#
-# Updated:  6 DEC 2020
-# - another fix for CentOS 7.x detection
-# - improve system status info for debugging
-# - fix configure C pre-processor detection on CentOS
-#
-# Updated: 11 DEC 2020
-# - changes to accomodate NetBSD (in-progress)
-#
-# Updated: 12 DEC 2020
-# - changes to accomodate KDE Neon (in-progress)
-#
-# Updated: 13 DEC 2020
-# - changes to accomodate Mint (in-progress)
-# - changes to accomodate Windows WSL2
-# - changes to accomodate Raspberry Pi 32-bit Raspbian
-# - break out common functions to utilfns.sh include file
-#
-# Updated: 15 DEC 2020
-# - changes to detect and disallow Raspberry Pi Desktop for PC
-#
-# Updated: 20 DEC 2020
-# - comment known issue looking for installed state on Ubuntu 12.04
-#
-# Updated: 21 DEC 2020
-# - detect existing Regina REXX installation
-# - auto install libregina3-dev (on Debian)
+# Updated: 30 NOV 2020
+# - initial commit to GitHub
 
 # Checks for, and installs, required packages based on system type.
 #   git

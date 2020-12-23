@@ -12,6 +12,17 @@
 #
 # Bill Lewis  wrljet@gmail.com
 
+# Changelog:
+#
+# Updated: 22 DEC 2020
+# - correct Regina REXX detection for different version string formats
+#
+# Updated: 21 DEC 2020
+# - detect existing Regina REXX installation
+#
+# Updated: 15 DEC 2020
+# - changes to detect and disallow Raspberry Pi Desktop for PC
+#
 # Updated: 13 DEC 2020
 # - initial commit to GitHub
 # - changes to accomodate Mint (in-progress)
@@ -19,14 +30,6 @@
 # - changes to accomodate Raspberry Pi 32-bit Raspbian
 # - break out common functions to utilfns.sh include file
 #
-# Updated: 15 DEC 2020
-# - changes to detect and disallow Raspberry Pi Desktop for PC
-#
-# Updated: 21 DEC 2020
-# - detect existing Regina REXX installation
-#
-# Updated: 22 DEC 2020
-# - correct Regina REXX detection for different version string formats
 
 #------------------------------------------------------------------------------
 #                               verbose_msg
@@ -210,7 +213,6 @@ detect_system()
 #------------------------------------------------------------------------------
 #                              detect_regina
 #------------------------------------------------------------------------------
-#
 
 detect_regina()
 {
