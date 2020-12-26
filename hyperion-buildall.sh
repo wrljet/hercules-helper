@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 24 DEC 2020
+# Updated: 25 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -13,6 +13,9 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 25 DEC 2020
+# - check for armv6l on Raspberry Pi Zero
 #
 # Updated: 24 DEC 2020
 # - use existing installed REXX for configure and 'make check'
@@ -372,11 +375,6 @@ else
     tar xfz regina-rexx-3.9.3.tar.gz 
     cd regina-rexx-3.9.3/
 
-
-    # Raspberry Pi 4B, Raspbian 32-bit
-    # uname -m == armv7l
-
-    #if [[ "$(uname -m)" =~ ^(i686|armv7l) ]]; then
     if [[ "$(uname -m)" =~ ^(i686) ]]; then
         regina_configure_cmd="./configure --prefix=${BUILD_DIR}/rexx --enable-32bit"
     else
@@ -457,7 +455,7 @@ cp gists/extpkgs.sh.ini .
 
 if   [[ "$(uname -m)" == x86* ]]; then
     echo "Defaulting to x86 machine type in extpkgs.sh.ini"
-elif [[ "$(uname -m)" == armv7l ]]; then
+elif [[ "$(uname -m)" =~ (armv6l|armv7l) ]]; then
     mv extpkgs.sh.ini extpkgs.sh.ini-orig
     sed "s/x86/arm/g" extpkgs.sh.ini-orig > extpkgs.sh.ini
 else
@@ -507,6 +505,9 @@ DEBUG=1 ./extpkgs.sh  c d s t
 # ./extpkgs.sh c d s t
 
 cd ${BUILD_DIR}/sdl4x/hyperion
+
+# I understand some people don't, but I like to run autogen.
+# We will skip it, though, on x86_64 machines.
 
 if [[ "$(uname -m)" == x86* ]]; then
     echo "Skipping autogen step on x86* architecture"

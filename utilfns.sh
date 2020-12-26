@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Utility functions for hercules-helper scripts
-# Updated: 24 DEC 2020
+# Updated: 25 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -13,6 +13,9 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 25 DEC 2020
+# - add detection of Raspberry Pi models
 #
 # Updated: 24 DEC 2020
 # - detect existing ooRexx
@@ -52,6 +55,79 @@ verbose_msg()
 error_msg()
 {
     printf "\033[1;37m[[ \033[1;31merror: \033[1;37m]] \033[0m$1\n"
+}
+
+#------------------------------------------------------------------------------
+#                               detect_pi
+#------------------------------------------------------------------------------
+
+# Table source:
+# https://www.raspberrypi.org/documentation/hardware/raspberrypi/revision-codes/README.md
+
+function get_pi_version()
+{
+    verbose_msg -n "Checking for Raspberry Pi... "
+
+    RPI_MODEL=$(awk '/Model/ {print $3}' /proc/cpuinfo)
+    # echo "$RPI_MODEL"
+    if [[ $RPI_MODEL =~ "Raspberry" ]]; then
+        verbose_msg "found"
+    else
+        verbose_msg "nope"
+    fi
+
+    RPI_REVCODE=$(awk '/Revision/ {print $3}' /proc/cpuinfo)
+    verbose_msg "Raspberry Pi revision: $RPI_REVCODE"
+}
+
+function check_pi_version()
+{
+  local -rA RPI_REVISIONS=(
+    [900021]="A+ 	1.1 	512MB 	Sony UK"
+    [900032]="B+ 	1.2 	512MB 	Sony UK"
+    [900092]="Zero 	1.2 	512MB 	Sony UK"
+    [900093]="Zero 	1.3 	512MB 	Sony UK"
+    [9000c1]="Zero W 	1.1 	512MB 	Sony UK"
+    [9020e0]="3A+ 	1.0 	512MB 	Sony UK"
+    [920092]="Zero 	1.2 	512MB 	Embest"
+    [920093]="Zero 	1.3 	512MB 	Embest"
+    [900061]="CM 	1.1 	512MB 	Sony UK"
+    [a01040]="2B 	1.0 	1GB 	Sony UK"
+    [a01041]="2B 	1.1 	1GB 	Sony UK"
+    [a02082]="3B 	1.2 	1GB 	Sony UK"
+    [a020a0]="CM3 	1.0 	1GB 	Sony UK"
+    [a020d3]="3B+ 	1.3 	1GB 	Sony UK"
+    [a02042]="2B (with BCM2837) 	1.2 	1GB 	Sony UK"
+    [a21041]="2B 	1.1 	1GB 	Embest"
+    [a22042]="2B (with BCM2837) 	1.2 	1GB 	Embest"
+    [a22082]="3B 	1.2 	1GB 	Embest"
+    [a220a0]="CM3 	1.0 	1GB 	Embest"
+    [a32082]="3B 	1.2 	1GB 	Sony Japan"
+    [a52082]="3B 	1.2 	1GB 	Stadium"
+    [a22083]="3B 	1.3 	1GB 	Embest"
+    [a02100]="CM3+ 	1.0 	1GB 	Sony UK"
+    [a03111]="4B 	1.1 	1GB 	Sony UK"
+    [b03111]="4B 	1.1 	2GB 	Sony UK"
+    [b03112]="4B 	1.2 	2GB 	Sony UK"
+    [c03111]="4B 	1.1 	4GB 	Sony UK"
+    [c03112]="4B 	1.2 	4GB 	Sony UK"
+    [d03114]="4B 	1.4 	8GB 	Sony UK"
+    [c03130]="Pi 4004	1.0 	4GB 	Sony UK"
+  )
+
+    verbose_msg "Raspberry Pi ${RPI_REVISIONS[${RPI_REVCODE}]} (${RPI_REVCODE})"
+}
+
+function detect_pi()
+{
+    verbose_msg " "  # move to a new line
+
+# Raspberry Pi 4B,   Ubuntu 20 64-bit,  uname -m == aarch64
+# Raspberry Pi 4B,   RPiOS     32-bit,  uname -m == armv7l
+# Raspberry Pi Zero, RPiOS     32-bit,  uname -m == armv6l
+
+    get_pi_version
+    check_pi_version
 }
 
 #------------------------------------------------------------------------------
@@ -172,21 +248,26 @@ detect_system()
         fi
 
         # Check if running under Raspberry Pi Desktop (for PC)
-
-# Raspberry Pi, native and x86_64 Desktop
-# $ cat /etc/rpi-issue 
-# Raspberry Pi reference 2020-02-12
-# Generated using pi-gen, https://github.com/RPi-Distro/pi-gen, f3b8a04dc10054b328a56fa7570afe6c6d1b856e, stage5
+        #
+        # Raspberry Pi, native and x86_64 Desktop
+        # $ cat /etc/rpi-issue 
+        # Raspberry Pi reference 2020-02-12
+        # Generated using pi-gen, https://github.com/RPi-Distro/pi-gen, f3b8a04dc10054b328a56fa7570afe6c6d1b856e, stage5
 
         VERSION_RPIDESKTOP=0
 
         if [ -f /etc/rpi-issue ]; then
             if [[ "$(< /etc/rpi-issue)" == *@(Raspberry Pi reference)* &&
-                  "$machine" == "x86_64"                               ]];
+                  "$machine" == "x86_64" ]];
             then
                 verbose_msg "Running on Raspberry Pi Desktop (for PC)"
                 VERSION_RPIDESKTOP=1
             fi
+        fi
+
+        if [[ "$machine" != "x86_64" ]]; then
+            # Check for real Raspberry Pi hardware
+            detect_pi
         fi
 
     elif [ "${OS_NAME}" = "OpenBSD" -o "${OS_NAME}" = "NetBSD" ]; then
