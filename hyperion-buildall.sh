@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 22 DEC 2020
+# Updated: 24 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -13,6 +13,11 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 24 DEC 2020
+# - use existing installed REXX for configure and 'make check'
+# - print the configure before running it
+# - correct environment varibles for REXX
 #
 # Updated: 22 DEC 2020
 # - detect existing ooRexx installation
@@ -184,7 +189,7 @@ verbose_msg "USESUDO          : ${USESUDO}"
 
 # Detect type of system we're running on and display info
 detect_system
-detect_regina
+detect_rexx
 
 echo "BUILD_DIR        : ${BUILD_DIR}"
 echo "INSTALL_DIR      : ${INSTALL_DIR}"
@@ -346,9 +351,14 @@ echo "Processing started: $start_time"
 echo "-----------------------------------------------------------------
 "
 
+built_regina_from_source=0
+
 if [[  $VERSION_REGINA -ge 3 ]]; then
     echo "Regina REXX is present.  Skipping build from source."
+elif [[  $VERSION_OOREXX -ge 4 ]]; then
+    echo "ooRexx is present.  Skipping build Regina-REXX from source."
 else
+
     if ($PROMPTS); then
         read -p "Hit return to continue (Step: Build Regina Rexx [used for test scripts])"
     fi
@@ -367,12 +377,13 @@ else
 
     #if [[ "$(uname -m)" =~ ^(i686|armv7l) ]]; then
     if [[ "$(uname -m)" =~ ^(i686) ]]; then
-    regina_configure_cmd="./configure --prefix=${BUILD_DIR}/rexx --enable-32bit"
+        regina_configure_cmd="./configure --prefix=${BUILD_DIR}/rexx --enable-32bit"
     else
-    regina_configure_cmd="./configure --prefix=${BUILD_DIR}/rexx"
+        regina_configure_cmd="./configure --prefix=${BUILD_DIR}/rexx"
     fi
 
     echo $regina_configure_cmd
+    echo    # move to a new line
     eval "$regina_configure_cmd"
 
     time make
@@ -382,6 +393,8 @@ else
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BUILD_DIR}/rexx/lib
     export CPPFLAGS=-I${BUILD_DIR}/rexx/include
     echo "which rexx: $(which rexx)"
+
+    built_regina_from_source=1
 fi
 
 #
@@ -510,13 +523,34 @@ echo "-----------------------------------------------------------------
 "
 if ($PROMPTS); then
     read -p "Hit return to continue (Step: configure)"
+    echo    # move to a new line
 fi
 
+if [[  $VERSION_REGINA -ge 3 ]]; then
+    echo "Regina REXX is present. Using configure option: --enable-regina-rexx"
+    enable_rexx_command="--enable-regina-rexx" # enable regina rexx support
+elif [[  $VERSION_OOREXX -ge 4 ]]; then
+    echo "ooRexx is present. Using configure option: --enable-object-rexx"
+    enable_rexx_command="-enable-object-rexx" # enable OORexx support
+elif [[ $built_regina_from_source -eq 1 ]]; then
+    enable_rexx_command="--enable-regina-rexx" # enable regina rexx support
+else
+    echo "No REXX support.  Tests will not be run"
+    enable_rexx_command=""
+fi
+
+configure_cmd=$(cat <<-END-CONFIGURE
 ./configure \
     --enable-optimization="-O3 -march=native" \
     --enable-extpkgs=${BUILD_DIR}/extpkgs \
     --prefix=${INSTALL_DIR} \
-    --enable-regina-rexx
+    $enable_rexx_command
+END-CONFIGURE
+)
+
+echo $configure_cmd
+echo    # move to a new line
+eval "$configure_cmd"
 
 echo    # move to a new line
 echo "./config.status --config ..."
@@ -633,22 +667,30 @@ if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
     export PATH="\$newpath\${PATH:+":\$PATH"}"
 fi
 
-newpath="${BUILD_DIR}/rexx/bin"
-if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
-  # export PATH="\${PATH:+"\$PATH:"}\$newpath"
-    export PATH="\$newpath\${PATH:+":\$PATH"}"
-fi
-
 newpath="${INSTALL_DIR}/lib"
 if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
   # export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}\$newpath"
     export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
 fi
 
-newpath="${BUILD_DIR}/rexx/lib"
-if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
-  # export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}\$newpath"
-    export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
+if [[ $built_regina_from_source -eq 1 ]]; then
+    newpath="${BUILD_DIR}/rexx/bin"
+    if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
+      # export PATH="\${PATH:+"\$PATH:"}\$newpath"
+	export PATH="\$newpath\${PATH:+":\$PATH"}"
+    fi
+
+    newpath="${BUILD_DIR}/rexx/lib"
+    if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
+      # export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}\$newpath"
+	export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
+    fi
+
+    newpath="${BUILD_DIR}/rexx/include"
+    if [ -d "\$newpath" ] && [[ ":\$CPPFLAGS:" != *":-I\$newpath:"* ]]; then
+      # export CPPFLAGS="\${CPPFLAGS:+"\$CPPFLAGS:"}-I\$newpath"
+	export CPPFLAGS="-I\$newpath\${CPPFLAGS:+" \$CPPFLAGS"}"
+    fi
 fi
 
 FOE

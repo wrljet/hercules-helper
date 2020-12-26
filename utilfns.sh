@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Utility functions for hercules-helper scripts
-# Updated: 22 DEC 2020
+# Updated: 24 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -13,6 +13,10 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 24 DEC 2020
+# - detect existing ooRexx
+# - use existing installed REXX for 'make check'
 #
 # Updated: 22 DEC 2020
 # - correct Regina REXX detection for different version string formats
@@ -216,7 +220,105 @@ detect_system()
 
 detect_regina()
 {
-    REGINA_VERMAJOR=0
+    verbose_msg -n "Checking for Regina-REXX... " # no newline!
+
+    VERSION_REGINA=0
+
+    which_rexx=$(which rexx) || true
+    which_status=$?
+
+    # echo "(which rexx) status: $which_status"
+
+    if [ -z $which_rexx ]; then
+        verbose_msg "nope"  # move to a new line
+        # verbose_msg "Regina-REXX      : is not installed"
+    else
+        # rexx -v
+        # REXX-Regina_3.6 5.00 31 Dec 2011
+        # rexx: REXX-Regina_3.9.3 5.00 5 Oct 2019 (32 bit)
+
+        regina_v=$(rexx -v 2>&1 | grep "Regina" | sed "s#^rexx: ##")
+        if [ -z "$regina_v" ]; then
+            verbose_msg "nope"  # move to a new line
+            verbose_msg "Found REXX, but not Regina-REXX"
+        else
+            verbose_msg " "  # move to a new line
+            verbose_msg "Found REXX       : $regina_v"
+
+            regina_name=$(echo ${regina_v} | cut -f1 -d_)
+
+            if [[ $regina_name == "REXX-Regina" ]]; then
+                # echo "we have Regina REXX"
+
+                regina_verstr=$(echo ${regina_v} | cut -f2 -d_)
+                # echo "regina ver string: $regina_verstr"
+                VERSION_REGINA=$(echo ${regina_verstr} | cut -f1 -d.)
+                # echo "regina version major: $VERSION_REGINA"
+                regina_verminor=$(echo ${regina_verstr} | cut -f2 -d. | cut -f1 -d' ')
+                # echo "regina version minor: $regina_verminor"
+                verbose_msg "Regina version   : $VERSION_REGINA.$regina_verminor"
+            else
+                error_msg "ERROR: Found an unknown Regina-REXX"
+            fi
+        fi
+    fi
+}
+
+#------------------------------------------------------------------------------
+#                              detect_oorexx
+#------------------------------------------------------------------------------
+
+detect_oorexx()
+{
+    verbose_msg -n "Checking for ooRexx... " # no newline!
+
+    VERSION_OOREXX=0
+
+    which_rexx=$(which rexx) || true
+    which_status=$?
+
+    # echo "(which rexx) status: $which_status"
+
+    if [ -z $which_rexx ]; then
+        verbose_msg "nope"  # move to a new line
+        # verbose_msg "ooRexx           : is not installed"
+    else
+        # rexx -v
+        # Open Object Rexx Version 5.0.0 r12142
+
+        oorexx_v=$(rexx -v 2>&1 | grep "Open Object Rexx" | sed "s#^rexx: ##")
+
+        if [ -z "$oorexx_v" ]; then
+            verbose_msg "nope"  # move to a new line
+            verbose_msg "Found REXX, but not ooRexx"
+        else
+            verbose_msg " "  # move to a new line
+            verbose_msg "Found REXX       : $oorexx_v"
+
+            if [[ $oorexx_v =~ "Open Object Rexx" ]]; then
+                # echo "we have ooRexx"
+
+                oorexx_verstr=$(echo ${oorexx_v} | sed "s#^Open Object Rexx Version ##")
+                # echo "oorexx ver string: $oorexx_verstr"
+                VERSION_OOREXX=$(echo ${oorexx_verstr} | cut -f1 -d.)
+                # echo "oorexx version major: $VERSION_OOREXX"
+                oorexx_verminor=$(echo ${oorexx_verstr} | cut -f2 -d.)
+                # echo "oorexx version minor: $oorexx_verminor"
+                verbose_msg "ooRexx version   : $VERSION_OOREXX.$oorexx_verminor"
+            else
+                verbose_msg "Found an unknown ooRexx"
+            fi
+        fi
+    fi
+}
+
+#------------------------------------------------------------------------------
+#                              detect_rexx
+#------------------------------------------------------------------------------
+
+detect_rexx()
+{
+    verbose_msg " "  # move to a new line
 
     which_rexx=$(which rexx) || true
     which_status=$?
@@ -224,30 +326,58 @@ detect_regina()
     verbose_msg "REXX presence    : $which_rexx"
     # echo "(which rexx) status: $which_status"
 
-    if [ -z $which_rexx ]; then
-        verbose_msg "REXX             : is not installed"
-    else
-        # rexx -v
-        # REXX-Regina_3.6 5.00 31 Dec 2011
-        # rexx: REXX-Regina_3.9.3 5.00 5 Oct 2019 (32 bit)
+    detect_regina
 
-        regina_v=$(rexx -v 2>&1 | grep "Regina" | sed "s#^rexx: ##")
-        verbose_msg "REXX             : $regina_v"
+    # See if the compiler can find the Regina-REXX include file(s)
+    if [[ $VERSION_REGINA -ge 3 ]]; then
+        echo "#include \"rexxsaa.h\"" | gcc $CPPFLAGS $CFLAGS -dI -E -x c - >/dev/null 2>&1
+        gcc_status=$?
 
-        regina_name=$(echo ${regina_v} | cut -f1 -d_)
+        # #include "rexx.h"
+        # # 1 "/usr/include/rexx.h" 1 3 4
 
-        if [[ $regina_name == "REXX-Regina" ]]; then
-            # echo "we have Regina REXX"
+        # gcc returns exit code 1 if this fails
+        # <stdin>:1:10: fatal error: rexx.h: No such file or directory
+        # compilation terminated.
+        # #include "rexx.h"
 
-            regina_verstr=$(echo ${regina_v} | cut -f2 -d_)
-            # echo "regina ver string: $regina_verstr"
-            VERSION_REGINA=$(echo ${regina_verstr} | cut -f1 -d.)
-            # echo "regina version major: $VERSION_REGINA"
-            regina_verminor=$(echo ${regina_verstr} | cut -f2 -d. | cut -f1 -d' ')
-            # echo "regina version minor: $regina_verminor"
-            verbose_msg "Regina version   : $VERSION_REGINA.$regina_verminor"
+        gcc_find_h=$(echo "#include \"rexxsaa.h\"" | gcc $CPPFLAGS $CFLAGS -dI -E -x c - 2>&1 | grep "rexxsaa.h" )
+        if [[ $gcc_status -eq 0 ]]; then
+            echo "gcc_status = $gcc_status"
+            echo "rexxsaa.h is found in gcc search path"
+            trace "$gcc_find_h"
         else
-            verbose_msg "Found an unknown REXX"
+            echo "gcc_status = $gcc_status"
+            error_msg "rexxsaa.h is not found in gcc search path"
+            echo "$gcc_find_h"
+        fi
+    fi
+
+    detect_oorexx
+
+    # See if the compiler can find the ooRexx include file(s)
+    if [[ $VERSION_OOREXX -ge 4 ]]; then
+        echo "#include \"rexx.h\"" | gcc $CPPFLAGS $CFLAGS -dI -E -x c - >/dev/null 2>&1
+        gcc_status=$?
+
+        # #include "rexx.h"
+        # # 1 "/usr/include/rexx.h" 1 3 4
+
+        # gcc returns exit code 1 if this fails
+        # <stdin>:1:10: fatal error: rexx.h: No such file or directory
+        # compilation terminated.
+        # #include "rexx.h"
+
+        gcc_find_h=$(echo "#include \"rexx.h\"" | gcc $CPPFLAGS $CFLAGS -dI -E -x c - 2>&1 | grep "rexx.h" )
+
+        if [[ $gcc_status -eq 0 ]]; then
+            echo "gcc_status = $gcc_status"
+            echo "rexx.h is found in gcc search path"
+            trace "$gcc_find_h"
+        else
+            echo "gcc_status = $gcc_status"
+            echo "rexx.h is not found in gcc search path"
+            echo "$gcc_find_h"
         fi
     fi
 }
