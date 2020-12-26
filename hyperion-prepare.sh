@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Prepare system for building SDL-Hercules-390
-# Updated: 22 DEC 2020
+# Updated: 24 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -13,6 +13,12 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 24 DEC 2020
+# - add colored error messages
+#
+# Updated: 22 DEC 2020
+# - detect existing ooRexx installation
 #
 # Updated: 21 DEC 2020
 # - detect existing Regina REXX installation
@@ -138,12 +144,12 @@ verbose_msg "VERBOSE          : ${VERBOSE}"
 
 # Detect type of system we're running on and display info
 detect_system
-detect_regina
+detect_rexx
 
 echo    # print a new line
 
 if [[ $VERSION_WSL -eq 1 ]]; then
-    echo "Not supported under Windows WSL1!"
+    error_msg "Not supported under Windows WSL1!"
     exit 1
 fi
 
@@ -152,7 +158,7 @@ if [[ $VERSION_WSL -eq 2 ]]; then
 fi
 
 if [[ $VERSION_RPIDESKTOP -eq 1 ]]; then
-    verbose_msg "Running on Raspberry Pi Desktop (for PC) is not supported!"
+    error_msg "Running on Raspberry Pi Desktop (for PC) is not supported!"
     # exit 1
 fi
 
@@ -167,7 +173,7 @@ case $VERSION_DISTRO in
 
   netbsd*)
     echo "$VERSION_DISTRO based system found"
-    echo "Not yet supported!"
+    error_msg "Not yet supported!"
     exit 1
     ;;
 
@@ -307,13 +313,13 @@ if [[ $VERSION_ID == centos* ]]; then
                 echo "We do have cc1; linking cc1plus to cc1"
                 sudo ln -s "$which_cc1" /usr/bin/cc1plus
             else
-                echo "We do not have cc1 either; full gcc-c++ package is required"
+                error_msg "We do not have cc1 either; full gcc-c++ package is required"
             fi
         fi
 
         echo    # print a new line
     else
-        echo "CentOS version 6 or earlier found, and not supported"
+        error_msg "CentOS version 6 or earlier found, and not supported"
         exit 1
     fi
 fi
@@ -321,7 +327,7 @@ fi
 # NetBSD
 
 if [[ $VERSION_ID == netbsd* ]]; then
-    echo "NetBSD found.  Not yet supported!"
+    error_msg "NetBSD found.  Not yet supported!"
 fi
 
 echo "Done!"

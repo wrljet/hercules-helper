@@ -18,6 +18,7 @@
 # - use existing installed REXX for configure and 'make check'
 # - print the configure before running it
 # - correct environment varibles for REXX
+# - add colored error messages
 #
 # Updated: 22 DEC 2020
 # - detect existing ooRexx installation
@@ -197,7 +198,7 @@ echo "INSTALL_DIR      : ${INSTALL_DIR}"
 #-----------------------------------------------------------------------------
 
 if [[ $VERSION_RPIDESKTOP -eq 1 ]]; then
-    verbose_msg "Running on Raspberry Pi Desktop (for PC) is not supported!"
+    error_msg "Running on Raspberry Pi Desktop (for PC) is not supported!"
     # exit 1
 fi
 
@@ -309,8 +310,8 @@ if [[ "$(uname -m)" =~ ^(i686) && $VERSION_DISTRO == debian ]]; then
     esac
 
     if [[ $hc_cv_gcc_working_atomics == no ]]; then
-        echo "gcc versions before $as_arg_v2 will not create a fully functional"
-        echo "Hercules on this 32-bit system. Certain test are known to fail."
+        error_msg "gcc versions before $as_arg_v2 will not create a fully functional"
+        error_msg "Hercules on this 32-bit system. Certain test are known to fail."
 
         if ($PROMPTS); then
             if confirm "Continue anyway? [y/N]" ; then
@@ -535,7 +536,7 @@ elif [[  $VERSION_OOREXX -ge 4 ]]; then
 elif [[ $built_regina_from_source -eq 1 ]]; then
     enable_rexx_command="--enable-regina-rexx" # enable regina rexx support
 else
-    echo "No REXX support.  Tests will not be run"
+    error_msg "No REXX support.  Tests will not be run"
     enable_rexx_command=""
 fi
 

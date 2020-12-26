@@ -17,6 +17,7 @@
 # Updated: 24 DEC 2020
 # - detect existing ooRexx
 # - use existing installed REXX for 'make check'
+# - add colored error messages
 #
 # Updated: 22 DEC 2020
 # - correct Regina REXX detection for different version string formats
@@ -43,6 +44,14 @@ verbose_msg()
     if ($VERBOSE); then
         echo "$@"
     fi
+}
+
+#------------------------------------------------------------------------------
+#                               error_msg
+#------------------------------------------------------------------------------
+error_msg()
+{
+    printf "\033[1;37m[[ \033[1;31merror: \033[1;37m]] \033[0m$1\n"
 }
 
 #------------------------------------------------------------------------------
@@ -143,6 +152,7 @@ detect_system()
         verbose_msg "Language         : $(env | grep LANG)"
 
         # Check if running under Windows WSL
+        verbose_msg " "  # move to a new line
         VERSION_WSL=0
 
         verbose_msg -n "Checking for Windows WSL1... "
@@ -150,7 +160,7 @@ detect_system()
             verbose_msg "running on WSL1"
             VERSION_WSL=1
         else
-            echo "nope"
+            verbose_msg "nope"
         fi
 
         verbose_msg -n "Checking for Windows WSL2... "
@@ -158,7 +168,7 @@ detect_system()
             verbose_msg "running on WSL2"
             VERSION_WSL=2
         else
-            echo "nope"
+            verbose_msg "nope"
         fi
 
         # Check if running under Raspberry Pi Desktop (for PC)
@@ -376,7 +386,7 @@ detect_rexx()
             trace "$gcc_find_h"
         else
             echo "gcc_status = $gcc_status"
-            echo "rexx.h is not found in gcc search path"
+            error_msg "rexx.h is not found in gcc search path"
             echo "$gcc_find_h"
         fi
     fi
