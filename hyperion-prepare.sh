@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Prepare system for building SDL-Hercules-390
-# Updated: 24 DEC 2020
+# Updated: 28 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -13,6 +13,9 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 28 DEC 2020
+# - detect and disallow running on Apple Darwin OS
 #
 # Updated: 24 DEC 2020
 # - add colored error messages
@@ -63,7 +66,7 @@
 # - initial commit to GitHub
 
 # Checks for, and installs, required packages based on system type.
-#   git
+#   wget, git
 #   build-essential, autoconf, automake, cmake, flex, gawk, m4
 #   zlib, bzip2
 
@@ -119,6 +122,15 @@ if ($TRACE); then
     set -x # For debugging, show all commands as they are being run
 fi
 
+# Read in the utility functions
+source "$(dirname "$0")/utilfns.sh"
+
+detect_darwin
+if [[ $VERSION_DISTRO == darwin ]]; then
+    error_msg "Not yet supported under Apple Darwin OS!"
+    exit 1
+fi
+
 if [ "$EUID" -eq 0 ]; then
     echo    # print a new line
     echo "Running this as root is dangerous and can cause misconfiguration issues"
@@ -134,9 +146,6 @@ if [ "$EUID" -eq 0 ]; then
     echo    # print a new line
     exit 1
 fi
-
-# Read in the utility functions
-source "$(dirname "$0")/utilfns.sh"
 
 verbose_msg "Options:"
 verbose_msg "TRACE            : ${TRACE}"
@@ -158,7 +167,7 @@ if [[ $VERSION_WSL -eq 2 ]]; then
 fi
 
 if [[ $VERSION_RPIDESKTOP -eq 1 ]]; then
-    error_msg "Running on Raspberry Pi Desktop (for PC) is not supported!"
+    error_msg "Running on Raspberry Pi Desktop (for PC) is not yet supported!"
     # exit 1
 fi
 

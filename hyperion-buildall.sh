@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 25 DEC 2020
+# Updated: 28 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -14,8 +14,11 @@
 
 # Changelog:
 #
+# Updated: 28 DEC 2020
+# - detect and disallow running on Apple Darwin OS
+#
 # Updated: 25 DEC 2020
-# - check for armv6l on Raspberry Pi Zero
+# - check for armv6l CPU on Raspberry Pi Zero
 #
 # Updated: 24 DEC 2020
 # - use existing installed REXX for configure and 'make check'
@@ -84,7 +87,7 @@ INSTALL_DIR=$(pwd)/herc4x
 
 usage="usage: $(basename "$0") [-h|--help] [-t|--trace] [-v|--verbose] [--install] [--sudo]
 
-Perform a full build, test, and installation of Hercules Hyperion from GitHub sources
+Perform a full build, test, and installation of SDL-Hercules-390 Hyperion from GitHub sources
 
 where:
   -h, --help      display this help
@@ -184,6 +187,12 @@ fi
 # Read in the utility functions
 source "$(dirname "$0")/utilfns.sh"
 
+detect_darwin
+if [[ $VERSION_DISTRO == darwin ]]; then
+    error_msg "Not yet supported under Apple Darwin OS!"
+    exit 1
+fi
+
 verbose_msg "Options:"
 verbose_msg "TRACE            : ${TRACE}"
 verbose_msg "VERBOSE          : ${VERBOSE}"
@@ -202,7 +211,7 @@ echo "INSTALL_DIR      : ${INSTALL_DIR}"
 
 if [[ $VERSION_RPIDESKTOP -eq 1 ]]; then
     error_msg "Running on Raspberry Pi Desktop (for PC) is not supported!"
-    # exit 1
+    exit 1
 fi
 
 #if [ -f /etc/debian_version ]; then

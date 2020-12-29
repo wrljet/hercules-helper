@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Utility functions for hercules-helper scripts
-# Updated: 25 DEC 2020
+# Updated: 28 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -13,6 +13,10 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 28 DEC 2020
+# - detect and disallow running on Apple Darwin OS
+# - remove tabs from Raspberry Pi functions
 #
 # Updated: 25 DEC 2020
 # - add detection of Raspberry Pi models
@@ -83,36 +87,36 @@ function get_pi_version()
 function check_pi_version()
 {
   local -rA RPI_REVISIONS=(
-    [900021]="A+ 	1.1 	512MB 	Sony UK"
-    [900032]="B+ 	1.2 	512MB 	Sony UK"
-    [900092]="Zero 	1.2 	512MB 	Sony UK"
-    [900093]="Zero 	1.3 	512MB 	Sony UK"
-    [9000c1]="Zero W 	1.1 	512MB 	Sony UK"
-    [9020e0]="3A+ 	1.0 	512MB 	Sony UK"
-    [920092]="Zero 	1.2 	512MB 	Embest"
-    [920093]="Zero 	1.3 	512MB 	Embest"
-    [900061]="CM 	1.1 	512MB 	Sony UK"
-    [a01040]="2B 	1.0 	1GB 	Sony UK"
-    [a01041]="2B 	1.1 	1GB 	Sony UK"
-    [a02082]="3B 	1.2 	1GB 	Sony UK"
-    [a020a0]="CM3 	1.0 	1GB 	Sony UK"
-    [a020d3]="3B+ 	1.3 	1GB 	Sony UK"
-    [a02042]="2B (with BCM2837) 	1.2 	1GB 	Sony UK"
-    [a21041]="2B 	1.1 	1GB 	Embest"
-    [a22042]="2B (with BCM2837) 	1.2 	1GB 	Embest"
-    [a22082]="3B 	1.2 	1GB 	Embest"
-    [a220a0]="CM3 	1.0 	1GB 	Embest"
-    [a32082]="3B 	1.2 	1GB 	Sony Japan"
-    [a52082]="3B 	1.2 	1GB 	Stadium"
-    [a22083]="3B 	1.3 	1GB 	Embest"
-    [a02100]="CM3+ 	1.0 	1GB 	Sony UK"
-    [a03111]="4B 	1.1 	1GB 	Sony UK"
-    [b03111]="4B 	1.1 	2GB 	Sony UK"
-    [b03112]="4B 	1.2 	2GB 	Sony UK"
-    [c03111]="4B 	1.1 	4GB 	Sony UK"
-    [c03112]="4B 	1.2 	4GB 	Sony UK"
-    [d03114]="4B 	1.4 	8GB 	Sony UK"
-    [c03130]="Pi 4004	1.0 	4GB 	Sony UK"
+    [900021]="A+        1.1     512MB   Sony UK"
+    [900032]="B+        1.2     512MB   Sony UK"
+    [900092]="Zero      1.2     512MB   Sony UK"
+    [900093]="Zero      1.3     512MB   Sony UK"
+    [9000c1]="Zero W    1.1     512MB   Sony UK"
+    [9020e0]="3A+       1.0     512MB   Sony UK"
+    [920092]="Zero      1.2     512MB   Embest"
+    [920093]="Zero      1.3     512MB   Embest"
+    [900061]="CM        1.1     512MB   Sony UK"
+    [a01040]="2B        1.0     1GB     Sony UK"
+    [a01041]="2B        1.1     1GB     Sony UK"
+    [a02082]="3B        1.2     1GB     Sony UK"
+    [a020a0]="CM3       1.0     1GB     Sony UK"
+    [a020d3]="3B+       1.3     1GB     Sony UK"
+    [a02042]="2B (with BCM2837)         1.2     1GB     Sony UK"
+    [a21041]="2B        1.1     1GB     Embest"
+    [a22042]="2B (with BCM2837)         1.2     1GB     Embest"
+    [a22082]="3B        1.2     1GB     Embest"
+    [a220a0]="CM3       1.0     1GB     Embest"
+    [a32082]="3B        1.2     1GB     Sony Japan"
+    [a52082]="3B        1.2     1GB     Stadium"
+    [a22083]="3B        1.3     1GB     Embest"
+    [a02100]="CM3+      1.0     1GB     Sony UK"
+    [a03111]="4B        1.1     1GB     Sony UK"
+    [b03111]="4B        1.1     2GB     Sony UK"
+    [b03112]="4B        1.2     2GB     Sony UK"
+    [c03111]="4B        1.1     4GB     Sony UK"
+    [c03112]="4B        1.2     4GB     Sony UK"
+    [d03114]="4B        1.4     8GB     Sony UK"
+    [c03130]="Pi 4004   1.0     4GB     Sony UK"
   )
 
     verbose_msg "Raspberry Pi ${RPI_REVISIONS[${RPI_REVCODE}]} (${RPI_REVCODE})"
@@ -128,6 +132,38 @@ function detect_pi()
 
     get_pi_version
     check_pi_version
+}
+
+#------------------------------------------------------------------------------
+#                               detect_darwin
+#------------------------------------------------------------------------------
+detect_darwin()
+{
+    # from config.guess:
+    # https://git.savannah.gnu.org/git/config.git
+
+    # uname -a
+    # Darwin Sunils-Air 20.2.0 Darwin Kernel Version 20.2.0: Wed Dec  2 20:40:21 PST 2020; root:xnu-7195.60.75~1/RELEASE_ARM64_T8101 x86_64
+
+#   UNAME_MACHINE=$( (uname -m) 2>/dev/null) || UNAME_MACHINE=unknown
+#   UNAME_RELEASE=$( (uname -r) 2>/dev/null) || UNAME_RELEASE=unknown
+#   UNAME_SYSTEM=$( (uname -s) 2>/dev/null) || UNAME_SYSTEM=unknown
+#   UNAME_VERSION=$( (uname -v) 2>/dev/null) || UNAME_VERSION=unknown
+
+#   case "$UNAME_MACHINE:$UNAME_SYSTEM:$UNAME_RELEASE:$UNAME_VERSION" in
+#       arm64:Darwin:*:*)
+#           echo aarch64-apple-darwin"$UNAME_RELEASE"
+#           ;;
+#       *:Darwin:*:*)
+#           UNAME_PROCESSOR=$(uname -p)
+#           case $UNAME_PROCESSOR in
+#               unknown) UNAME_PROCESSOR=powerpc ;;
+#           esac
+#   esac
+
+    if [[ $UNAME_SYSTEM == Darwin ]]; then
+        VERSION_DISTRO=darwin
+    fi
 }
 
 #------------------------------------------------------------------------------
