@@ -691,6 +691,7 @@ if [[ $built_regina_from_source -eq 1 ]]; then
 fi
 
 FOE
+# end in inline "here" file
 
     chmod +x "${INSTALL_DIR}/hyperion-init-$shell.sh"
     source "${INSTALL_DIR}/hyperion-init-$shell.sh"
@@ -719,14 +720,14 @@ if ($INSTALL); then
                     echo "OK"
                     add_profile=1
                 else
-                    echo # move to a new line
+                    verbose_msg # move to a new line
                 fi
             else
-                echo "Overwriting existing /etc/profile.d/hyperion.sh"
+                verbose_msg "Overwriting existing /etc/profile.d/hyperion.sh"
                 add_profile=1
             fi
         else
-            echo "Creating /etc/profile.d/hyperion.sh"
+            verbose_msg "Creating /etc/profile.d/hyperion.sh"
             add_profile=1
         fi
     else
@@ -747,12 +748,38 @@ else
 fi  
 
 FOE2
-# end in inline file
+# end in inline "here" file
+    fi
+
+    if true; then
+        shell=$(/usr/bin/basename $(/bin/ps -p $$ -ocomm=))
+        # echo $shell
+
+        # Only do this for Bash
+        if [[ $shell != bash ]]; then
+            error_msg "Login shell is not Bash.  Unable to create profile commands."
+        else
+            # Add /etc/profile.d/hyperion.sh to ~/.bashrc if not already present
+            if grep -Fqe "/etc/profile.d/hyperion.sh" ~/.bashrc ; then
+                verbose_msg "Hyperion profile commands are already present in  ~/.bashrc"
+            else
+                verbose_msg "Adding profile commands to ~/.bashrc"
+                cat <<-"BASHRC" >> ~/.bashrc
+
+# For SDL-Hyperion
+. /etc/profile.d/hyperion.sh
+
+BASHRC
+# end in inline "here" file
+            fi
+
+        fi # if bash
+
     fi
 
 fi # if ($INSTALL)
      
-echo "Done!"
+verbose_msg "Done!"
 
 # ---- end of script ----
 
