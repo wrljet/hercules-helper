@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Utility functions for hercules-helper scripts
-# Updated: 28 DEC 2020
+# Updated: 29 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -13,6 +13,9 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 29 DEC 2020
+# - added status_prompter() function
 #
 # Updated: 28 DEC 2020
 # - detect and disallow running on Apple Darwin OS
@@ -59,6 +62,24 @@ verbose_msg()
 error_msg()
 {
     printf "\033[1;37m[[ \033[1;31merror: \033[1;37m]] \033[0m$1\n"
+}
+
+#------------------------------------------------------------------------------
+#                               status_prompter
+#------------------------------------------------------------------------------
+
+# called with:
+#   status_prompter "Step: Create shell profile."
+
+status_prompter()
+{
+    if ($PROMPTS); then
+        read -p "$1  Hit return to continue"
+    else
+        echo "$1"
+    fi
+
+    echo   # move to a new line
 }
 
 #------------------------------------------------------------------------------

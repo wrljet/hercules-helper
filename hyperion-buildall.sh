@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 28 DEC 2020
+# Updated: 29 DEC 2020
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -13,6 +13,12 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 29 DEC 2020
+# - fix bug skipping autogen if not displaying prompts
+# - add custom title to ./configure
+# - correct non-functional typo in ./configure options
+# - use new status_prompter() function
 #
 # Updated: 28 DEC 2020
 # - detect and disallow running on Apple Darwin OS
@@ -372,9 +378,7 @@ elif [[  $VERSION_OOREXX -ge 4 ]]; then
     echo "ooRexx is present.  Skipping build Regina-REXX from source."
 else
 
-    if ($PROMPTS); then
-        read -p "Hit return to continue (Step: Build Regina Rexx [used for test scripts])"
-    fi
+    status_prompter "Step: Build Regina Rexx [used for test scripts]:"
 
     # Remove any existing Regina, download and untar
     rm -f regina-rexx-3.9.3.tar.gz
@@ -408,9 +412,7 @@ fi
 #
 echo "-----------------------------------------------------------------
 "
-if ($PROMPTS); then
-    read -p "Hit return to continue (Step: Hercules git clone)"
-fi
+status_prompter "Step: Hercules git clone:"
 
 cd ${BUILD_DIR}
 mkdir -p sdl4x
@@ -426,9 +428,7 @@ git branch -va
 
 echo "-----------------------------------------------------------------
 "
-if ($PROMPTS); then
-    read -p "Hit return to continue (Step: util/bldlvlck)"
-fi
+status_prompter "Step: util/bldlvlck:"
 
 # Check for required packages and minimum versions.
 # Inspect the output carefully and do not continue if there are
@@ -441,9 +441,7 @@ util/bldlvlck
 
 echo "-----------------------------------------------------------------
 "
-if ($PROMPTS); then
-    read -p "Hit return to continue (Step: git clone extpkgs)"
-fi
+status_prompter "Step: git clone extpkgs:"
 
 cd ${BUILD_DIR}
 rm -rf extpkgs
@@ -503,9 +501,7 @@ done
 
 echo "-----------------------------------------------------------------
 "
-if ($PROMPTS); then
-    read -p "Hit return to continue (Step: Build external packages)"
-fi
+status_prompter "Step: Build external packages:"
 
 cd ${BUILD_DIR}
 cd extpkgs
@@ -523,26 +519,20 @@ if [[ "$(uname -m)" == x86* ]]; then
 else
     echo "-----------------------------------------------------------------
 "
-    if ($PROMPTS); then
-        read -p "Hit return to continue (Step: autogen.sh)"
-
-        ./autogen.sh
-    fi
+    status_prompter "Step: autogen.sh:"
+    ./autogen.sh
 fi
 
 echo "-----------------------------------------------------------------
 "
-if ($PROMPTS); then
-    read -p "Hit return to continue (Step: configure)"
-    echo    # move to a new line
-fi
+status_prompter "Step: configure:"
 
 if [[  $VERSION_REGINA -ge 3 ]]; then
     echo "Regina REXX is present. Using configure option: --enable-regina-rexx"
     enable_rexx_command="--enable-regina-rexx" # enable regina rexx support
 elif [[  $VERSION_OOREXX -ge 4 ]]; then
     echo "ooRexx is present. Using configure option: --enable-object-rexx"
-    enable_rexx_command="-enable-object-rexx" # enable OORexx support
+    enable_rexx_command="--enable-object-rexx" # enable OORexx support
 elif [[ $built_regina_from_source -eq 1 ]]; then
     enable_rexx_command="--enable-regina-rexx" # enable regina rexx support
 else
@@ -555,6 +545,7 @@ configure_cmd=$(cat <<-END-CONFIGURE
     --enable-optimization="-O3 -march=native" \
     --enable-extpkgs=${BUILD_DIR}/extpkgs \
     --prefix=${INSTALL_DIR} \
+    --enable-custom="Built using hercules-helper" \
     $enable_rexx_command
 END-CONFIGURE
 )
@@ -589,18 +580,14 @@ echo "./config.status --config ..."
 # Compile and link
 echo "-----------------------------------------------------------------
 "
-if ($PROMPTS); then
-    read -p "Hit return to continue (Step: make)"
-fi
+status_prompter "Step: make:"
 
 make clean
 time make -j$(nproc) 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make.log
 
 echo "-----------------------------------------------------------------
 "
-if ($PROMPTS); then
-    read -p "Hit return to continue (Step: tests)"
-fi 
+status_prompter "Step: tests:"
 
 time make check 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-check.log
 # time ./tests/runtest ./tests
@@ -624,22 +611,19 @@ if ($INSTALL); then
   echo "-----------------------------------------------------------------
 "
   if ($USESUDO); then
-    if ($PROMPTS); then
-        read -p "Hit return to continue (step: install [with sudo])"
-    fi
+    status_prompter "Step: install [with sudo]:"
 
     sudo time make install 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-install.log
   else
-    if ($PROMPTS); then
-        read -p "Hit return to continue (step: install [without sudo])"
-    fi
+    status_prompter "Step: install [without sudo]:"
 
     time make install 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-install.log
   fi
 
   echo "-----------------------------------------------------------------
 "
-  echo "setcap operations so Hercules can run without elevated privileges:"
+  echo "Step: setcap operations so Hercules can run without elevated privileges:"
+  echo    # move to a new line
   sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/hercules
   echo "sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/hercules"
   sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/herclin
