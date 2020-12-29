@@ -15,6 +15,7 @@
 # Changelog:
 #
 # Updated: 29 DEC 2020
+# - create shell profile.d script to set PATH, etc. (currently for Bash only)
 # - fix bug skipping autogen if not displaying prompts
 # - add custom title to ./configure
 # - correct non-functional typo in ./configure options
@@ -644,7 +645,8 @@ echo "Overall elpased time: $( TZ=UTC0 printf '%(%H:%M:%S)T\n' "$elapsed_seconds
 echo    # move to a new line
 
 if true; then
-    cat <<FOE > ${BUILD_DIR}/hercules-setvars.sh
+    shell=$(/usr/bin/basename $(/bin/ps -p $$ -ocomm=))
+    cat <<FOE >"${INSTALL_DIR}/hyperion-init-$shell.sh"
 #!/bin/bash
 #
 # Set up environment variables for Hercules
@@ -690,12 +692,66 @@ fi
 
 FOE
 
-    chmod +x ${BUILD_DIR}/hercules-setvars.sh
+    chmod +x "${INSTALL_DIR}/hyperion-init-$shell.sh"
+    source "${INSTALL_DIR}/hyperion-init-$shell.sh"
 
-    echo "To set the required environment variables, run:"
-    echo "    source ${BUILD_DIR}/hercules-setvars.sh"
+#   echo "To set the required environment variables, run:"
+#   echo "    source ${BUILD_DIR}/hercules-setvars.sh"
 fi
 
+if ($INSTALL); then
+  echo "-----------------------------------------------------------------
+"
+    status_prompter "Step: create shell profile [requires sudo]:"
+
+# Create /etc/profile.d/hyperion.sh
+# Requires sudo
+
+    add_profile=0
+
+    # Make sure we have the profile directory on this system
+    if [ -d /etc/profile.d ]; then
+
+        # Check if the profile already exists
+        if [ -f /etc/profile.d/hyperion.sh ]; then
+            if ($PROMPTS); then
+                if confirm "/etc/profile.d/hyperion.sh already exists.  Overwrite? [y/N]" ; then
+                    echo "OK"
+                    add_profile=1
+                else
+                    echo # move to a new line
+                fi
+            else
+                echo "Overwriting existing /etc/profile.d/hyperion.sh"
+                add_profile=1
+            fi
+        else
+            echo "Creating /etc/profile.d/hyperion.sh"
+            add_profile=1
+        fi
+    else
+        error_msg "/etc/profile.d directory not found.  Cannot add paths to profile."
+    fi
+
+    if [[ $add_profile -eq 1 ]]; then
+        cat <<FOE2 | sudo tee /etc/profile.d/hyperion.sh >/dev/null
+#!/bin/bash
+#
+shell=\$(/usr/bin/basename \$(/bin/ps -p \$\$ -ocomm=))
+
+# location of script: ${INSTALL_DIR}
+if [ -f "${INSTALL_DIR}/hyperion-init-\$shell.sh" ]; then
+   . "${INSTALL_DIR}/hyperion-init-\$shell.sh"
+else
+   echo "Cannot create Hyperion profile variables on \$shell, script is missing."
+fi  
+
+FOE2
+# end in inline file
+    fi
+
+fi # if ($INSTALL)
+     
 echo "Done!"
 
 # ---- end of script ----
