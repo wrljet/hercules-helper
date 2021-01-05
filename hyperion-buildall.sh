@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 04 JAN 2021
+# Updated: 05 JAN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -13,6 +13,11 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 05 JAN 2021
+# - initial support for NetBSD
+# - show an error for unknown command line options
+# - display a version number for this script
 #
 # Updated: 04 JAN 2021
 # - create feature of external .conf file
@@ -219,6 +224,7 @@ case $key in
 
   -v|--verbose)
     opt_override_verbose=true
+    VERBOSE=true
     shift # past argument
     ;;
 
@@ -237,7 +243,12 @@ case $key in
     shift # past argument
     ;;
 
-  *)    # unknown option
+  -*|--*)  # unknown option
+    error_msg "$0: unknown option: $1"
+    exit 1
+    ;;
+
+  *)    # unknown parameter
     POSITIONAL+=("$1") # save it in an array for later
     shift # past argument
     ;;
@@ -251,6 +262,11 @@ if [[ "${TRACE}" == true ]]; then
 fi
 
 #-----------------------------------------------------------------------------
+
+pushd "$(dirname "$0")" >/dev/null;
+verbose_msg "$0: $(git describe --long --tags --dirty --always)"
+popd > /dev/null;
+verbose_msg    # print a new line
 
 # Read in the configuration
 config_dir="$(dirname "$0")"
@@ -799,19 +815,19 @@ if [[ $built_regina_from_source -eq 1 ]]; then
     newpath="${BUILD_DIR}/rexx/bin"
     if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
       # export PATH="\${PATH:+"\$PATH:"}\$newpath"
-	export PATH="\$newpath\${PATH:+":\$PATH"}"
+        export PATH="\$newpath\${PATH:+":\$PATH"}"
     fi
 
     newpath="${BUILD_DIR}/rexx/lib"
     if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
       # export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}\$newpath"
-	export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
+        export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
     fi
 
     newpath="${BUILD_DIR}/rexx/include"
     if [ -d "\$newpath" ] && [[ ":\$CPPFLAGS:" != *":-I\$newpath:"* ]]; then
       # export CPPFLAGS="\${CPPFLAGS:+"\$CPPFLAGS:"}-I\$newpath"
-	export CPPFLAGS="-I\$newpath\${CPPFLAGS:+" \$CPPFLAGS"}"
+        export CPPFLAGS="-I\$newpath\${CPPFLAGS:+" \$CPPFLAGS"}"
     fi
 fi
 

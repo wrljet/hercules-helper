@@ -16,6 +16,8 @@
 #
 # Updated: 05 JAN 2021
 # - initial support for NetBSD
+# - show an error for unknown command line options
+# - display a version number for this script
 #
 # Updated: 28 DEC 2020
 # - detect and disallow running on Apple Darwin OS
@@ -75,10 +77,12 @@
 
 # Process command line
 
-if [[ -n $trace ]]  || \
-   [[ -n $TRACE ]]; then
+if [[ -n $TRACE ]]; then
     set -x # For debugging, show all commands as they are being run
 fi
+
+# Read in the utility functions
+source "$(dirname "$0")/utilfns.sh"
 
 usage="usage: $(basename "$0") [-h|--help] [-t|--trace] [-v|--verbose]
 
@@ -98,22 +102,27 @@ do
 key="$1"
 
 case $key in
-    -h|--help)
+  -h|--help)
     echo "$usage"
     exit
     ;;
 
-    -t|--trace)
+  -t|--trace)
     TRACE=true
     shift # past argument
     ;;
 
-    -v|--verbose)
+  -v|--verbose)
     VERBOSE=true
     shift # past argument
     ;;
 
-    *)    # unknown option
+  -*|--*)  # unknown option
+    error_msg "$0: unknown option: $1"
+    exit 1
+    ;;
+
+   *)    # unknown parameter
     POSITIONAL+=("$1") # save it in an array for later
     shift # past argument
     ;;
@@ -124,9 +133,6 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 if ($TRACE); then
     set -x # For debugging, show all commands as they are being run
 fi
-
-# Read in the utility functions
-source "$(dirname "$0")/utilfns.sh"
 
 detect_darwin
 if [[ $VERSION_DISTRO == darwin ]]; then
@@ -150,6 +156,11 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
+pushd "$(dirname "$0")" >/dev/null;
+verbose_msg "$0: $(git describe --long --tags --dirty --always)"
+popd > /dev/null;
+verbose_msg    # print a new line
+
 verbose_msg "Options:"
 verbose_msg "TRACE            : ${TRACE}"
 verbose_msg "VERBOSE          : ${VERBOSE}"
@@ -158,7 +169,7 @@ verbose_msg "VERBOSE          : ${VERBOSE}"
 detect_system
 detect_rexx
 
-echo    # print a new line
+verbose_msg    # print a new line
 
 if [[ $VERSION_WSL -eq 1 ]]; then
     error_msg "Not supported under Windows WSL1!"
