@@ -16,6 +16,7 @@
 #
 # Updated: 05 JAN 2021
 # - initial support for NetBSD
+# - correct 'make -j' argument and CPU count for NetBSD
 # - show an error for unknown command line options
 # - display a version number for this script
 #
@@ -725,7 +726,20 @@ verbose_msg "-----------------------------------------------------------------
 status_prompter "Step: make:"
 
 make clean
-time make -j$(nproc) 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make.log
+
+if [[ $VERSION_ID == netbsd* ]]; then
+    NPROCS="$(sysctl -n hw.ncpu 2>/dev/null || echo 1)"
+else
+    NPROCS="$(nproc 2>/dev/null || echo 1)"
+fi
+
+verbose_msg    # move to a new line
+verbose_msg "time make -j $NPROCS 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make.log"
+time make -j "$NPROCS" 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make.log
+
+if [ ${PIPESTATUS[0]} -ne 0 ]; then
+    error_msg "Make failed!"
+fi
 
 verbose_msg "-----------------------------------------------------------------
 "
