@@ -7,7 +7,7 @@ These scripts extend the existing functionality of SDL-Hercules-390 gists/extpkg
 This is a testbed and will be updated occassionally and/or merged
 into SDL-Hercules-390 and its documentation when completed.
 
-The most recent version of this script can be obtained with:
+The most recent version of this project can be obtained with:
 ```
    git clone https://github.com/wrljet/hercules-helper.git
 ```

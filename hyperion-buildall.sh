@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 29 DEC 2020
+# Updated: 04 JAN 2021
 #
-# The most recent version of this script can be obtained with:
+# The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
 # or:
 #   wget https://github.com/wrljet/hercules-helper/archive/master.zip
@@ -13,6 +13,14 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 04 JAN 2021
+# - create feature of external .conf file
+# - configurable URLs to GitHub for cloning repos *and* branch checkout
+# - don't use 'find -mount' on NetBSD
+# - when modifying extpkgs.sh.ini, don't override x86 with amd64 (NetBSD)
+# - when modifying extpkgs.sh.ini, don't use sed/g
+# - change a bunch of 'echo' to 'verbose_msg' calls
 #
 # Updated: 29 DEC 2020
 # - create shell profile.d script to set PATH, etc. (currently for Bash only)
@@ -84,14 +92,56 @@
 # Be sure to run hyperion-prepare.sh one time before this build script.
 # hyperion-prepare.sh will ensure all required packages are installed.
 #
-
 #-----------------------------------------------------------------------------
+
+#
+# Default Configuration Parameters:
+#
 # Overall working build diretory is the current directory
-BUILD_DIR=$(pwd)
+BUILD_DIR=${BUILD_DIR:-$(pwd)}
 
 # Prefix (target) directory
-INSTALL_DIR=$(pwd)/herc4x
+INSTALL_DIR=${INSTALL_DIR:-$(pwd)/herc4x}
 
+# Git repo for SDL-Hercules Hyperion
+GIT_REPO_HYPERION=${GIT_REPO_HYPERION:-https://github.com/SDL-Hercules-390/hyperion.git}
+# GIT_REPO_HYPERION=https://github.com/wrljet/hyperion.git
+
+# Git checkout branch for Hyperion
+# GIT_BRANCH_HYPERION=build-netbsd
+
+# Git repo for Hyperion Gists
+GIT_REPO_GISTS=${GIT_REPO_GISTS:-https://github.com/SDL-Hercules-390/gists.git}
+# GIT_REPO_GISTS=https://github.com/wrljet/gists.git
+
+# Git checkout branch for Hyperion Gists
+# GIT_BRANCH_GISTS=build-mods-i686
+
+# Git repo for Hyperion External Packages
+GIT_REPO_EXTPKGS=${GIT_REPO_EXTPKGS:-https://github.com/SDL-Hercules-390}
+# GIT_REPO_EXTPKGS=https://github.com/wrljet
+
+# Git checkout branch for Hyperion External Packages
+# GIT_BRANCH_EXTPKGS=build-mods-i686
+
+# Show/trace every Bash command
+TRACE=${TRACE:-false}  # If TRACE variable not set or null, default to FALSE
+
+# Print verbose progress information
+VERBOSE=${VERBOSE:-false}
+
+# Prompt the user before each major step is started
+PROMPTS=${PROMPTS:-false}
+
+# 'make install' after building
+INSTALL=${INSTALL:-false}
+
+# Use 'sudo' for 'make install'
+USESUDO=${USESUDO:-false}
+
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
 usage="usage: $(basename "$0") [-h|--help] [-t|--trace] [-v|--verbose] [--install] [--sudo]
 
 Perform a full build, test, and installation of SDL-Hercules-390 Hyperion from GitHub sources
@@ -102,7 +152,8 @@ where:
   -v, --verbose   display lots of messages
   -p, --prompts   display a prompt before each major step
   -i, --install   run \'make install\' after building
-  -s, --sudo      use \'sudo\' for installing"
+  -s, --sudo      use \'sudo\' for installing
+  -c, --config <filename> "
 
 #-----------------------------------------------------------------------------
 # git may report:
@@ -129,18 +180,20 @@ git config --global pager.branch false
 # Stop on error
 set -e
 
+# Read in the utility functions
+source "$(dirname "$0")/utilfns.sh"
+
 # Process command line
 
-if [[ -n $trace ]]  || \
-   [[ -n $TRACE ]]; then
+if [[ ${TRACE} == true ]]; then
     set -x # For debugging, show all commands as they are being run
 fi
 
-TRACE=false
-VERBOSE=false
-PROMPTS=false
-INSTALL=false
-USESUDO=false
+opt_override_trace=false
+opt_override_verbose=false
+opt_override_prompts=false
+opt_override_install=false
+opt_override_usersudo=false
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -148,37 +201,43 @@ do
 key="$1"
 
 case $key in
-    -h|--help)
+#  -c|--config)  # FIXME pick up filename
+#    shift # past argument
+#    CONFIGFILE="$1"
+#    shift # past argument
+#    ;;
+
+  -h|--help)
     echo "$usage"
     exit
     ;;
 
-    -t|--trace)
-    TRACE=true
+  -t|--trace)
+    opt_override_trace=true
     shift # past argument
     ;;
 
-    -v|--verbose)
-    VERBOSE=true
+  -v|--verbose)
+    opt_override_verbose=true
     shift # past argument
     ;;
 
-    -p|--prompts)
-    PROMPTS=true
+  -p|--prompts)
+    opt_override_prompts=true
     shift # past argument
     ;;
 
-    -i|--install)
-    INSTALL=true
+  -i|--install)
+    opt_override_install=true
     shift # past argument
     ;;
 
-    -s|--sudo)
-    USESUDO=true
+  -s|--sudo)
+    opt_override_usersudo=true
     shift # past argument
     ;;
 
-    *)    # unknown option
+  *)    # unknown option
     POSITIONAL+=("$1") # save it in an array for later
     shift # past argument
     ;;
@@ -191,8 +250,37 @@ if [[ "${TRACE}" == true ]]; then
     set -x
 fi
 
-# Read in the utility functions
-source "$(dirname "$0")/utilfns.sh"
+#-----------------------------------------------------------------------------
+
+# Read in the configuration
+config_dir="$(dirname "$0")"
+echo "dirname: $config_dir"
+
+nx0="$(basename "$0")"
+echo "basename: $nx0"
+
+n0="${nx0%.*}"
+echo "filename: $n0"
+
+# config_file="${config_dir}/${n0}.conf"
+config_file="${config_dir}/hercules-helper.conf"
+echo "config file: ${config_file}"
+
+if test -f "${config_file}" ; then
+    source "${config_file}"
+else
+    echo "No config file"
+fi
+
+if [ $opt_override_trace    == true ]; then TRACE=true;   fi
+if [ $opt_override_verbose  == true ]; then VERBOSE=true; fi
+if [ $opt_override_prompts  == true ]; then PROMPTS=true; fi
+if [ $opt_override_install  == true ]; then INSTALL=true; fi
+if [ $opt_override_usersudo == true ]; then USESUDO=true; fi
+
+if [[ ${TRACE} == true ]]; then
+    set -x # For debugging, show all commands as they are being run
+fi
 
 detect_darwin
 if [[ $VERSION_DISTRO == darwin ]]; then
@@ -200,19 +288,39 @@ if [[ $VERSION_DISTRO == darwin ]]; then
     exit 1
 fi
 
-verbose_msg "Options:"
+verbose_msg "General Options:"
 verbose_msg "TRACE            : ${TRACE}"
 verbose_msg "VERBOSE          : ${VERBOSE}"
 verbose_msg "PROMPTS          : ${PROMPTS}"
 verbose_msg "INSTALL          : ${INSTALL}"
 verbose_msg "USESUDO          : ${USESUDO}"
 
+verbose_msg # move to a new line
+verbose_msg "Configuration:"
+verbose_msg "BUILD_DIR        : ${BUILD_DIR}"
+verbose_msg "INSTALL_DIR      : ${INSTALL_DIR}"
+
+if [ -z "$GIT_BRANCH_HYPERION" ] ; then
+    verbose_msg "clone GIT_REPO_HYPERION: ${GIT_REPO_HYPERION}"
+else
+    verbose_msg "clone GIT_REPO_HYPERION: ${GIT_REPO_HYPERION} [checkout $GIT_BRANCH_HYPERION]"
+fi
+
+if [ -z "$GIT_BRANCH_GISTS" ] ; then
+    verbose_msg "clone GIT_REPO_GISTS   : ${GIT_REPO_GISTS}"
+else
+    verbose_msg "clone GIT_REPO_GISTS   : ${GIT_REPO_GISTS} [checkout $GIT_BRANCH_GISTS]"
+fi
+
+if [ -z "$GIT_BRANCH_EXTPKGS" ] ; then
+    verbose_msg "clone GIT_REPO_EXTPKGS : ${GIT_REPO_EXTPKGS}"
+else
+    verbose_msg "clone GIT_REPO_EXTPKGS : ${GIT_REPO_EXTPKGS} [checkout $GIT_BRANCH_EXTPKGS]"
+fi
+
 # Detect type of system we're running on and display info
 detect_system
 detect_rexx
-
-echo "BUILD_DIR        : ${BUILD_DIR}"
-echo "INSTALL_DIR      : ${INSTALL_DIR}"
 
 #-----------------------------------------------------------------------------
 
@@ -230,12 +338,11 @@ fi
 #    echo "OS Version       : $VER"
 #fi
 
-echo "Machine arch     : $(uname -m)"
-echo "CC               : $CC"
-echo "CFLAGS           : $CFLAGS"
-echo "gcc presence     : $(which gcc || true)"
-echo "gcc              : $(gcc --version | head -1)"
-echo "g++ presence     : $(which g++ || true)"
+verbose_msg "CC               : $CC"
+verbose_msg "CFLAGS           : $CFLAGS"
+verbose_msg "gcc presence     : $(which gcc || true)"
+verbose_msg "gcc              : $(gcc --version | head -1)"
+verbose_msg "g++ presence     : $(which g++ || true)"
 
 # Check for older gcc on i686 systems, that is know to fail CBUC test
 
@@ -303,8 +410,8 @@ as_awk_strverscmp='
 hc_gcc_level=$(gcc -dumpversion)
 
 if [[ "$(uname -m)" =~ ^(i686) && $VERSION_DISTRO == debian ]]; then
-    echo # move to a new line
-    echo "Checking for gcc atomics ..."
+    verbose_msg # move to a new line
+    verbose_msg "Checking for gcc atomics ..."
 
     as_arg_v1=$hc_gcc_level
     as_arg_v2="6.3.0"
@@ -345,38 +452,43 @@ if [[ "$(uname -m)" =~ ^(i686) && $VERSION_DISTRO == debian ]]; then
     fi
 fi
 
-echo "looking for files ... please wait ..."
+#-----------------------------------------------------------------------------
+
+verbose_msg "looking for files ... please wait ..."
 
 if [[ $VERSION_WSL -eq 2 ]]; then
     # echo "Windows WSL2 host system found"
     # Don't run a search on /mnt because it takes forever
-    which_cc1=$(find / -path /mnt -prune -o -name cc1 -print 2>&1 | grep cc1)
-    which_cc1plus=$(find / -path /mnt -prune -o -name cc1plus -print 2>&1 | grep cc1plus)
+    which_cc1=$(find / -path /mnt -prune -o -name cc1 -print 2>&1 | grep cc1 | head -5)
+    which_cc1plus=$(find / -path /mnt -prune -o -name cc1plus -print 2>&1 | grep cc1plus | head -5)
+elif [[ $VERSION_ID == netbsd* ]]; then
+    which_cc1=$(find / -xdev -name cc1 -print 2>&1 | grep cc1 | head -5)
+    which_cc1plus=$(find / -xdev -name cc1plus -print 2>&1 | grep cc1plus | head -5)
 else
-    which_cc1=$(find / -mount -name cc1 -print 2>&1 | grep cc1)
-    which_cc1plus=$(find / -mount -name cc1plus -print 2>&1 | grep cc1plus)
+    which_cc1=$(find / -mount -name cc1 -print 2>&1 | grep cc1 | head -5)
+    which_cc1plus=$(find / -mount -name cc1plus -print 2>&1 | grep cc1plus | head -5)
 fi
 
-echo "cc1 presence     : $which_cc1"
-echo "cc1plus presence : $which_cc1plus"
+verbose_msg "cc1 presence     : $which_cc1"
+verbose_msg "cc1plus presence : $which_cc1plus"
 
 start_seconds="$(TZ=UTC0 printf '%(%s)T\n' '-1')"
 start_time=$(date)
 
-echo # move to a new line
-echo "Processing started: $start_time"
+verbose_msg # move to a new line
+verbose_msg "Processing started: $start_time"
 
 #-----------------------------------------------------------------------------
 # Build Regina Rexx, which we use to run the Hercules tests
-echo "-----------------------------------------------------------------
+verbose_msg "-----------------------------------------------------------------
 "
 
 built_regina_from_source=0
 
 if [[  $VERSION_REGINA -ge 3 ]]; then
-    echo "Regina REXX is present.  Skipping build from source."
+    verbose_msg "Regina REXX is present.  Skipping build from source."
 elif [[  $VERSION_OOREXX -ge 4 ]]; then
-    echo "ooRexx is present.  Skipping build Regina-REXX from source."
+    verbose_msg "ooRexx is present.  Skipping build Regina-REXX from source."
 else
 
     status_prompter "Step: Build Regina Rexx [used for test scripts]:"
@@ -395,8 +507,8 @@ else
         regina_configure_cmd="./configure --prefix=${BUILD_DIR}/rexx"
     fi
 
-    echo $regina_configure_cmd
-    echo    # move to a new line
+    verbose_msg $regina_configure_cmd
+    verbose_msg    # move to a new line
     eval "$regina_configure_cmd"
 
     time make
@@ -405,13 +517,13 @@ else
     export PATH=${BUILD_DIR}/rexx/bin:$PATH
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BUILD_DIR}/rexx/lib
     export CPPFLAGS=-I${BUILD_DIR}/rexx/include
-    echo "which rexx: $(which rexx)"
+    verbose_msg "which rexx: $(which rexx)"
 
     built_regina_from_source=1
 fi
 
 #
-echo "-----------------------------------------------------------------
+verbose_msg "-----------------------------------------------------------------
 "
 status_prompter "Step: Hercules git clone:"
 
@@ -422,12 +534,23 @@ mkdir -p ${INSTALL_DIR}
 # Grab unmodified SDL-Hercules Hyperion repo
 cd sdl4x
 rm -rf hyperion
-git clone https://github.com/SDL-Hercules-390/hyperion.git
-cd hyperion
-git branch -va
-#git checkout build-mods-reqs
 
-echo "-----------------------------------------------------------------
+if [ -z "$GIT_REPO_HYPERION" ] ; then
+    error_msg "GIT_REPO_HYPERION variable is not set!"
+    exit 1
+fi
+
+if [ -z "$GIT_BRANCH_HYPERION" ] ; then
+    verbose_msg "git clone $GIT_REPO_HYPERION"
+    git clone $GIT_REPO_HYPERION
+else
+    verbose_msg "git clone -b $GIT_BRANCH_HYPERION $GIT_REPO_HYPERION"
+    git clone -b "$GIT_BRANCH_HYPERION" "$GIT_REPO_HYPERION"
+fi
+
+cd hyperion
+
+verbose_msg "-----------------------------------------------------------------
 "
 status_prompter "Step: util/bldlvlck:"
 
@@ -440,7 +563,7 @@ status_prompter "Step: util/bldlvlck:"
 
 util/bldlvlck 
 
-echo "-----------------------------------------------------------------
+verbose_msg "-----------------------------------------------------------------
 "
 status_prompter "Step: git clone extpkgs:"
 
@@ -449,11 +572,20 @@ rm -rf extpkgs
 mkdir extpkgs
 cd extpkgs/
 
-# echo "Cloning extpkgs from https://github.com/wrljet (branch: build-mods-i686)"
-# git clone -b build-mods-i686 https://github.com/wrljet/gists.git
+if [ -z "$GIT_REPO_GISTS" ] ; then
+    error_msg "GIT_REPO_GISTS variable is not set!"
+    exit 1
+fi
 
-echo "Cloning extpkgs from https://github.com/SDL-Hercules-390"
-git clone https://github.com/SDL-Hercules-390/gists.git
+verbose_msg "Cloning gists / extpkgs from $GIT_REPO_GISTS"
+if [ -z "$GIT_BRANCH_GISTS" ] ; then
+    verbose_msg "git clone $GIT_REPO_GISTS"
+    git clone "$GIT_REPO_GISTS"
+else
+    verbose_msg "git clone -b $GIT_BRANCH_GISTS $GIT_REPO_GISTS"
+  # git clone -b build-mods-i686 https://github.com/wrljet/gists.git
+    git clone -b "$GIT_BRANCH_GISTS" "$GIT_REPO_GISTS"
+fi
 
 cp gists/extpkgs.sh .
 cp gists/extpkgs.sh.ini .
@@ -461,46 +593,39 @@ cp gists/extpkgs.sh.ini .
 # Edit extpkgs.sh.ini
 # Change 'x86' to 'aarch64' for 64-bit, or 'arm' for 32-bit, etc.
 
-if   [[ "$(uname -m)" == x86* ]]; then
-    echo "Defaulting to x86 machine type in extpkgs.sh.ini"
+if   [[ "$(uname -m)" == x86* || "$(uname -m)" == amd64* ]]; then
+    verbose_msg "Defaulting to x86 machine type in extpkgs.sh.ini"
 elif [[ "$(uname -m)" =~ (armv6l|armv7l) ]]; then
     mv extpkgs.sh.ini extpkgs.sh.ini-orig
     sed "s/x86/arm/g" extpkgs.sh.ini-orig > extpkgs.sh.ini
 else
     mv extpkgs.sh.ini extpkgs.sh.ini-orig
-    sed "s/x86/$(uname -m)/g" extpkgs.sh.ini-orig > extpkgs.sh.ini
+    sed "s/x86/$(uname -m)/" extpkgs.sh.ini-orig > extpkgs.sh.ini
 fi
 
 mkdir repos && cd repos
 rm -rf *
 
-# git clone https://github.com/wrljet/crypto.git crypto-0
-# git clone https://github.com/wrljet/decNumber.git decNumber-0
-# git clone https://github.com/wrljet/SoftFloat.git SoftFloat-0
-# git clone https://github.com/wrljet/telnet.git telnet-0
+if [ -z "$GIT_REPO_EXTPKGS" ] ; then
+    error_msg "GIT_REPO_EXTPKGS variable is not set!"
+    exit 1
+fi
 
 declare -a pgms=("crypto" "decNumber" "SoftFloat" "telnet")
 
 for pgm in "${pgms[@]}"; do
-    echo "-----------------------------------------------------------------
+    verbose_msg "-----------------------------------------------------------------
 "
-    echo "$pgm"
-    git clone "https://github.com/SDL-Hercules-390/$pgm.git" "$pgm-0"
-#   git clone -b build-mods-i686 "https://github.com/wrljet/$pgm.git" "$pgm-0"
-#   git clone "https://github.com/wrljet/$pgm.git" "$pgm-0"
-#
-#   pushd "$pgm-0" > /dev/null;
-#   echo "$PWD >"
-#
-#   git checkout master
-#   git checkout build-mods-i686
-#   git checkout master
-#   git merge build-mods-i686 --no-ff --no-edit
-#
-#   popd > /dev/null;
+    if [ -z "$GIT_BRANCH_EXTPKGS" ] ; then
+        verbose_msg "git clone $GIT_REPO_EXTPKGS/$pgm $pgm-0"
+        git clone "$GIT_REPO_EXTPKGS/$pgm.git" "$pgm-0"
+    else
+        verbose_msg "git clone -b $GIT_BRANCH_EXTPKGS $GIT_REPO_EXTPKGS/$pgm $pgm-0"
+        git clone -b "$GIT_BRANCH_EXTPKGS" "$GIT_REPO_EXTPKGS/$pgm.git" "$pgm-0"
+    fi
 done
 
-echo "-----------------------------------------------------------------
+verbose_msg "-----------------------------------------------------------------
 "
 status_prompter "Step: Build external packages:"
 
@@ -516,23 +641,23 @@ cd ${BUILD_DIR}/sdl4x/hyperion
 # We will skip it, though, on x86_64 machines.
 
 if [[ "$(uname -m)" == x86* ]]; then
-    echo "Skipping autogen step on x86* architecture"
+    verbose_msg "Skipping autogen step on x86* architecture"
 else
-    echo "-----------------------------------------------------------------
+    verbose_msg "-----------------------------------------------------------------
 "
     status_prompter "Step: autogen.sh:"
     ./autogen.sh
 fi
 
-echo "-----------------------------------------------------------------
+verbose_msg "-----------------------------------------------------------------
 "
 status_prompter "Step: configure:"
 
 if [[  $VERSION_REGINA -ge 3 ]]; then
-    echo "Regina REXX is present. Using configure option: --enable-regina-rexx"
+    verbose_msg "Regina REXX is present. Using configure option: --enable-regina-rexx"
     enable_rexx_command="--enable-regina-rexx" # enable regina rexx support
 elif [[  $VERSION_OOREXX -ge 4 ]]; then
-    echo "ooRexx is present. Using configure option: --enable-object-rexx"
+    verbose_msg "ooRexx is present. Using configure option: --enable-object-rexx"
     enable_rexx_command="--enable-object-rexx" # enable OORexx support
 elif [[ $built_regina_from_source -eq 1 ]]; then
     enable_rexx_command="--enable-regina-rexx" # enable regina rexx support
@@ -551,12 +676,12 @@ configure_cmd=$(cat <<-END-CONFIGURE
 END-CONFIGURE
 )
 
-echo $configure_cmd
-echo    # move to a new line
+verbose_msg $configure_cmd
+verbose_msg    # move to a new line
 eval "$configure_cmd"
 
-echo    # move to a new line
-echo "./config.status --config ..."
+verbose_msg    # move to a new line
+verbose_msg "./config.status --config ..."
 ./config.status --config
 
 # Debian 10 x86_64, gcc 8.3.0
@@ -579,14 +704,14 @@ echo "./config.status --config ..."
 
 
 # Compile and link
-echo "-----------------------------------------------------------------
+verbose_msg "-----------------------------------------------------------------
 "
 status_prompter "Step: make:"
 
 make clean
 time make -j$(nproc) 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make.log
 
-echo "-----------------------------------------------------------------
+verbose_msg "-----------------------------------------------------------------
 "
 status_prompter "Step: tests:"
 
@@ -609,7 +734,7 @@ time make check 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-check.log
 # sudo ./hercules
 
 if ($INSTALL); then
-  echo "-----------------------------------------------------------------
+  verbose_msg "-----------------------------------------------------------------
 "
   if ($USESUDO); then
     status_prompter "Step: install [with sudo]:"
@@ -621,28 +746,28 @@ if ($INSTALL); then
     time make install 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-install.log
   fi
 
-  echo "-----------------------------------------------------------------
+  verbose_msg "-----------------------------------------------------------------
 "
-  echo "Step: setcap operations so Hercules can run without elevated privileges:"
-  echo    # move to a new line
+  verbose_msg "Step: setcap operations so Hercules can run without elevated privileges:"
+  verbose_msg    # move to a new line
+  verbose_msg "sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/hercules"
   sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/hercules
-  echo "sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/hercules"
+  verbose_msg "sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/herclin"
   sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/herclin
-  echo "sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/herclin"
+  verbose_msg "sudo setcap 'cap_net_admin+ep' ${INSTALL_DIR}/bin/hercifc"
   sudo setcap 'cap_net_admin+ep' ${INSTALL_DIR}/bin/hercifc
-  echo "sudo setcap 'cap_net_admin+ep' ${INSTALL_DIR}/bin/hercifc"
 fi
 
-echo "-----------------------------------------------------------------
+verbose_msg "-----------------------------------------------------------------
 "
 
 end_time=$(date)
-echo "Overall build processing ended:   $end_time"
+verbose_msg "Overall build processing ended:   $end_time"
 
 elapsed_seconds="$(( $(TZ=UTC0 printf '%(%s)T\n' '-1') - start_seconds ))"
 verbose_msg "total elapsed seconds: $elapsed_seconds"
-echo "Overall elpased time: $( TZ=UTC0 printf '%(%H:%M:%S)T\n' "$elapsed_seconds" )"
-echo    # move to a new line
+verbose_msg "Overall elpased time: $( TZ=UTC0 printf '%(%H:%M:%S)T\n' "$elapsed_seconds" )"
+verbose_msg    # move to a new line
 
 if true; then
     shell=$(/usr/bin/basename $(/bin/ps -p $$ -ocomm=))
@@ -701,7 +826,7 @@ FOE
 fi
 
 if ($INSTALL); then
-  echo "-----------------------------------------------------------------
+  verbose_msg "-----------------------------------------------------------------
 "
     status_prompter "Step: create shell profile [requires sudo]:"
 
@@ -744,7 +869,7 @@ shell=\$(/usr/bin/basename \$(/bin/ps -p \$\$ -ocomm=))
 if [ -f "${INSTALL_DIR}/hyperion-init-\$shell.sh" ]; then
    . "${INSTALL_DIR}/hyperion-init-\$shell.sh"
 else
-   echo "Cannot create Hyperion profile variables on \$shell, script is missing."
+   error_msg "Cannot create Hyperion profile variables on \$shell, script is missing."
 fi  
 
 FOE2
