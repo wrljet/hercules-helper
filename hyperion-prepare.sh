@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Prepare system for building SDL-Hercules-390
-# Updated: 28 DEC 2020
+# Updated: 05 JAN 2021
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -13,6 +13,9 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 05 JAN 2021
+# - initial support for NetBSD
 #
 # Updated: 28 DEC 2020
 # - detect and disallow running on Apple Darwin OS
@@ -182,8 +185,6 @@ case $VERSION_DISTRO in
 
   netbsd*)
     echo "$VERSION_DISTRO based system found"
-    error_msg "Not yet supported!"
-    exit 1
     ;;
 
   *)
@@ -336,7 +337,28 @@ fi
 # NetBSD
 
 if [[ $VERSION_ID == netbsd* ]]; then
-    error_msg "NetBSD found.  Not yet supported!"
+    declare -a netbsd_packages=( \
+        "git" \
+        "build-essential" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
+        "bzip2" "zlib1g-dev"
+    )
+
+    for package in "${netbsd_packages[@]}"; do
+        echo "-----------------------------------------------------------------"
+        echo "Checking for package: $package"
+
+        is_installed=$(pkg_info -E $package)
+        status=$?
+
+        # install if missing
+        if [ $status -eq 0 ] ; then
+            echo "package: $package is already installed"
+        else
+            echo "$package : must be installed"
+            # echo "installing package: $package"
+        fi
+    done
+
 fi
 
 echo "Done!"

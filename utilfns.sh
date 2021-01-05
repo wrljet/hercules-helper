@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Utility functions for hercules-helper scripts
-# Updated: 29 DEC 2020
+# Updated: 05 JAN 2021
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -13,6 +13,9 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 05 JAN 2021
+# - Split NetBSD / OpenBSD cases
 #
 # Updated: 29 DEC 2020
 # - added status_prompter() function
@@ -327,7 +330,7 @@ detect_system()
             detect_pi
         fi
 
-    elif [ "${OS_NAME}" = "OpenBSD" -o "${OS_NAME}" = "NetBSD" ]; then
+    elif [ "${OS_NAME}" = "NetBSD" ]; then
 
         VERSION_DISTRO=netbsd
         VERSION_ID="netbsd"
@@ -355,10 +358,20 @@ detect_system()
         verbose_msg "VERSION_ID       : $VERSION_ID"
         verbose_msg "VERSION_STR      : $VERSION_STR"
 
+        VERSION_SUBSTR=$(echo ${VERSION_STR} | cut -f1 -d_)
+        verbose_msg "VERSION_SUBSTR   : $VERSION_SUBSTR"
+        VERSION_MAJOR=$(echo ${VERSION_SUBSTR} | cut -f1 -d.)
+        verbose_msg "VERSION_MAJOR    : $VERSION_MAJOR"
+        VERSION_MINOR=$(echo ${VERSION_SUBSTR} | cut -f2 -d.)
+        verbose_msg "VERSION_MINOR    : $VERSION_MINOR"
+
         # show the default language
 
         # i.e. LANG=en_US.UTF-8
         verbose_msg "Language         : <unknown>"
+
+    elif [ "${OS_NAME}" = "OpenBSD" ]; then
+        error_msg "OpenBSD is not yet supported!"
     fi
 }
 
