@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Utility functions for hercules-helper scripts
-# Updated: 05 JAN 2021
+# Updated: 07 JAN 2021
 #
 # The most recent version of this script can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -13,6 +13,9 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 07 JAN 2021
+# - added openSUSE package support
 #
 # Updated: 05 JAN 2021
 # - Split NetBSD / OpenBSD cases
@@ -281,6 +284,18 @@ detect_system()
 
             verbose_msg "VERSION_MAJOR    : $VERSION_MAJOR"
             verbose_msg "VERSION_MINOR    : $VERSION_MINOR"
+        fi
+
+        # Look for openSUSE
+
+        if [[ ${VERSION_ID,,} == opensuse* ]];
+        then
+            VERSION_DISTRO=openSUSE
+            VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
+            VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
+
+            verbose_msg "OS               : $VERSION_DISTRO variant"
+            verbose_msg "OS Version       : $VERSION_MAJOR"
         fi
 
         # show the default language

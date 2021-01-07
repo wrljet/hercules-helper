@@ -19,6 +19,7 @@
 # - add --no-packages option
 # - default to always install, and reverse sense of option to --no-install
 # - fix package detection for CMAKE on CentOS 7.8
+# - added openSUSE package support
 #
 # Updated: 05 JAN 2021
 # - initial support for NetBSD
@@ -202,7 +203,7 @@ git config --global pager.branch false
 
 #-----------------------------------------------------------------------------
 # Stop on error
-set -e
+# FIXME set -e
 
 # Read in the utility functions
 source "$(dirname "$0")/utilfns.sh"
@@ -377,6 +378,7 @@ prepare_packages()
 
   fi
 
+#-----------------------------------------------------------------------------
   # CentOS 7
 
   if [[ $VERSION_ID == centos* ]]; then
@@ -477,6 +479,37 @@ prepare_packages()
       fi
   fi
 
+#-----------------------------------------------------------------------------
+  # openSUSE (15.1)
+
+  if [[ ${VERSION_ID,,} == opensuse* ]]; then
+      declare -a opensuse_packages=( \
+          "git" \
+          "devel_basis" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
+          "bzip2" \
+          "libz1" "zlib-devel"
+      )
+
+      for package in "${opensuse_packages[@]}"; do
+          echo "-----------------------------------------------------------------"
+          echo "Checking for package: $package"
+
+          is_installed=$(zypper search --installed-only --match-exact "$package")
+          status=$?
+
+          # install if missing
+          if [ $status -eq 0 ] ; then
+              echo "package: $package is already installed"
+          else
+              echo "installing package: $package"
+              echo "sudo zypper install -y -t pattern $package"
+              sudo zypper install -y -t pattern $package
+          fi
+      done
+
+  fi
+
+#-----------------------------------------------------------------------------
   # NetBSD
 
   if [[ $VERSION_ID == netbsd* ]]; then
