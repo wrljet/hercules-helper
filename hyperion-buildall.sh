@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 05 JAN 2021
+# Updated: 07 JAN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -14,6 +14,11 @@
 
 # Changelog:
 #
+# Updated: 07 JAN 2021
+# - merge package preparation functionality into hyperion-buildall.sh
+# - add --no-packages option
+# - default to always install, and reverse sense of option to --no-install
+#
 # Updated: 05 JAN 2021
 # - initial support for NetBSD
 # - correct 'make -j' argument and CPU count for NetBSD
@@ -21,7 +26,7 @@
 # - display a version number for this script
 #
 # Updated: 04 JAN 2021
-# - create feature of external .conf file
+# - create feature of external .conf file (not yet advertised)
 # - configurable URLs to GitHub for cloning repos *and* branch checkout
 # - don't use 'find -mount' on NetBSD
 # - when modifying extpkgs.sh.ini, don't override x86 with amd64 (NetBSD)
@@ -52,10 +57,12 @@
 #
 # Updated: 21 DEC 2020
 # - detect existing Regina REXX installation and skip building (Debian only)
+# - auto install libregina3-dev (on Debian)
 #
 # Updated: 20 DEC 2020
 # - changes to detect and disallow gcc < 6.3.0 on i686
 # - don't follow mount points while searching for files
+# - comment known issue looking for installed state on Ubuntu 12.04
 #
 # Updated: 15 DEC 2020
 # - changes to detect and disallow Raspberry Pi Desktop for PC
@@ -76,14 +83,24 @@
 # - wrljet build-mods-i686 branch is merged to SDL-Hercules-390, 
 #   so we git clone from that directly
 #
+# Updated:  6 DEC 2020
+# - another fix for CentOS 7.x detection
+# - improve system status info for debugging
+# - fix configure C pre-processor detection on CentOS
+#
 # Updated:  5 DEC 2020
 # - issue 'setcap' commands so hercules will run without root permissions
 # - write out hercules-setvars.sh to create required environment variables
+# - added m4 as a required package for Debian
 # - show the system language
 # - display improvements
 #
 # Updated:  4 DEC 2020
+# - disallow running as the root user
 # - corrected parsing for differing CentOS 7.8 ansd 8.2 version strings
+# - update package list for CentOS
+# - on CentOS 7, CMAKE 3.x is built from source
+# - added wget as a required package for CentOS
 #
 # Updated: 30 NOV 2020
 # - initial commit to GitHub
@@ -93,10 +110,7 @@
 # To run, create a build directory and cd to it, then run this script.
 #
 #  $ mkdir herctest && cd herctest
-#  $ ~/hercules-helper/hyperion-buildall.sh -v --prompts --install 2>&1 | tee ./hyperion-buildall.log
-#
-# Be sure to run hyperion-prepare.sh one time before this build script.
-# hyperion-prepare.sh will ensure all required packages are installed.
+#  $ ~/hercules-helper/hyperion-buildall.sh --verbose --prompts 2>&1 | tee ./hyperion-buildall.log
 #
 #-----------------------------------------------------------------------------
 
@@ -104,10 +118,10 @@
 # Default Configuration Parameters:
 #
 # Overall working build diretory is the current directory
-BUILD_DIR=${BUILD_DIR:-$(pwd)}
+OPT_BUILD_DIR=${OPT_BUILD_DIR:-$(pwd)}
 
 # Prefix (target) directory
-INSTALL_DIR=${INSTALL_DIR:-$(pwd)/herc4x}
+OPT_INSTALL_DIR=${OPT_INSTALL_DIR:-$(pwd)/herc4x}
 
 # Git repo for SDL-Hercules Hyperion
 GIT_REPO_HYPERION=${GIT_REPO_HYPERION:-https://github.com/SDL-Hercules-390/hyperion.git}
@@ -134,32 +148,35 @@ GIT_REPO_EXTPKGS=${GIT_REPO_EXTPKGS:-https://github.com/SDL-Hercules-390}
 TRACE=${TRACE:-false}  # If TRACE variable not set or null, default to FALSE
 
 # Print verbose progress information
-VERBOSE=${VERBOSE:-false}
+OPT_VERBOSE=${OPT_VERBOSE:-false}
 
 # Prompt the user before each major step is started
-PROMPTS=${PROMPTS:-false}
+OPT_PROMPTS=${OPT_PROMPTS:-false}
 
-# 'make install' after building
-INSTALL=${INSTALL:-false}
+# Do not install missing packages if true
+OPT_NO_PACKAGES=${OPT_NO_PACKAGES:-false}
+
+# Skip 'make install' after building
+OPT_NO_INSTALL=${OPT_NO_INSTALL:-false}
 
 # Use 'sudo' for 'make install'
-USESUDO=${USESUDO:-false}
+OPT_USESUDO=${OPT_USESUDO:-false}
 
 #-----------------------------------------------------------------------------
-
-#-----------------------------------------------------------------------------
-usage="usage: $(basename "$0") [-h|--help] [-t|--trace] [-v|--verbose] [--install] [--sudo]
+usage="usage: $(basename "$0") [-h|--help] [-t|--trace] [-v|--verbose] [-p|--prompts] [--no-install] [--no-packages] [--sudo]
 
 Perform a full build, test, and installation of SDL-Hercules-390 Hyperion from GitHub sources
 
 where:
-  -h, --help      display this help
-  -t, --trace     display every command (set -x)
-  -v, --verbose   display lots of messages
-  -p, --prompts   display a prompt before each major step
-  -i, --install   run \'make install\' after building
-  -s, --sudo      use \'sudo\' for installing
-  -c, --config <filename> "
+  -h, --help         display this help
+  -t, --trace        display every command (set -x)
+  -v, --verbose      display lots of messages
+  -p, --prompts      display a prompt before each major step
+      --no-install   run \'make install\' after building
+      --no-packages  skip installing required packages
+  -s, --sudo         use \'sudo\' for installing
+  -c, --config <filename>
+"
 
 #-----------------------------------------------------------------------------
 # git may report:
@@ -198,8 +215,9 @@ fi
 opt_override_trace=false
 opt_override_verbose=false
 opt_override_prompts=false
-opt_override_install=false
+opt_override_no_install=false
 opt_override_usersudo=false
+opt_override_no_packages=false
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -225,7 +243,7 @@ case $key in
 
   -v|--verbose)
     opt_override_verbose=true
-    VERBOSE=true
+    OPT_VERBOSE=true
     shift # past argument
     ;;
 
@@ -234,13 +252,23 @@ case $key in
     shift # past argument
     ;;
 
-  -i|--install)
-    opt_override_install=true
+  --install)
+    opt_override_no_install=false
+    shift # past argument
+    ;;
+
+  --no-install)
+    opt_override_no_install=true
     shift # past argument
     ;;
 
   -s|--sudo)
     opt_override_usersudo=true
+    shift # past argument
+    ;;
+
+  --no-packages) # skip installing required packages
+    opt_override_no_packages=true
     shift # past argument
     ;;
 
@@ -269,35 +297,202 @@ verbose_msg "$0: $(git describe --long --tags --dirty --always)"
 popd > /dev/null;
 verbose_msg    # print a new line
 
-# Read in the configuration
+# Find and read in the configuration
+
 config_dir="$(dirname "$0")"
-echo "dirname: $config_dir"
-
-nx0="$(basename "$0")"
-echo "basename: $nx0"
-
-n0="${nx0%.*}"
-echo "filename: $n0"
-
-# config_file="${config_dir}/${n0}.conf"
 config_file="${config_dir}/hercules-helper.conf"
-echo "config file: ${config_file}"
+echo "Using config file: ${config_file}"
 
 if test -f "${config_file}" ; then
     source "${config_file}"
 else
-    echo "No config file"
+    echo "Config file not found"
 fi
 
-if [ $opt_override_trace    == true ]; then TRACE=true;   fi
-if [ $opt_override_verbose  == true ]; then VERBOSE=true; fi
-if [ $opt_override_prompts  == true ]; then PROMPTS=true; fi
-if [ $opt_override_install  == true ]; then INSTALL=true; fi
-if [ $opt_override_usersudo == true ]; then USESUDO=true; fi
+if [ $opt_override_trace       == true ]; then TRACE=true;   fi
+if [ $opt_override_verbose     == true ]; then OPT_VERBOSE=true; fi
+if [ $opt_override_prompts     == true ]; then OPT_PROMPTS=true; fi
+if [ $opt_override_no_install  == true ]; then OPT_NO_INSTALL=true; fi
+if [ $opt_override_usersudo    == true ]; then OPT_USESUDO=true; fi
+if [ $opt_override_no_packages == true ]; then OPT_NO_PACKAGES=true; fi
 
 if [[ ${TRACE} == true ]]; then
     set -x # For debugging, show all commands as they are being run
 fi
+
+#------------------------------------------------------------------------------
+#                              prepare_packages
+#------------------------------------------------------------------------------
+prepare_packages()
+{
+  # Look for Debian/Ubuntu/Mint
+
+  if [[ $VERSION_DISTRO == debian  ]]; then
+      # if [[ $(lsb_release -rs) == "18.04" ]]; then
+
+      declare -a debian_packages=( \
+          "git" \
+          "build-essential" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
+          "libbz2-dev" "zlib1g-dev"
+      )
+
+      for package in "${debian_packages[@]}"; do
+          echo -n "Checking for package: $package ... "
+
+          # the following only works on Ubuntu newer than 12.04
+          # another method is:
+          # /usr/bin/dpkg-query -s <packagename> 2>/dev/null | grep -q ^"Status: install ok installed"$
+
+          is_installed=$(/usr/bin/dpkg-query --show --showformat='${db:Status-Status}\n' $package)
+          status=$?
+
+          # install if missing
+          if [ $status -eq 0 ] && [ "$is_installed" == "installed" ]; then
+              echo "is already installed"
+          else
+              echo "is missing, installing"
+              sudo apt-get -y install $package
+              echo "-----------------------------------------------------------------"
+          fi
+      done
+
+      if [[ $VERSION_REGINA -ge 3 ]]; then
+          echo "-----------------------------------------------------------------"
+          echo "Found an existing Regina REXX"
+
+          package="libregina3-dev"
+
+          echo "Checking for package: $package"
+          is_installed=$(/usr/bin/dpkg-query --show --showformat='${db:Status-Status}\n' $package)
+          status=$?
+
+          if [ $status -eq 0 ] && [ "$is_installed" == "installed" ]; then
+              echo "package: $package is already installed"
+          else
+              echo "installing package: $package"
+              sudo apt-get -y install $package
+          fi
+      fi
+
+  fi
+
+  # CentOS 7
+
+  if [[ $VERSION_ID == centos* ]]; then
+      if [[ $VERSION_MAJOR -ge 7 ]]; then
+          echo "CentOS version 7 or later found"
+
+          declare -a centos_packages=( \
+              "git" "wget" \
+              "gcc" "make" "autoconf" "automake" "flex" "gawk" "m4"
+              "cmake3"
+              "bzip2-devel" "zlib-devel"
+          )
+
+          for package in "${centos_packages[@]}"; do
+              echo "-----------------------------------------------------------------"
+
+              #yum list installed bzip2-devel  > /dev/null 2>&1 ; echo $?
+              yum list installed $package
+              status=$?
+
+              # install if missing
+              if [ $status -eq 0 ]; then
+                  echo "package $package is already installed"
+              else
+                  echo "installing package: $package"
+                  sudo yum -y install $package
+              fi
+          done
+
+          if [[ $VERSION_MAJOR -eq 7 ]]; then
+
+              echo "-----------------------------------------------------------------"
+  # cmake presence: /usr/local/bin/cmake
+  # /usr/local/bin/cmake status: 0
+              which_cmake=$(which cmake)
+              which_status=$?
+
+              echo "CMAKE presence: $which_cmake"
+              echo "(which cmake) status: $which_status"
+
+              if [ $which_status -eq 1 ]; then
+                  echo "On CentOS 7, there is no package for CMAKE 3.x"
+                  echo "Building from source..."
+
+                  mkdir -p ~/tools
+                  pushd ~/tools > /dev/null;
+
+                  if [ ! -f cmake-3.12.3.tar.gz ]; then
+                      wget https://cmake.org/files/v3.12/cmake-3.12.3.tar.gz
+                  fi
+
+                  tar xfz cmake-3.12.3.tar.gz
+                  cd cmake-3.12.3/
+                  ./bootstrap --prefix=/usr/local
+                  make -j$(nproc)
+                  sudo make install
+                  cmake --version
+                  popd > /dev/null;
+              fi
+
+          fi
+
+          # run on all CentOS, after CMAKE
+          echo "-----------------------------------------------------------------"
+
+          which_cc1=$(find / -name cc1 -print 2>&1 | grep cc1)
+          echo "cc1 presence:       $which_cc1"
+
+          which_cc1plus=$(find / -name cc1plus -print 2>&1 | grep cc1plus)
+          which_status=$?
+          echo "cc1plus presence:   $which_cc1plus"
+
+          if [ -z $which_cc1plus ]; then
+              echo "On CentOS and there is no cc1plus"
+
+              if [ ! -z $which_cc1 ]; then
+                  echo "We do have cc1; linking cc1plus to cc1"
+                  sudo ln -s "$which_cc1" /usr/bin/cc1plus
+              else
+                  error_msg "We do not have cc1 either; full gcc-c++ package is required"
+              fi
+          fi
+
+          echo    # print a new line
+      else
+          error_msg "CentOS version 6 or earlier found, and not supported"
+          exit 1
+      fi
+  fi
+
+  # NetBSD
+
+  if [[ $VERSION_ID == netbsd* ]]; then
+      declare -a netbsd_packages=( \
+          "git" \
+          "build-essential" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
+          "bzip2" "zlib1g-dev"
+      )
+
+      for package in "${netbsd_packages[@]}"; do
+          echo "-----------------------------------------------------------------"
+          echo "Checking for package: $package"
+
+          is_installed=$(pkg_info -E $package)
+          status=$?
+
+          # install if missing
+          if [ $status -eq 0 ] ; then
+              echo "package: $package is already installed"
+          else
+              echo "$package : must be installed"
+              # echo "installing package: $package"
+          fi
+      done
+
+  fi
+}
 
 detect_darwin
 if [[ $VERSION_DISTRO == darwin ]]; then
@@ -305,17 +500,18 @@ if [[ $VERSION_DISTRO == darwin ]]; then
     exit 1
 fi
 
+verbose_msg    # print a new line
 verbose_msg "General Options:"
-verbose_msg "TRACE            : ${TRACE}"
-verbose_msg "VERBOSE          : ${VERBOSE}"
-verbose_msg "PROMPTS          : ${PROMPTS}"
-verbose_msg "INSTALL          : ${INSTALL}"
-verbose_msg "USESUDO          : ${USESUDO}"
+verbose_msg "TRACE                : ${TRACE}"
+verbose_msg "OPT_VERBOSE          : ${OPT_VERBOSE}"
+verbose_msg "OPT_PROMPTS          : ${OPT_PROMPTS}"
+verbose_msg "OPT_NO_INSTALL       : ${OPT_NO_INSTALL}"
+verbose_msg "OPT_USESUDO          : ${OPT_USESUDO}"
 
 verbose_msg # move to a new line
 verbose_msg "Configuration:"
-verbose_msg "BUILD_DIR        : ${BUILD_DIR}"
-verbose_msg "INSTALL_DIR      : ${INSTALL_DIR}"
+verbose_msg "OPT_BUILD_DIR        : ${OPT_BUILD_DIR}"
+verbose_msg "OPT_INSTALL_DIR      : ${OPT_INSTALL_DIR}"
 
 if [ -z "$GIT_BRANCH_HYPERION" ] ; then
     verbose_msg "clone GIT_REPO_HYPERION: ${GIT_REPO_HYPERION}"
@@ -337,7 +533,6 @@ fi
 
 # Detect type of system we're running on and display info
 detect_system
-detect_rexx
 
 #-----------------------------------------------------------------------------
 
@@ -346,15 +541,26 @@ if [[ $VERSION_RPIDESKTOP -eq 1 ]]; then
     exit 1
 fi
 
-#if [ -f /etc/debian_version ]; then
-#    # Older Debian/Ubuntu/etc.
-#    OS=Debian
-#    VER=$(cat /etc/debian_version)
-#
-#    echo "OS               : $OS variant"
-#    echo "OS Version       : $VER"
-#fi
+if [[ $VERSION_WSL -eq 1 ]]; then
+    error_msg "Not supported under Windows WSL1!"
+    exit 1
+fi
 
+#-----------------------------------------------------------------------------
+verbose_msg # move to a new line
+if ($OPT_NO_PACKAGES); then
+    verbose_msg "Step: Check for required packages: (skipped)"
+else
+    status_prompter "Step: Check for required packages:"
+    prepare_packages
+fi
+
+#-----------------------------------------------------------------------------
+verbose_msg # move to a new line
+status_prompter "Step: continuing..."
+detect_rexx
+
+#-----------------------------------------------------------------------------
 verbose_msg "CC               : $CC"
 verbose_msg "CFLAGS           : $CFLAGS"
 verbose_msg "gcc presence     : $(which gcc || true)"
@@ -456,7 +662,7 @@ if [[ "$(uname -m)" =~ ^(i686) && $VERSION_DISTRO == debian ]]; then
         error_msg "gcc versions before $as_arg_v2 will not create a fully functional"
         error_msg "Hercules on this 32-bit system. Certain test are known to fail."
 
-        if ($PROMPTS); then
+        if ($OPT_PROMPTS); then
             if confirm "Continue anyway? [y/N]" ; then
                 echo "OK"
             else
@@ -519,9 +725,9 @@ else
     cd regina-rexx-3.9.3/
 
     if [[ "$(uname -m)" =~ ^(i686) ]]; then
-        regina_configure_cmd="./configure --prefix=${BUILD_DIR}/rexx --enable-32bit"
+        regina_configure_cmd="./configure --prefix=${OPT_BUILD_DIR}/rexx --enable-32bit"
     else
-        regina_configure_cmd="./configure --prefix=${BUILD_DIR}/rexx"
+        regina_configure_cmd="./configure --prefix=${OPT_BUILD_DIR}/rexx"
     fi
 
     verbose_msg $regina_configure_cmd
@@ -531,9 +737,9 @@ else
     time make
     time make install
 
-    export PATH=${BUILD_DIR}/rexx/bin:$PATH
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BUILD_DIR}/rexx/lib
-    export CPPFLAGS=-I${BUILD_DIR}/rexx/include
+    export PATH=${OPT_BUILD_DIR}/rexx/bin:$PATH
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${OPT_BUILD_DIR}/rexx/lib
+    export CPPFLAGS=-I${OPT_BUILD_DIR}/rexx/include
     verbose_msg "which rexx: $(which rexx)"
 
     built_regina_from_source=1
@@ -544,9 +750,9 @@ verbose_msg "-----------------------------------------------------------------
 "
 status_prompter "Step: Hercules git clone:"
 
-cd ${BUILD_DIR}
+cd ${OPT_BUILD_DIR}
 mkdir -p sdl4x
-mkdir -p ${INSTALL_DIR}
+mkdir -p ${OPT_INSTALL_DIR}
 
 # Grab unmodified SDL-Hercules Hyperion repo
 cd sdl4x
@@ -584,7 +790,7 @@ verbose_msg "-----------------------------------------------------------------
 "
 status_prompter "Step: git clone extpkgs:"
 
-cd ${BUILD_DIR}
+cd ${OPT_BUILD_DIR}
 rm -rf extpkgs
 mkdir extpkgs
 cd extpkgs/
@@ -646,13 +852,13 @@ verbose_msg "-----------------------------------------------------------------
 "
 status_prompter "Step: Build external packages:"
 
-cd ${BUILD_DIR}
+cd ${OPT_BUILD_DIR}
 cd extpkgs
 
 DEBUG=1 ./extpkgs.sh  c d s t
 # ./extpkgs.sh c d s t
 
-cd ${BUILD_DIR}/sdl4x/hyperion
+cd ${OPT_BUILD_DIR}/sdl4x/hyperion
 
 # I understand some people don't, but I like to run autogen.
 # We will skip it, though, on x86_64 machines.
@@ -686,8 +892,8 @@ fi
 configure_cmd=$(cat <<-END-CONFIGURE
 ./configure \
     --enable-optimization="-O3 -march=native" \
-    --enable-extpkgs=${BUILD_DIR}/extpkgs \
-    --prefix=${INSTALL_DIR} \
+    --enable-extpkgs=${OPT_BUILD_DIR}/extpkgs \
+    --prefix=${OPT_INSTALL_DIR} \
     --enable-custom="Built using hercules-helper" \
     $enable_rexx_command
 END-CONFIGURE
@@ -734,8 +940,8 @@ else
 fi
 
 verbose_msg    # move to a new line
-verbose_msg "time make -j $NPROCS 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make.log"
-time make -j "$NPROCS" 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make.log
+verbose_msg "time make -j $NPROCS 2>&1 | tee ${OPT_BUILD_DIR}/hyperion-buildall-make.log"
+time make -j "$NPROCS" 2>&1 | tee ${OPT_BUILD_DIR}/hyperion-buildall-make.log
 
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
     error_msg "Make failed!"
@@ -745,7 +951,7 @@ verbose_msg "-----------------------------------------------------------------
 "
 status_prompter "Step: tests:"
 
-time make check 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-check.log
+time make check 2>&1 | tee ${OPT_BUILD_DIR}/hyperion-buildall-make-check.log
 # time ./tests/runtest ./tests
 
 # Failed test "mainsize" on openSUSE 15.1 with 4GB RAM
@@ -763,29 +969,31 @@ time make check 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-check.log
 # Quickie test to see if hercules works at all
 # sudo ./hercules
 
-if ($INSTALL); then
   verbose_msg "-----------------------------------------------------------------
 "
-  if ($USESUDO); then
+if ($OPT_NO_INSTALL); then
+    verbose_msg "Step: install: (skipped)"
+else
+  if ($OPT_USESUDO); then
     status_prompter "Step: install [with sudo]:"
 
-    sudo time make install 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-install.log
+    sudo time make install 2>&1 | tee ${OPT_BUILD_DIR}/hyperion-buildall-make-install.log
   else
     status_prompter "Step: install [without sudo]:"
 
-    time make install 2>&1 | tee ${BUILD_DIR}/hyperion-buildall-make-install.log
+    time make install 2>&1 | tee ${OPT_BUILD_DIR}/hyperion-buildall-make-install.log
   fi
 
   verbose_msg "-----------------------------------------------------------------
 "
   verbose_msg "Step: setcap operations so Hercules can run without elevated privileges:"
   verbose_msg    # move to a new line
-  verbose_msg "sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/hercules"
-  sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/hercules
-  verbose_msg "sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/herclin"
-  sudo setcap 'cap_sys_nice=eip' ${INSTALL_DIR}/bin/herclin
-  verbose_msg "sudo setcap 'cap_net_admin+ep' ${INSTALL_DIR}/bin/hercifc"
-  sudo setcap 'cap_net_admin+ep' ${INSTALL_DIR}/bin/hercifc
+  verbose_msg "sudo setcap 'cap_sys_nice=eip' ${OPT_INSTALL_DIR}/bin/hercules"
+  sudo setcap 'cap_sys_nice=eip' ${OPT_INSTALL_DIR}/bin/hercules
+  verbose_msg "sudo setcap 'cap_sys_nice=eip' ${OPT_INSTALL_DIR}/bin/herclin"
+  sudo setcap 'cap_sys_nice=eip' ${OPT_INSTALL_DIR}/bin/herclin
+  verbose_msg "sudo setcap 'cap_net_admin+ep' ${OPT_INSTALL_DIR}/bin/hercifc"
+  sudo setcap 'cap_net_admin+ep' ${OPT_INSTALL_DIR}/bin/hercifc
 fi
 
 verbose_msg "-----------------------------------------------------------------
@@ -799,46 +1007,46 @@ verbose_msg "total elapsed seconds: $elapsed_seconds"
 verbose_msg "Overall elpased time: $( TZ=UTC0 printf '%(%H:%M:%S)T\n' "$elapsed_seconds" )"
 verbose_msg    # move to a new line
 
-if true; then
+if ($OPT_INSTALL); then
     shell=$(/usr/bin/basename $(/bin/ps -p $$ -ocomm=))
-    cat <<FOE >"${INSTALL_DIR}/hyperion-init-$shell.sh"
+    cat <<FOE >"${OPT_INSTALL_DIR}/hyperion-init-$shell.sh"
 #!/bin/bash
 #
 # Set up environment variables for Hercules
 #
 # e.g.
-#  export PATH=${INSTALL_DIR}/bin:${BUILD_DIR}/rexx/bin:$PATH
-#  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${INSTALL_DIR}/lib:${BUILD_DIR}/rexx/lib
+#  export PATH=${OPT_INSTALL_DIR}/bin:${OPT_BUILD_DIR}/rexx/bin:$PATH
+#  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${OPT_INSTALL_DIR}/lib:${OPT_BUILD_DIR}/rexx/lib
 #
 # This script was created by $0, $(date)
 #
 
-newpath="${INSTALL_DIR}/bin"
+newpath="${OPT_INSTALL_DIR}/bin"
 if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
   # export PATH="\${PATH:+"\$PATH:"}\$newpath"
     export PATH="\$newpath\${PATH:+":\$PATH"}"
 fi
 
-newpath="${INSTALL_DIR}/lib"
+newpath="${OPT_INSTALL_DIR}/lib"
 if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
   # export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}\$newpath"
     export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
 fi
 
 if [[ $built_regina_from_source -eq 1 ]]; then
-    newpath="${BUILD_DIR}/rexx/bin"
+    newpath="${OPT_BUILD_DIR}/rexx/bin"
     if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
       # export PATH="\${PATH:+"\$PATH:"}\$newpath"
         export PATH="\$newpath\${PATH:+":\$PATH"}"
     fi
 
-    newpath="${BUILD_DIR}/rexx/lib"
+    newpath="${OPT_BUILD_DIR}/rexx/lib"
     if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
       # export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}\$newpath"
         export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
     fi
 
-    newpath="${BUILD_DIR}/rexx/include"
+    newpath="${OPT_BUILD_DIR}/rexx/include"
     if [ -d "\$newpath" ] && [[ ":\$CPPFLAGS:" != *":-I\$newpath:"* ]]; then
       # export CPPFLAGS="\${CPPFLAGS:+"\$CPPFLAGS:"}-I\$newpath"
         export CPPFLAGS="-I\$newpath\${CPPFLAGS:+" \$CPPFLAGS"}"
@@ -848,14 +1056,14 @@ fi
 FOE
 # end in inline "here" file
 
-    chmod +x "${INSTALL_DIR}/hyperion-init-$shell.sh"
-    source "${INSTALL_DIR}/hyperion-init-$shell.sh"
+    chmod +x "${OPT_INSTALL_DIR}/hyperion-init-$shell.sh"
+    source "${OPT_INSTALL_DIR}/hyperion-init-$shell.sh"
 
 #   echo "To set the required environment variables, run:"
-#   echo "    source ${BUILD_DIR}/hercules-setvars.sh"
+#   echo "    source ${OPT_BUILD_DIR}/hercules-setvars.sh"
 fi
 
-if ($INSTALL); then
+if (! $OPT_NO_INSTALL); then
   verbose_msg "-----------------------------------------------------------------
 "
     status_prompter "Step: create shell profile [requires sudo]:"
@@ -870,7 +1078,7 @@ if ($INSTALL); then
 
         # Check if the profile already exists
         if [ -f /etc/profile.d/hyperion.sh ]; then
-            if ($PROMPTS); then
+            if ($OPT_PROMPTS); then
                 if confirm "/etc/profile.d/hyperion.sh already exists.  Overwrite? [y/N]" ; then
                     echo "OK"
                     add_profile=1
@@ -895,9 +1103,9 @@ if ($INSTALL); then
 #
 shell=\$(/usr/bin/basename \$(/bin/ps -p \$\$ -ocomm=))
 
-# location of script: ${INSTALL_DIR}
-if [ -f "${INSTALL_DIR}/hyperion-init-\$shell.sh" ]; then
-   . "${INSTALL_DIR}/hyperion-init-\$shell.sh"
+# location of script: ${OPT_INSTALL_DIR}
+if [ -f "${OPT_INSTALL_DIR}/hyperion-init-\$shell.sh" ]; then
+   . "${OPT_INSTALL_DIR}/hyperion-init-\$shell.sh"
 else
    error_msg "Cannot create Hyperion profile variables on \$shell, script is missing."
 fi  
@@ -932,7 +1140,7 @@ BASHRC
 
     fi
 
-fi # if ($INSTALL)
+fi # if (! $OPT_NO_INSTALL)
      
 verbose_msg "Done!"
 

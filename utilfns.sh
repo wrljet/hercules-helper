@@ -54,7 +54,7 @@
 #------------------------------------------------------------------------------
 verbose_msg()
 {
-    if ($VERBOSE); then
+    if ($OPT_VERBOSE); then
         echo "$@"
     fi
 }
@@ -76,7 +76,7 @@ error_msg()
 
 status_prompter()
 {
-    if ($PROMPTS); then
+    if ($OPT_PROMPTS); then
         read -p "$1  Hit return to continue"
     else
         echo "$1"
@@ -479,8 +479,6 @@ detect_oorexx()
 
 detect_rexx()
 {
-    verbose_msg " "  # move to a new line
-
     which_rexx=$(which rexx) || true
     which_status=$?
 
