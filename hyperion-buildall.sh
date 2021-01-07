@@ -18,6 +18,7 @@
 # - merge package preparation functionality into hyperion-buildall.sh
 # - add --no-packages option
 # - default to always install, and reverse sense of option to --no-install
+# - fix package detection for CMAKE on CentOS 7.8
 #
 # Updated: 05 JAN 2021
 # - initial support for NetBSD
@@ -306,7 +307,7 @@ echo "Using config file: ${config_file}"
 if test -f "${config_file}" ; then
     source "${config_file}"
 else
-    echo "Config file not found"
+    echo "Config file not found.  Using defaults."
 fi
 
 if [ $opt_override_trace       == true ]; then TRACE=true;   fi
@@ -382,12 +383,22 @@ prepare_packages()
       if [[ $VERSION_MAJOR -ge 7 ]]; then
           echo "CentOS version 7 or later found"
 
-          declare -a centos_packages=( \
-              "git" "wget" \
-              "gcc" "make" "autoconf" "automake" "flex" "gawk" "m4"
-              "cmake3"
-              "bzip2-devel" "zlib-devel"
-          )
+          if [[ $VERSION_MAJOR -eq 7 ]]; then
+              declare -a centos_packages=( \
+                  "git" "wget" \
+                  "gcc" "make" "autoconf" "automake" "flex" "gawk" "m4"
+                  "bzip2-devel" "zlib-devel"
+              )
+          fi
+
+          if [[ $VERSION_MAJOR -eq 8 ]]; then
+              declare -a centos_packages=( \
+                  "git" "wget" \
+                  "gcc" "make" "autoconf" "automake" "flex" "gawk" "m4"
+                  "cmake3"
+                  "bzip2-devel" "zlib-devel"
+              )
+          fi
 
           for package in "${centos_packages[@]}"; do
               echo "-----------------------------------------------------------------"
