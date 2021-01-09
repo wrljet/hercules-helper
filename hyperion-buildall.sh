@@ -17,6 +17,7 @@
 # Updated: 09 JAN 2021
 # - Do all git clones in one place
 # - Fix bug when creating /etc/profile.d/hyperion.sh
+# - in ~/.bashrc, test for /etc/profile.d/hyperion.sh before calling it
 #
 # Updated: 07 JAN 2021
 # - merge package preparation functionality into hyperion-buildall.sh
@@ -1185,7 +1186,9 @@ FOE2
                 cat <<-"BASHRC" >> ~/.bashrc
 
 # For SDL-Hyperion
-. /etc/profile.d/hyperion.sh
+if [ -f /etc/profile.d/hyperion.sh ]; then
+    . /etc/profile.d/hyperion.sh
+fi
 
 BASHRC
 # end in inline "here" file
