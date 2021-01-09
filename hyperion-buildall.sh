@@ -885,7 +885,7 @@ util/bldlvlck
 
 verbose_msg "-----------------------------------------------------------------
 "
-status_prompter "Step: Prepare extpkgs:"
+status_prompter "Step: Prepare and build extpkgs:"
 
 cd ${OPT_BUILD_DIR}/extpkgs
 cp gists/extpkgs.sh .
@@ -904,12 +904,7 @@ else
     sed "s/x86/$(uname -m)/" extpkgs.sh.ini-orig > extpkgs.sh.ini
 fi
 
-verbose_msg "-----------------------------------------------------------------
-"
-status_prompter "Step: Build external packages:"
-
-cd ${OPT_BUILD_DIR}
-cd extpkgs
+cd ${OPT_BUILD_DIR}/extpkgs
 
 DEBUG=1 ./extpkgs.sh  c d s t
 # ./extpkgs.sh c d s t
