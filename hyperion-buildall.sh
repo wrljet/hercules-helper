@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 07 JAN 2021
+# Updated: 09 JAN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -13,6 +13,10 @@
 # Bill Lewis  wrljet@gmail.com
 
 # Changelog:
+#
+# Updated: 09 JAN 2021
+# - Do all git clones in one place
+# - Fix bug when creating /etc/profile.d/hyperion.sh
 #
 # Updated: 07 JAN 2021
 # - merge package preparation functionality into hyperion-buildall.sh
@@ -792,7 +796,7 @@ fi
 #
 verbose_msg "-----------------------------------------------------------------
 "
-status_prompter "Step: Hercules git clone:"
+status_prompter "Step: git clone all required repos:"
 
 cd ${OPT_BUILD_DIR}
 mkdir -p sdl4x
@@ -815,25 +819,9 @@ else
     git clone -b "$GIT_BRANCH_HYPERION" "$GIT_REPO_HYPERION"
 fi
 
-cd hyperion
+#-------
 
-verbose_msg "-----------------------------------------------------------------
-"
-status_prompter "Step: util/bldlvlck:"
-
-# Check for required packages and minimum versions.
-# Inspect the output carefully and do not continue if there are
-# any error messages or recommendations unless you know what you're doing.
-
-# On Raspberry Pi Desktop (Buster), the following are often missing:
-# autoconf, automake, cmake, flex, gawk, m4
-
-util/bldlvlck 
-
-verbose_msg "-----------------------------------------------------------------
-"
-status_prompter "Step: git clone extpkgs:"
-
+verbose_msg    # move to a new line
 cd ${OPT_BUILD_DIR}
 rm -rf extpkgs
 mkdir extpkgs
@@ -854,22 +842,9 @@ else
     git clone -b "$GIT_BRANCH_GISTS" "$GIT_REPO_GISTS"
 fi
 
-cp gists/extpkgs.sh .
-cp gists/extpkgs.sh.ini .
+#-------
 
-# Edit extpkgs.sh.ini
-# Change 'x86' to 'aarch64' for 64-bit, or 'arm' for 32-bit, etc.
-
-if   [[ "$(uname -m)" == x86* || "$(uname -m)" == amd64* ]]; then
-    verbose_msg "Defaulting to x86 machine type in extpkgs.sh.ini"
-elif [[ "$(uname -m)" =~ (armv6l|armv7l) ]]; then
-    mv extpkgs.sh.ini extpkgs.sh.ini-orig
-    sed "s/x86/arm/g" extpkgs.sh.ini-orig > extpkgs.sh.ini
-else
-    mv extpkgs.sh.ini extpkgs.sh.ini-orig
-    sed "s/x86/$(uname -m)/" extpkgs.sh.ini-orig > extpkgs.sh.ini
-fi
-
+verbose_msg    # move to a new line
 mkdir repos && cd repos
 rm -rf *
 
@@ -891,6 +866,42 @@ for pgm in "${pgms[@]}"; do
         git clone -b "$GIT_BRANCH_EXTPKGS" "$GIT_REPO_EXTPKGS/$pgm.git" "$pgm-0"
     fi
 done
+
+verbose_msg "-----------------------------------------------------------------
+"
+status_prompter "Step: util/bldlvlck:"
+
+cd ${OPT_BUILD_DIR}/sdl4x/hyperion
+
+# Check for required packages and minimum versions.
+# Inspect the output carefully and do not continue if there are
+# any error messages or recommendations unless you know what you're doing.
+
+# On Raspberry Pi Desktop (Buster), the following are often missing:
+# autoconf, automake, cmake, flex, gawk, m4
+
+util/bldlvlck 
+
+verbose_msg "-----------------------------------------------------------------
+"
+status_prompter "Step: Prepare extpkgs:"
+
+cd ${OPT_BUILD_DIR}/extpkgs
+cp gists/extpkgs.sh .
+cp gists/extpkgs.sh.ini .
+
+# Edit extpkgs.sh.ini
+# Change 'x86' to 'aarch64' for 64-bit, or 'arm' for 32-bit, etc.
+
+if   [[ "$(uname -m)" == x86* || "$(uname -m)" == amd64* ]]; then
+    verbose_msg "Defaulting to x86 machine type in extpkgs.sh.ini"
+elif [[ "$(uname -m)" =~ (armv6l|armv7l) ]]; then
+    mv extpkgs.sh.ini extpkgs.sh.ini-orig
+    sed "s/x86/arm/g" extpkgs.sh.ini-orig > extpkgs.sh.ini
+else
+    mv extpkgs.sh.ini extpkgs.sh.ini-orig
+    sed "s/x86/$(uname -m)/" extpkgs.sh.ini-orig > extpkgs.sh.ini
+fi
 
 verbose_msg "-----------------------------------------------------------------
 "
@@ -1151,7 +1162,7 @@ shell=\$(/usr/bin/basename \$(/bin/ps -p \$\$ -ocomm=))
 if [ -f "${OPT_INSTALL_DIR}/hyperion-init-\$shell.sh" ]; then
    . "${OPT_INSTALL_DIR}/hyperion-init-\$shell.sh"
 else
-   error_msg "Cannot create Hyperion profile variables on \$shell, script is missing."
+   echo "Cannot create Hyperion profile variables on \$shell, script is missing."
 fi  
 
 FOE2
