@@ -24,11 +24,6 @@ These scripts will prompt for your sudo password where required.
 
 Report errors in this to me so everyone can benefit.
 
-## hyperion-prepare.sh
-
-hyperion-prepare.sh is deprecated.  Its functionality has been merged
-into hyperion-buildall.sh.
-
 ## hyperion-buildall.sh
 
 This script will perform a complete build of Hercules and its external
@@ -36,25 +31,30 @@ packages, plus Regina REXX (if no existing REXX is found), run all the
 automated tests, and optionally install.
 
 ```
-usage: hyperion-buildall.sh [-h|--help] [-t|--trace] [-v|--verbose] [--no-packages] [--no-install] [--sudo]
+Hercules-Helper /home/bill/hercules-helper/hyperion-buildall.sh: v0.9.0-11-g333e854-dirty
+Usage: hyperion-buildall.sh [OPTIONS]
 
-Perform a full build, test, and installation of Hercules Hyperion from GitHub sources
+Perform a full build, test, and installation of SDL-Hercules-390 Hyperion from GitHub sources
 
-where:
-  -h, --help      display this help
-  -t, --trace     display every command (set -x)
-  -v, --verbose   display lots of messages
-  -p, --prompts   display a prompt before each major step
-      --no-packages  skip checking for and installing required packages
-      --no-install   skip \'make install\' after building
-  -s, --sudo      use \'sudo\' for installing"
+Options:
+  -h,  --help         print this help
+  -t,  --trace        print every command (set -x)
+  -v,  --verbose      print lots of messages
+  -p,  --prompts      print a prompt before each major step
+  -c,  --config=FILE  specify config file containing options
+  -a,  --auto         run everything, with --verbose and --prompts,
+                      and creating a full log file
+
+Sub-functions:
+       --no-install   run \'make install\' after building
+  -s,  --sudo         use \'sudo\' for installing
+       --no-packages  skip installing required packages
+
+Email bug reports, questions, etc. to <bill@wrljet.com>
 ```
 
 To use, create a build directory and cd to it, then run this script.
-It is recommended to use the --verbose and --prompts options.
-
-Tee-ing the output to a log file will help track down problems.
-Addition separate log files for major steps will be created automatically.
+First timers, it is recommended to use the --auto option.
 
 The full process is:
 
@@ -62,7 +62,12 @@ The full process is:
 $ cd ~
 $ git clone https://github.com/wrljet/hercules-helper.git
 $ mkdir herctest && cd herctest
-$ ~/hercules-helper/hyperion-buildall.sh -verbose --prompts 2>&1 | tee ./hyperion-buildall.log
+$ ~/hercules-helper/hyperion-buildall.sh --auto
+```
+
+Or for finer control:
+```
+$ ~/hercules-helper/hyperion-buildall.sh --verbose --prompts 2>&1 | tee ./hyperion-buildall.log
 ```
 
 If packages need to be installed you may be asked to supply your sudo password.
