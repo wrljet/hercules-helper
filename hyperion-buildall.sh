@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 10 JAN 2021
+# Updated: 14 JAN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -25,6 +25,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 14 JAN 2021
+# - correct CentOS detection to take CentOS Stream into account
 #
 # Updated: 10 JAN 2021
 # - merge utilfns.sh into main script
@@ -458,13 +461,21 @@ detect_system()
             # CENTOS_VERS="centos-release-7.9.2009.1.el7.centos.x86_64"
             # CENTOS_VERS="centos-release-8.2-2.2004.0.2.el8.x86_64"
 
-            CENTOS_VERS=$(rpm --query centos-release) || true
-            CENTOS_VERS="${CENTOS_VERS#centos-release-}"
+            # Centos Stream 8:
+            # $ rpm --query centos-release
+            # package centos-release is not installed
+            # $ cat /etc/redhat-release 
+            # CentOS Linux release 8.2.2004
+            # CentOS Stream release 8
+
+          # CENTOS_VERS=$(rpm --query centos-release) || true
+            CENTOS_VERS=$(cat /etc/redhat-release) || true
+            CENTOS_VERS="${CENTOS_VERS#*release }"
             CENTOS_VERS="${CENTOS_VERS/-/.}"
 
             VERSION_DISTRO=redhat
             VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
-            VERSION_MINOR=$(echo ${CENTOS_VERS} | cut -f2 -d.)
+            VERSION_MINOR=$(echo "${CENTOS_VERS}.0" | cut -f2 -d.)
 
             verbose_msg "VERSION_MAJOR    : $VERSION_MAJOR"
             verbose_msg "VERSION_MINOR    : $VERSION_MINOR"
@@ -942,7 +953,7 @@ prepare_packages()
               declare -a centos_packages=( \
                   "git" "wget" \
                   "gcc" "make" "autoconf" "automake" "flex" "gawk" "m4"
-                  "cmake3"
+                  "cmake"
                   "bzip2-devel" "zlib-devel"
               )
           fi
