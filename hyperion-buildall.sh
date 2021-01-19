@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 14 JAN 2021
+# Updated: 19 JAN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -25,6 +25,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 19 JAN 2021
+# - add detection and support for Manjaro Linux
 #
 # Updated: 14 JAN 2021
 # - correct CentOS detection to take CentOS Stream into account
@@ -389,6 +392,20 @@ detect_system()
 # $ cat /boot/issue.txt | head -1
 #  Raspberry Pi reference 2020-05-27
 
+# 19 JAN 2021
+# $ cat /etc/os-release 
+# NAME="Manjaro Linux"
+# ID=manjaro
+# ID_LIKE=arch
+# BUILD_ID=rolling
+# PRETTY_NAME="Manjaro Linux"
+# ANSI_COLOR="32;1;24;144;200"
+# HOME_URL="https://manjaro.org/"
+# DOCUMENTATION_URL="https://wiki.manjaro.org/"
+# SUPPORT_URL="https://manjaro.org/"
+# BUG_REPORT_URL="https://bugs.manjaro.org/"
+# LOGO=manjarolinux
+
 # /etc/os-release
 #
 #  NAME="Linux Mint"
@@ -434,6 +451,19 @@ detect_system()
         verbose_msg "VERSION_ID_LIKE  : $VERSION_ID_LIKE"
         verbose_msg "VERSION_PRETTY   : $VERSION_PRETTY_NAME"
         verbose_msg "VERSION_STR      : $VERSION_STR"
+
+        # Look for Manjaro
+
+        if [[ $VERSION_ID == arch* || $VERSION_ID == manjaro* ]];
+        then
+            VERSION_DISTRO=arch
+            VERSION_STR=$(awk -F= '$1=="DISTRIB_RELEASE" { gsub(/"/, "", $2); print $2 ;}' /etc/lsb-release)
+            VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
+            VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
+
+            verbose_msg "OS               : $VERSION_DISTRO variant"
+            verbose_msg "OS Version       : $VERSION_MAJOR"
+        fi
 
         # Look for Debian/Ubuntu/Mint
 
@@ -932,7 +962,56 @@ prepare_packages()
           fi
       fi
 
+    return
   fi
+
+#-----------------------------------------------------------------------------
+  # Look for Arch/Manjaro
+
+  if [[ $VERSION_DISTRO == arch  ]]; then
+      declare -a arch_packages=( \
+          "git" \
+          "base-devel" "make" "gcc" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
+          "bzip2" "zlib"
+      )
+
+      for package in "${arch_packages[@]}"; do
+          echo -n "Checking for package: $package ... "
+
+          is_installed=$(pacman -Q $package 2>&1)
+          status=$?
+
+          # install if missing
+          if [ $status -eq 0 ]; then
+              echo "is already installed"
+          else
+              echo "is missing, installing"
+              sudo pacman -S --noconfirm $package
+              echo "-----------------------------------------------------------------"
+          fi
+      done
+
+      if [[ $VERSION_REGINA -ge 3 ]]; then
+          echo "-----------------------------------------------------------------"
+          echo "Found an existing Regina REXX"
+
+          package="libregina3-dev"
+
+          echo "Checking for package: $package"
+          is_installed=$(/usr/bin/dpkg-query --show --showformat='${db:Status-Status}\n' $package)
+          status=$?
+
+          if [ $status -eq 0 ] && [ "$is_installed" == "installed" ]; then
+              echo "package: $package is already installed"
+          else
+              echo "installing package: $package"
+              sudo apt-get -y install $package
+          fi
+      fi
+
+    return
+  fi
+
 
 #-----------------------------------------------------------------------------
   # CentOS 7
@@ -1033,6 +1112,7 @@ prepare_packages()
           error_msg "CentOS version 6 or earlier found, and not supported"
           exit 1
       fi
+    return
   fi
 
 #-----------------------------------------------------------------------------
@@ -1063,6 +1143,7 @@ prepare_packages()
           fi
       done
 
+    return
   fi
 
 #-----------------------------------------------------------------------------
@@ -1091,6 +1172,7 @@ prepare_packages()
           fi
       done
 
+    return
   fi
 }
 
