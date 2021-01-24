@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 19 JAN 2021
+# Updated: 24 JAN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -26,6 +26,9 @@
 
 # Changelog:
 #
+# Updated: 24 JAN 2021
+# - added wget as a required package for Debian and Manjaro
+
 # Updated: 19 JAN 2021
 # - add detection and support for Manjaro Linux
 #
@@ -919,7 +922,7 @@ prepare_packages()
       # if [[ $(lsb_release -rs) == "18.04" ]]; then
 
       declare -a debian_packages=( \
-          "git" \
+          "git" "wget" \
           "build-essential" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
           "libbz2-dev" "zlib1g-dev"
       )
@@ -970,7 +973,7 @@ prepare_packages()
 
   if [[ $VERSION_DISTRO == arch  ]]; then
       declare -a arch_packages=( \
-          "git" \
+          "git" "wget" \
           "base-devel" "make" "gcc" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
           "bzip2" "zlib"
       )
