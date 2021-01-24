@@ -27,8 +27,9 @@
 # Changelog:
 #
 # Updated: 24 JAN 2021
-# - added wget as a required package for Debian and Manjaro
-
+# - add wget as a required package for Debian and Manjaro
+# - add instructions to make the new build immediately available
+#
 # Updated: 19 JAN 2021
 # - add detection and support for Manjaro Linux
 #
@@ -1425,8 +1426,8 @@ else
     export PATH=${OPT_BUILD_DIR}/rexx/bin:$PATH
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${OPT_BUILD_DIR}/rexx/lib
     export CPPFLAGS=-I${OPT_BUILD_DIR}/rexx/include
-    verbose_msg "which rexx: $(which rexx)"
 
+    verbose_msg "which rexx: $(which rexx)"
     built_regina_from_source=1
 fi
 
@@ -1740,7 +1741,7 @@ if [[ $built_regina_from_source -eq 1 ]]; then
 fi
 
 FOE
-# end in inline "here" file
+# end of inline "here" file
 
     chmod +x "${OPT_INSTALL_DIR}/hyperion-init-$shell.sh"
     source "${OPT_INSTALL_DIR}/hyperion-init-$shell.sh"
@@ -1797,7 +1798,7 @@ else
 fi  
 
 FOE2
-# end in inline "here" file
+# end of inline "here" file
     fi
 
     if true; then
@@ -1821,7 +1822,8 @@ if [ -f /etc/profile.d/hyperion.sh ]; then
 fi
 
 BASHRC
-# end in inline "here" file
+# end of inline "here" file
+
             fi
 
         fi # if bash
@@ -1846,7 +1848,19 @@ if [[ -e $logfile.log || -L $logfile.log ]] ; then
     logfile=$logfile-$i
 fi
 
+# Call all of the above as a function so we can grab and
+# tee the output to the log file.
+
 the_works 2>&1 | tee "$logfile.log"
+
+#-----------------------------------------------------------------------------
+
+if (! $OPT_NO_INSTALL); then
+    echo "To make this new Hercules immediately available, run:"
+    echo "(note the '.', which will source the script)"
+    echo   # move to a new line
+    echo "  . /etc/profile.d/hyperion.sh"
+fi
 
 # ---- end of script ----
 
