@@ -82,6 +82,13 @@ To set the required environment variables after installation, a script will be a
 to /etc/profile.d.  It will be "sourced" from ~/.bashrc.
 (currently this is for Bash only)
 
+To make the newly created Hercules available immediately in the current shell
+or terminal session, simply source this script with the '.' command:
+
+```
+. /etc/profile.d/hyperion.sh
+```
+
 If anything seems to go wrong, please stop and ask questions at that point.
 Your repair attempts may destroy evidence that would be useful in improving
 this process for others.
