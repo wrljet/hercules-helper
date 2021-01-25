@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 24 JAN 2021
+# Updated: 25 JAN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -25,6 +25,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 25 JAN 2021
+# - for Manjaro: add "--needed" option to pacman command
 #
 # Updated: 24 JAN 2021
 # - add wget as a required package for Debian and Manjaro
@@ -990,7 +993,7 @@ prepare_packages()
               echo "is already installed"
           else
               echo "is missing, installing"
-              sudo pacman -S --noconfirm $package
+              sudo pacman -S --needed --noconfirm $package
               echo "-----------------------------------------------------------------"
           fi
       done
