@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 04 FEB 2021
+# Updated: 18 FEB 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -25,6 +25,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 18 FEB 2021
+# - correct WSL1 detection so it doesn't show both WSL1 and WSL2 together
+# - capture Debian dpkg stderr output so it doesn't show up to the user
 #
 # Updated: 31 JAN 2021
 # - add --noclone option to use existing source directories
@@ -574,20 +578,20 @@ detect_system()
         verbose_msg " "  # move to a new line
         VERSION_WSL=0
 
-        verbose_msg -n "Checking for Windows WSL1... "
-        if [[ "$(< /proc/version)" == *@(Microsoft|WSL)* ]]; then
-            verbose_msg "running on WSL1"
-            VERSION_WSL=1
-        else
-            verbose_msg "nope"
-        fi
-
         verbose_msg -n "Checking for Windows WSL2... "
         if [ $(uname -r | sed -n 's/.*\( *Microsoft *\).*/\1/ip') ]; then
             verbose_msg "running on WSL2"
             VERSION_WSL=2
         else
             verbose_msg "nope"
+
+	    verbose_msg -n "Checking for Windows WSL1... "
+	    if [[ "$(< /proc/version)" == *@(Microsoft|WSL)* ]]; then
+		verbose_msg "running on WSL1"
+		VERSION_WSL=1
+	    else
+		verbose_msg "nope"
+	    fi
         fi
 
         # Check if running under Raspberry Pi Desktop (for PC)
@@ -981,7 +985,7 @@ prepare_packages()
           # another method is:
           # /usr/bin/dpkg-query -s <packagename> 2>/dev/null | grep -q ^"Status: install ok installed"$
 
-          is_installed=$(/usr/bin/dpkg-query --show --showformat='${db:Status-Status}\n' $package)
+          is_installed=$(/usr/bin/dpkg-query --show --showformat='${db:Status-Status}\n' $package 2>&1)
           status=$?
 
           # install if missing
@@ -1673,6 +1677,9 @@ fi
 
 # gcc -dM -E - < /dev/null | grep __gnu_linux__
 # FIXME
+
+# for Alpine
+# --enable-optimization="-O2 -march=native -D__gnu_linux__=1 -D__ALPINE_LINUX__=1"
 
 configure_cmd=$(cat <<-END-CONFIGURE
 ./configure \
