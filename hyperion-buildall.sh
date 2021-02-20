@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Complete SDL-Hercules-390 build using wrljet GitHub mods
-# Updated: 25 JAN 2021
+# Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
+# Updated: 04 FEB 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -25,6 +25,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 31 JAN 2021
+# - add --noclone option to use existing source directories
+# - add detection and support for Alpine Linux (under construction)
 #
 # Updated: 25 JAN 2021
 # - for Manjaro: add "--needed" option to pacman command
@@ -184,6 +188,9 @@ OPT_PROMPTS=${OPT_PROMPTS:-false}
 # Do not install missing packages if true
 OPT_NO_PACKAGES=${OPT_NO_PACKAGES:-false}
 
+# Do not 'git clone' if true
+OPT_NO_CLONE=${OPT_NO_CLONE:-false}
+
 # Skip 'make install' after building
 OPT_NO_INSTALL=${OPT_NO_INSTALL:-false}
 
@@ -211,6 +218,7 @@ Options:
                       and creating a full log file
 
 Sub-functions:
+       --no-clone     skip \'git clone\' steps
        --no-install   run \'make install\' after building
   -s,  --sudo         use \'sudo\' for installing
        --no-packages  skip installing required packages
@@ -396,10 +404,24 @@ detect_darwin()
 detect_system()
 {
 
+# 31 JAN 2021
+#
+# /etc/os-release
+# NAME="Alpine Linux"
+# ID=alpine
+# VERSION_ID=3.13.1
+# PRETTY_NAME="Alpine Linux v3.13"
+# HOME_URL="https://alpinelinux.org/"
+# BUG_REPORT_URL="https://bugs.alpinelinux.org/"
+#
+# /etc/alpine-release
+# 3.13.1
+
 # $ cat /boot/issue.txt | head -1
 #  Raspberry Pi reference 2020-05-27
 
 # 19 JAN 2021
+#
 # $ cat /etc/os-release 
 # NAME="Manjaro Linux"
 # ID=manjaro
@@ -458,6 +480,20 @@ detect_system()
         verbose_msg "VERSION_ID_LIKE  : $VERSION_ID_LIKE"
         verbose_msg "VERSION_PRETTY   : $VERSION_PRETTY_NAME"
         verbose_msg "VERSION_STR      : $VERSION_STR"
+
+        # Look for Alpine Linux
+
+        if [[ $VERSION_ID == alpine* ]];
+        then
+            VERSION_DISTRO=alpine
+            VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
+            VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
+
+            verbose_msg "OS               : $VERSION_DISTRO variant"
+            verbose_msg "OS Version       : $VERSION_MAJOR"
+
+	    error_msg "Alpine Linux is not yet supported!"
+        fi
 
         # Look for Manjaro
 
@@ -798,6 +834,7 @@ fi
 opt_override_trace=false
 opt_override_verbose=false
 opt_override_prompts=false
+opt_override_no_clone=false
 opt_override_no_install=false
 opt_override_usersudo=false
 opt_override_no_packages=false
@@ -840,6 +877,11 @@ case $key in
     opt_override_auto=true
     opt_override_verbose=true
     opt_override_prompts=true
+    shift # past argument
+    ;;
+
+  --no-clone|--noclone) # skip 'git clone' of sources
+    opt_override_no_clone=true
     shift # past argument
     ;;
 
@@ -907,6 +949,7 @@ fi
 if [ $opt_override_trace       == true ]; then TRACE=true;   fi
 if [ $opt_override_verbose     == true ]; then OPT_VERBOSE=true; fi
 if [ $opt_override_prompts     == true ]; then OPT_PROMPTS=true; fi
+if [ $opt_override_no_clone    == true ]; then OPT_NO_CLONE=true; fi
 if [ $opt_override_no_install  == true ]; then OPT_NO_INSTALL=true; fi
 if [ $opt_override_usersudo    == true ]; then OPT_USESUDO=true; fi
 if [ $opt_override_no_packages == true ]; then OPT_NO_PACKAGES=true; fi
@@ -1154,6 +1197,40 @@ prepare_packages()
   fi
 
 #-----------------------------------------------------------------------------
+  # Alpine Linux 3.x
+
+  if [[ ${VERSION_ID,,} == alpine* ]]; then
+      declare -a alpine_packages=( \
+          "git" "wget" "bash" \
+          "build-base" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
+          "bzip2" "libbz2" \
+          "zlib" "zlib-dev"
+      )
+
+      echo "sudo apk -U upgrade"
+      sudo apk -U upgrade
+
+      for package in "${alpine_packages[@]}"; do
+          echo "-----------------------------------------------------------------"
+          echo "Checking for package: $package"
+
+          is_installed=$(apk list --installed | grep "$package")
+          status=$?
+
+          # install if missing
+          if [ $status -eq 0 ] ; then
+              echo "package: $package is already installed"
+          else
+              echo "installing package: $package"
+              echo "sudo apk add --no-cache $package"
+              sudo apk add --no-cache $package
+          fi
+      done
+
+    return
+  fi
+
+#-----------------------------------------------------------------------------
   # NetBSD
 
   if [[ $VERSION_ID == netbsd* ]]; then
@@ -1194,6 +1271,8 @@ verbose_msg "General Options:"
 verbose_msg "TRACE                : ${TRACE}"
 verbose_msg "OPT_VERBOSE          : ${OPT_VERBOSE}"
 verbose_msg "OPT_PROMPTS          : ${OPT_PROMPTS}"
+verbose_msg "OPT_NO_PACKAGES      : ${OPT_NO_PACKAGES}"
+verbose_msg "OPT_NO_CLONE         : ${OPT_NO_CLONE}"
 verbose_msg "OPT_NO_INSTALL       : ${OPT_NO_INSTALL}"
 verbose_msg "OPT_USESUDO          : ${OPT_USESUDO}"
 
@@ -1437,75 +1516,81 @@ fi
 #
 verbose_msg "-----------------------------------------------------------------
 "
-status_prompter "Step: git clone all required repos:"
 
-cd ${OPT_BUILD_DIR}
-mkdir -p sdl4x
-mkdir -p ${OPT_INSTALL_DIR}
-
-# Grab unmodified SDL-Hercules Hyperion repo
-cd sdl4x
-rm -rf hyperion
-
-if [ -z "$GIT_REPO_HYPERION" ] ; then
-    error_msg "GIT_REPO_HYPERION variable is not set!"
-    exit 1
-fi
-
-if [ -z "$GIT_BRANCH_HYPERION" ] ; then
-    verbose_msg "git clone $GIT_REPO_HYPERION"
-    git clone $GIT_REPO_HYPERION
+if ($OPT_NO_CLONE); then
+    verbose_msg "Skipping: git clone all required repos"
 else
-    verbose_msg "git clone -b $GIT_BRANCH_HYPERION $GIT_REPO_HYPERION"
-    git clone -b "$GIT_BRANCH_HYPERION" "$GIT_REPO_HYPERION"
-fi
+    status_prompter "Step: git clone all required repos:"
 
-#-------
+    cd ${OPT_BUILD_DIR}
+    mkdir -p sdl4x
+    mkdir -p ${OPT_INSTALL_DIR}
 
-verbose_msg    # move to a new line
-cd ${OPT_BUILD_DIR}
-rm -rf extpkgs
-mkdir extpkgs
-cd extpkgs/
+    # Grab unmodified SDL-Hercules Hyperion repo
+    cd sdl4x
+    rm -rf hyperion
 
-if [ -z "$GIT_REPO_GISTS" ] ; then
-    error_msg "GIT_REPO_GISTS variable is not set!"
-    exit 1
-fi
-
-verbose_msg "Cloning gists / extpkgs from $GIT_REPO_GISTS"
-if [ -z "$GIT_BRANCH_GISTS" ] ; then
-    verbose_msg "git clone $GIT_REPO_GISTS"
-    git clone "$GIT_REPO_GISTS"
-else
-    verbose_msg "git clone -b $GIT_BRANCH_GISTS $GIT_REPO_GISTS"
-    git clone -b "$GIT_BRANCH_GISTS" "$GIT_REPO_GISTS"
-fi
-
-#-------
-
-verbose_msg    # move to a new line
-mkdir repos && cd repos
-rm -rf *
-
-if [ -z "$GIT_REPO_EXTPKGS" ] ; then
-    error_msg "GIT_REPO_EXTPKGS variable is not set!"
-    exit 1
-fi
-
-declare -a pgms=("crypto" "decNumber" "SoftFloat" "telnet")
-
-for pgm in "${pgms[@]}"; do
-    verbose_msg "-----------------------------------------------------------------
-"
-    if [ -z "$GIT_BRANCH_EXTPKGS" ] ; then
-        verbose_msg "git clone $GIT_REPO_EXTPKGS/$pgm $pgm-0"
-        git clone "$GIT_REPO_EXTPKGS/$pgm.git" "$pgm-0"
-    else
-        verbose_msg "git clone -b $GIT_BRANCH_EXTPKGS $GIT_REPO_EXTPKGS/$pgm $pgm-0"
-        git clone -b "$GIT_BRANCH_EXTPKGS" "$GIT_REPO_EXTPKGS/$pgm.git" "$pgm-0"
+    if [ -z "$GIT_REPO_HYPERION" ] ; then
+        error_msg "GIT_REPO_HYPERION variable is not set!"
+        exit 1
     fi
-done
+
+    if [ -z "$GIT_BRANCH_HYPERION" ] ; then
+        verbose_msg "git clone $GIT_REPO_HYPERION"
+        git clone $GIT_REPO_HYPERION
+    else
+        verbose_msg "git clone -b $GIT_BRANCH_HYPERION $GIT_REPO_HYPERION"
+        git clone -b "$GIT_BRANCH_HYPERION" "$GIT_REPO_HYPERION"
+    fi
+
+    #-------
+
+    verbose_msg    # move to a new line
+    cd ${OPT_BUILD_DIR}
+    rm -rf extpkgs
+    mkdir extpkgs
+    cd extpkgs/
+
+    if [ -z "$GIT_REPO_GISTS" ] ; then
+        error_msg "GIT_REPO_GISTS variable is not set!"
+        exit 1
+    fi
+
+    verbose_msg "Cloning gists / extpkgs from $GIT_REPO_GISTS"
+    if [ -z "$GIT_BRANCH_GISTS" ] ; then
+        verbose_msg "git clone $GIT_REPO_GISTS"
+        git clone "$GIT_REPO_GISTS"
+    else
+        verbose_msg "git clone -b $GIT_BRANCH_GISTS $GIT_REPO_GISTS"
+        git clone -b "$GIT_BRANCH_GISTS" "$GIT_REPO_GISTS"
+    fi
+
+    #-------
+
+    verbose_msg    # move to a new line
+    mkdir repos && cd repos
+    rm -rf *
+
+    if [ -z "$GIT_REPO_EXTPKGS" ] ; then
+        error_msg "GIT_REPO_EXTPKGS variable is not set!"
+        exit 1
+    fi
+
+    declare -a pgms=("crypto" "decNumber" "SoftFloat" "telnet")
+
+    for pgm in "${pgms[@]}"; do
+        verbose_msg "-----------------------------------------------------------------
+    "
+        if [ -z "$GIT_BRANCH_EXTPKGS" ] ; then
+            verbose_msg "git clone $GIT_REPO_EXTPKGS/$pgm $pgm-0"
+            git clone "$GIT_REPO_EXTPKGS/$pgm.git" "$pgm-0"
+        else
+            verbose_msg "git clone -b $GIT_BRANCH_EXTPKGS $GIT_REPO_EXTPKGS/$pgm $pgm-0"
+            git clone -b "$GIT_BRANCH_EXTPKGS" "$GIT_REPO_EXTPKGS/$pgm.git" "$pgm-0"
+        fi
+    done
+
+fi
 
 verbose_msg "-----------------------------------------------------------------
 "
@@ -1566,18 +1651,28 @@ verbose_msg "-----------------------------------------------------------------
 "
 status_prompter "Step: configure:"
 
-if [[  $VERSION_REGINA -ge 3 ]]; then
+if   [[ $VERSION_REGINA -ge 3 ]]; then
     verbose_msg "Regina REXX is present. Using configure option: --enable-regina-rexx"
-    enable_rexx_command="--enable-regina-rexx" # enable regina rexx support
-elif [[  $VERSION_OOREXX -ge 4 ]]; then
+    enable_rexx_option="--enable-regina-rexx" # enable regina rexx support
+elif [[ $VERSION_OOREXX -ge 4 ]]; then
     verbose_msg "ooRexx is present. Using configure option: --enable-object-rexx"
-    enable_rexx_command="--enable-object-rexx" # enable OORexx support
+    enable_rexx_option="--enable-object-rexx" # enable OORexx support
 elif [[ $built_regina_from_source -eq 1 ]]; then
-    enable_rexx_command="--enable-regina-rexx" # enable regina rexx support
+    enable_rexx_option="--enable-regina-rexx" # enable regina rexx support
 else
     error_msg "No REXX support.  Tests will not be run"
-    enable_rexx_command=""
+    enable_rexx_option=""
 fi
+
+if [[ ${VERSION_ID,,} == alpine* ]]; then
+    verbose_msg "Disabling IPv6 support for Alpine Linux"
+    enable_ipv6_option="--disable-ipv6"
+else
+    enable_ipv6_option=""
+fi
+
+# gcc -dM -E - < /dev/null | grep __gnu_linux__
+# FIXME
 
 configure_cmd=$(cat <<-END-CONFIGURE
 ./configure \
@@ -1585,7 +1680,8 @@ configure_cmd=$(cat <<-END-CONFIGURE
     --enable-extpkgs=${OPT_BUILD_DIR}/extpkgs \
     --prefix=${OPT_INSTALL_DIR} \
     --enable-custom="Built using hercules-helper" \
-    $enable_rexx_command
+    $enable_rexx_option \
+    $enable_ipv6_option
 END-CONFIGURE
 )
 
