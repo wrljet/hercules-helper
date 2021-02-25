@@ -2,6 +2,8 @@
 
 Utility scripts to help with building and deploying the Hercules emulator
 
+For Windows, go [here](https://github.com/wrljet/hercules-helper/tree/master/windows)
+
 These scripts extend the existing functionality of SDL-Hercules-390 gists/extpkgs.
 
 This is a testbed and will be updated occassionally and/or merged
