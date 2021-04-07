@@ -44,13 +44,25 @@ Options:
   -v,  --verbose      print lots of messages
   -p,  --prompts      print a prompt before each major step
   -c,  --config=FILE  specify config file containing options
+  -s,  --sudo         use \'sudo\' for installing
   -a,  --auto         run everything, with --verbose and --prompts,
                       and creating a full log file
 
-Sub-functions:
-       --no-install   run \'make install\' after building
-  -s,  --sudo         use \'sudo\' for installing
+Sub-functions (in order of operation):
        --no-packages  skip installing required packages
+       --no-rexx      skip building Regina REXX
+       --no-gitclone  skip \'git clone\' steps
+       --no-bldlvlck  skip \'util/bldlvlck\' steps
+       --no-extpkgs   skip building Hercules external packages
+       --no-autogen   skip running \'autogen\'
+       --no-configure skip running \'configure\'
+       --no-clean     skip running \'make clean\'
+       --no-make      skip running \'make\'
+       --no-tests     skip running \'make check\'
+       --no-install   skip \'make install\' after building
+       --no-setcap    skip running \'setcap\'
+       --no-envscript skip creating script to set environment variables
+       --no-bashrc    skip modifying .bashrc to set environment variables
 
 Email bug reports, questions, etc. to <bill@wrljet.com>
 ```

@@ -347,9 +347,9 @@ Options:
   -v,  --verbose      print lots of messages
   -p,  --prompts      print a prompt before each major step
   -c,  --config=FILE  specify config file containing options
-                      and creating a full log file
-  -a,  --auto         run everything, with --verbose and --prompts,
   -s,  --sudo         use \'sudo\' for installing
+  -a,  --auto         run everything, with --verbose and --prompts,
+                      and creating a full log file
 
 Sub-functions (in order of operation):
        --no-packages  skip installing required packages
