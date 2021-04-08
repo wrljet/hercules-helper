@@ -52,6 +52,8 @@
 # - a few corrections related to 'set -u'
 # - correct memory size check for FreeBSD 'mainsize' from MB to KB
 # - now also works on FreeBSD 12.2 on x86-64
+# - fix bug in --sudo option
+# - additional system info display
 #
 # Updated: 07 APR 2021
 # - FreeBSD 12 on Raspberry Pi 3B improvements
@@ -334,6 +336,7 @@ uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
 CC=${CC:-"cc"}
 CFLAGS=${CFLAGS:-""}
 CPPFLAGS=${CPPFLAGS:-""}
+LD=${LD:-"ld"}
 
 #-----------------------------------------------------------------------------
 
@@ -389,7 +392,6 @@ trace_msg()
 #------------------------------------------------------------------------------
 #                               set_yes_or_no
 #------------------------------------------------------------------------------
-
 yes_or_no="no"
 
 set_yes_or_no()
@@ -398,6 +400,20 @@ set_yes_or_no()
         yes_or_no="yes"
     else
         yes_or_no="no "
+    fi
+}
+
+#------------------------------------------------------------------------------
+#                               set_run_or_skip
+#------------------------------------------------------------------------------
+run_or_skip="no"
+
+set_run_or_skip()
+{
+    if ($1 == true); then
+        run_or_skip="run "
+    else
+        run_or_skip="skip"
     fi
 }
 
@@ -610,8 +626,7 @@ detect_system()
 #  VERSION_CODENAME=ulyana
 #  UBUNTU_CODENAME=focal
 
-    verbose_msg " "  # output a newline
-    verbose_msg "System stats:"
+    verbose_msg "System info: (detect_system)"
 
     os_is_supported=false
 
@@ -829,6 +844,10 @@ detect_system()
         version_distro="freebsd"
         version_id="freebsd"
 
+        # FREEBSD_MEMINFO="$(sysctl hw | grep hw.phys)"
+        version_freebsd_memory="$(sysctl hw.physmem | awk '/^hw.physmem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
+        verbose_msg "Memory Total (MB): $(sysctl hw.physmem | awk '/^hw.physmem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
+
         # sysctl hw.model
         # hw.model: ARM Cortex-A53 r0p4
         version_freebsd_model="$(sysctl hw.model | cut -f2 -d: | awk '{$1=$1};1')"
@@ -838,16 +857,13 @@ detect_system()
         # bcm2835_cpufreq0: <CPU Frequency Control> on cpu0
         version_freebsd_cpu="$(dmesg | grep CPU | grep bcm2)"
 
-        # FREEBSD_MEMINFO="$(sysctl hw | grep hw.phys)"
-        version_freebsd_memory="$(sysctl hw.physmem | awk '/^hw.physmem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
-        verbose_msg "Memory Total (MB): $(sysctl hw.physmem | awk '/^hw.physmem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
-
+        # Raspberry Pi BCM chipset?
         if (dmesg | grep CPU | grep -Fqe "bcm2"); then
-            verbose_msg "BCM chipset found: $version_freebsd_cpu"
-            verbose_msg "Assuming Raspberry Pi"
+            verbose_msg "                 : $version_freebsd_cpu"
+            verbose_msg "                 : assuming Raspberry Pi"
 
             if [ $version_freebsd_memory -lt 2000000 ]; then
-                verbose_msg "FreeBSD Raspberry Pi with low memory"
+                verbose_msg "                 : FreeBSD Raspberry Pi with low memory"
             fi
         fi
 
@@ -1054,7 +1070,7 @@ fi
 opt_override_trace=false
 opt_override_verbose=false
 opt_override_prompts=false
-opt_override_usersudo=false
+opt_override_usesudo=false
 opt_override_auto=false
 
 opt_override_no_packages=false    # Check for required system packages
@@ -1113,7 +1129,7 @@ case $key in
     ;;
 
   -s|--sudo)
-    opt_override_usersudo=true
+    opt_override_usesudo=true
     shift # past argument
     ;;
 
@@ -1239,7 +1255,7 @@ fi
 if [ $opt_override_trace       == true ]; then TRACE=true; fi
 if [ $opt_override_verbose     == true ]; then opt_verbose=true; fi
 if [ $opt_override_prompts     == true ]; then opt_prompts=true; fi
-if [ $opt_override_usersudo    == true ]; then opt_usesudo=true; fi
+if [ $opt_override_usesudo     == true ]; then opt_usesudo=true; fi
 if [ $opt_override_auto        == true ]; then opt_auto=true; fi
 
 if [ $opt_override_no_packages == true ]; then opt_no_packages=true; fi
@@ -1621,29 +1637,47 @@ if [ "$version_distro" == "darwin" ]; then
     exit 1
 fi
 
+# sysinfo:
+verbose_msg "System information:"
+# verbose_msg "  /etc/os-release    : $(cat /etc/os-release 2>&1)"
+verbose_msg "  uname -a        : $(uname -a)"
+verbose_msg "  uname -m        : $(uname -m)"
+verbose_msg "  uname -p        : $(uname -p)"
+verbose_msg "  uname -s        : $(uname -s)"
+verbose_msg    # print a newline
+
 # Detect type of system we're running on and display info
 detect_system
-
 verbose_msg    # print a newline
-verbose_msg "General Options:"
-verbose_msg "TRACE                : $TRACE"
-verbose_msg "OPT_VERBOSE          : $opt_verbose"
-verbose_msg "OPT_PROMPTS          : $opt_prompts"
-verbose_msg "OPT_USESUDO          : $opt_usesudo"
 
-verbose_msg "OPT_NO_PACKAGES      : $opt_no_packages"
-verbose_msg "OPT_NO_REXX          : $opt_no_rexx"
-verbose_msg "OPT_NO_GITCLONE      : $opt_no_gitclone"
-verbose_msg "OPT_NO_BLDLVLCK      : $opt_no_bldlvlck"
-verbose_msg "OPT_NO_AUTOGEN       : $opt_no_autogen"
-verbose_msg "OPT_NO_CONFIGURE     : $opt_no_configure"
-verbose_msg "OPT_NO_CLEAN         : $opt_no_clean"
-verbose_msg "OPT_NO_MAKE          : $opt_no_make"
-verbose_msg "OPT_NO_TESTS         : $opt_no_tests"
-verbose_msg "OPT_NO_INSTALL       : $opt_no_install"
-verbose_msg "OPT_NO_SETCAP        : $opt_no_setcap"
-verbose_msg "OPT_NO_ENVSCRIPT     : $opt_no_envscript"
-verbose_msg "OPT_NO_BASHRC        : $opt_no_bashrc"
+verbose_msg "Build tools versions:"
+verbose_msg "  autoconf       : $(autoconf --version 2>&1 | head -n 1)"
+verbose_msg "  automake       : $(automake --version 2>&1 | head -n 1)"
+verbose_msg "  m4             : $(m4 --version 2>&1 | head -n 1 | sed 's/.*illegal option.*/BSD version of m4/')"
+verbose_msg "  make           : $(make --version 2>&1 | head -n 1 | sed 's/^usage: make.*/BSD version of make/')"
+verbose_msg "  compiler       : $($CC --version 2>&1 | head -n 1)"
+verbose_msg "  linker         : $($LD --version 2>&1 | head -n 1)"
+verbose_msg    # print a newline
+
+verbose_msg "General Options:"
+verbose_msg "  --trace         : $TRACE"
+verbose_msg "  --verbose       : $opt_verbose"
+verbose_msg "  --prompts       : $opt_prompts"
+verbose_msg "  --sudo          : $opt_usesudo"
+
+verbose_msg "  --no_packages   : $opt_no_packages"
+verbose_msg "  --no_rexx       : $opt_no_rexx"
+verbose_msg "  --no_gitclone   : $opt_no_gitclone"
+verbose_msg "  --no_bldlvlck   : $opt_no_bldlvlck"
+verbose_msg "  --no_autogen    : $opt_no_autogen"
+verbose_msg "  --no_configure  : $opt_no_configure"
+verbose_msg "  --no_clean      : $opt_no_clean"
+verbose_msg "  --no_make       : $opt_no_make"
+verbose_msg "  --no_tests      : $opt_no_tests"
+verbose_msg "  --no_install    : $opt_no_install"
+verbose_msg "  --no_setcap     : $opt_no_setcap"
+verbose_msg "  --no_envscript  : $opt_no_envscript"
+verbose_msg "  --no_bashrc     : $opt_no_bashrc"
 
 if ($opt_no_packages  ); then dostep_packages=false;  fi
 if ($opt_no_rexx      ); then dostep_rexx=false;      fi
@@ -1663,20 +1697,20 @@ if ($opt_no_bashrc    ); then dostep_bashrc=false;    fi
 
 verbose_msg    # print a newline
 verbose_msg "Performing Steps:"
-set_yes_or_no $dostep_packages;   verbose_msg "$yes_or_no : Check for required system packages"
-set_yes_or_no $dostep_rexx;       verbose_msg "$yes_or_no : Build Regina REXX"
-set_yes_or_no $dostep_gitclone;   verbose_msg "$yes_or_no : Git clone Hercules and external packages"
-set_yes_or_no $dostep_bldlvlck;   verbose_msg "$yes_or_no : Run bldlvlck"
-set_yes_or_no $dostep_extpkgs;    verbose_msg "$yes_or_no : Build Hercules external packages"
-set_yes_or_no $dostep_autogen;    verbose_msg "$yes_or_no : Run autogen"
-set_yes_or_no $dostep_configure;  verbose_msg "$yes_or_no : Run configure"
-set_yes_or_no $dostep_clean;      verbose_msg "$yes_or_no : Run make clean"
-set_yes_or_no $dostep_make;       verbose_msg "$yes_or_no : Run make (compile and link)"
-set_yes_or_no $dostep_tests;      verbose_msg "$yes_or_no : Run make check"
-set_yes_or_no $dostep_install;    verbose_msg "$yes_or_no : Run make install"
-set_yes_or_no $dostep_setcap;     verbose_msg "$yes_or_no : setcap executables"
-set_yes_or_no $dostep_envscript;  verbose_msg "$yes_or_no : Create script to set environment variables"
-set_yes_or_no $dostep_bashrc;     verbose_msg "$yes_or_no : Add setting environment variables from .bashrc"
+set_run_or_skip $dostep_packages;   verbose_msg "$run_or_skip : Check for required system packages"
+set_run_or_skip $dostep_rexx;       verbose_msg "$run_or_skip : Build Regina REXX"
+set_run_or_skip $dostep_gitclone;   verbose_msg "$run_or_skip : Git clone Hercules and external packages"
+set_run_or_skip $dostep_bldlvlck;   verbose_msg "$run_or_skip : Run bldlvlck"
+set_run_or_skip $dostep_extpkgs;    verbose_msg "$run_or_skip : Build Hercules external packages"
+set_run_or_skip $dostep_autogen;    verbose_msg "$run_or_skip : Run autogen"
+set_run_or_skip $dostep_configure;  verbose_msg "$run_or_skip : Run configure"
+set_run_or_skip $dostep_clean;      verbose_msg "$run_or_skip : Run make clean"
+set_run_or_skip $dostep_make;       verbose_msg "$run_or_skip : Run make (compile and link)"
+set_run_or_skip $dostep_tests;      verbose_msg "$run_or_skip : Run make check"
+set_run_or_skip $dostep_install;    verbose_msg "$run_or_skip : Run make install"
+set_run_or_skip $dostep_setcap;     verbose_msg "$run_or_skip : setcap executables"
+set_run_or_skip $dostep_envscript;  verbose_msg "$run_or_skip : Create script to set environment variables"
+set_run_or_skip $dostep_bashrc;     verbose_msg "$run_or_skip : Add setting environment variables from .bashrc"
 
 verbose_msg # output a newline
 verbose_msg "Configuration:"
