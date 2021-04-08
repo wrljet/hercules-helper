@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 07 APR 2021
+# Updated: 08 APR 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,7 +48,11 @@
 
 # Changelog:
 #
-# Updated: 06 APR 2021
+# Updated: 08 APR 2021
+# - a few corrections related to 'set -u'
+# - correct memory size check for FreeBSD 'mainsize' from MB to KB
+#
+# Updated: 07 APR 2021
 # - FreeBSD 12 on Raspberry Pi 3B improvements
 # - skip 'mainsize' test on low memory FreeBSD
 #
@@ -1911,7 +1915,13 @@ else
     time make install
 
     export PATH=$opt_build_dir/rexx/bin:$PATH
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$opt_build_dir/rexx/lib
+
+#   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$opt_build_dir/rexx/lib
+    newpath="$opt_install_dir/rexx/lib"
+    if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
+	export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
+    fi
+
     export CPPFLAGS=-I$opt_build_dir/rexx/include
 
     verbose_msg "which rexx: $(which rexx)"
@@ -2213,7 +2223,7 @@ else
 
         # Also for FreeBSD we will try to detect low memory conditions
         # such as on a Raspberry Pi 3B, and skip the 'mainsize' test.
-        if [ $version_freebsd_memory -lt 2000000 ]; then
+        if [ $version_freebsd_memory -lt 2000 ]; then
             verbose_msg "FreeBSD with low memory"
 
             if [ -f ./tests/mainsize.tst ]; then
@@ -2314,6 +2324,9 @@ else
 #
 # This script was created by $0, $(date)
 #
+
+# LD_LIBRARY_PATH is often empty, and we don't want to error out on that
+set +u
 
 echo "Setting environment variables for Hercules"
 
