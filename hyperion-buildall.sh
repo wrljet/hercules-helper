@@ -51,6 +51,7 @@
 # Updated: 08 APR 2021
 # - a few corrections related to 'set -u'
 # - correct memory size check for FreeBSD 'mainsize' from MB to KB
+# - now also works on FreeBSD 12.2 on x86-64
 #
 # Updated: 07 APR 2021
 # - FreeBSD 12 on Raspberry Pi 3B improvements
