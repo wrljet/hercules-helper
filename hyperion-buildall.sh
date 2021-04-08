@@ -1251,6 +1251,7 @@ if test -f "$config_file" ; then
 else
     echo "Config file not found.  Using defaults."
 fi
+echo    # print a newline
 
 if [ $opt_override_trace       == true ]; then TRACE=true; fi
 if [ $opt_override_verbose     == true ]; then opt_verbose=true; fi
