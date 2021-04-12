@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 08 APR 2021
+# Updated: 12 APR 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -28,6 +28,7 @@
 #
 # The major steps are (most can be optionally skipped):
 #
+# dostep_detect      Detect system and configuration
 # dostep_packages    Check for required system packages
 #                    Check for REXX and compiler settings (needed to run Hercules tests)
 # dostep_rexx        Build Regina REXX
@@ -47,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 12 APR 2021
+# - add --detect-only option
 #
 # Updated: 08 APR 2021
 # - a few corrections related to 'set -u'
@@ -248,6 +252,9 @@ opt_verbose=${opt_verbose:-false}
 # Prompt the user before each major step is started
 opt_prompts=${opt_prompts:-false}
 
+# Run detection only and exit
+opt_detect_only=${opt_detect_only:-false}
+
 # Use 'sudo' for 'make install'
 opt_usesudo=${opt_usesudo:-false}
 
@@ -360,6 +367,7 @@ Options:
                       and creating a full log file
 
 Sub-functions (in order of operation):
+       --detect-only  run detection only and exit
        --no-packages  skip installing required packages
        --no-rexx      skip building Regina REXX
        --no-gitclone  skip \'git clone\' steps
@@ -626,7 +634,7 @@ detect_system()
 #  VERSION_CODENAME=ulyana
 #  UBUNTU_CODENAME=focal
 
-    verbose_msg "System info: (detect_system)"
+    verbose_msg "System detection:"
 
     os_is_supported=false
 
@@ -1073,6 +1081,7 @@ opt_override_prompts=false
 opt_override_usesudo=false
 opt_override_auto=false
 
+opt_override_detect_only=false    # Run detection only and exit
 opt_override_no_packages=false    # Check for required system packages
 opt_override_no_rexx=false        # Build Regina REXX
 opt_override_no_gitclone=false    # Git clone Hercules and external packages
@@ -1133,8 +1142,8 @@ case $key in
     shift # past argument
     ;;
 
-  --no-packages) # skip installing required packages
-    opt_override_no_packages=true
+  --detect-only) # run detection only and exit
+    opt_override_detect_only=true
     shift # past argument
     ;;
 
@@ -1259,20 +1268,21 @@ if [ $opt_override_prompts     == true ]; then opt_prompts=true; fi
 if [ $opt_override_usesudo     == true ]; then opt_usesudo=true; fi
 if [ $opt_override_auto        == true ]; then opt_auto=true; fi
 
+if [ $opt_override_detect_only == true ]; then opt_detect_only=true; fi
 if [ $opt_override_no_packages == true ]; then opt_no_packages=true; fi
-if [ $opt_override_no_rexx == true ]; then opt_no_rexx=true; fi
+if [ $opt_override_no_rexx     == true ]; then opt_no_rexx=true; fi
 if [ $opt_override_no_gitclone == true ]; then opt_no_gitclone=true; fi
 if [ $opt_override_no_bldlvlck == true ]; then opt_no_bldlvlck=true; fi
-if [ $opt_override_no_extpkgs == true ]; then opt_no_extpkgs=true; fi
-if [ $opt_override_no_autogen == true ]; then opt_no_autogen=true; fi
+if [ $opt_override_no_extpkgs  == true ]; then opt_no_extpkgs=true; fi
+if [ $opt_override_no_autogen  == true ]; then opt_no_autogen=true; fi
 if [ $opt_override_no_configure == true ]; then opt_no_configure=true; fi
-if [ $opt_override_no_clean == true ]; then opt_no_clean=true; fi
-if [ $opt_override_no_make == true ]; then opt_no_make=true; fi
-if [ $opt_override_no_tests == true ]; then opt_no_tests=true; fi
+if [ $opt_override_no_clean    == true ]; then opt_no_clean=true; fi
+if [ $opt_override_no_make     == true ]; then opt_no_make=true; fi
+if [ $opt_override_no_tests    == true ]; then opt_no_tests=true; fi
 if [ $opt_override_no_install  == true ]; then opt_no_install=true; fi
-if [ $opt_override_no_setcap == true ]; then opt_no_setcap=true; fi
+if [ $opt_override_no_setcap   == true ]; then opt_no_setcap=true; fi
 if [ $opt_override_no_envscript == true ]; then opt_no_envscript=true; fi
-if [ $opt_override_no_bashrc == true ]; then opt_no_bashrc=true; fi
+if [ $opt_override_no_bashrc   == true ]; then opt_no_bashrc=true; fi
 
 if [[ $TRACE == true ]]; then
     set -x # For debugging, show all commands as they are being run
@@ -1638,6 +1648,28 @@ if [ "$version_distro" == "darwin" ]; then
     exit 1
 fi
 
+#-----------------------------------------------------------------------------
+verbose_msg "General Options:"
+verbose_msg "  --trace         : $TRACE"
+verbose_msg "  --verbose       : $opt_verbose"
+verbose_msg "  --prompts       : $opt_prompts"
+verbose_msg "  --sudo          : $opt_usesudo"
+
+verbose_msg "  --no_packages   : $opt_no_packages"
+verbose_msg "  --no_rexx       : $opt_no_rexx"
+verbose_msg "  --no_gitclone   : $opt_no_gitclone"
+verbose_msg "  --no_bldlvlck   : $opt_no_bldlvlck"
+verbose_msg "  --no_autogen    : $opt_no_autogen"
+verbose_msg "  --no_configure  : $opt_no_configure"
+verbose_msg "  --no_clean      : $opt_no_clean"
+verbose_msg "  --no_make       : $opt_no_make"
+verbose_msg "  --no_tests      : $opt_no_tests"
+verbose_msg "  --no_install    : $opt_no_install"
+verbose_msg "  --no_setcap     : $opt_no_setcap"
+verbose_msg "  --no_envscript  : $opt_no_envscript"
+verbose_msg "  --no_bashrc     : $opt_no_bashrc"
+verbose_msg    # print a newline
+
 # sysinfo:
 verbose_msg "System information:"
 # verbose_msg "  /etc/os-release    : $(cat /etc/os-release 2>&1)"
@@ -1660,26 +1692,6 @@ verbose_msg "  compiler       : $($CC --version 2>&1 | head -n 1)"
 verbose_msg "  linker         : $($LD --version 2>&1 | head -n 1)"
 verbose_msg    # print a newline
 
-verbose_msg "General Options:"
-verbose_msg "  --trace         : $TRACE"
-verbose_msg "  --verbose       : $opt_verbose"
-verbose_msg "  --prompts       : $opt_prompts"
-verbose_msg "  --sudo          : $opt_usesudo"
-
-verbose_msg "  --no_packages   : $opt_no_packages"
-verbose_msg "  --no_rexx       : $opt_no_rexx"
-verbose_msg "  --no_gitclone   : $opt_no_gitclone"
-verbose_msg "  --no_bldlvlck   : $opt_no_bldlvlck"
-verbose_msg "  --no_autogen    : $opt_no_autogen"
-verbose_msg "  --no_configure  : $opt_no_configure"
-verbose_msg "  --no_clean      : $opt_no_clean"
-verbose_msg "  --no_make       : $opt_no_make"
-verbose_msg "  --no_tests      : $opt_no_tests"
-verbose_msg "  --no_install    : $opt_no_install"
-verbose_msg "  --no_setcap     : $opt_no_setcap"
-verbose_msg "  --no_envscript  : $opt_no_envscript"
-verbose_msg "  --no_bashrc     : $opt_no_bashrc"
-
 if ($opt_no_packages  ); then dostep_packages=false;  fi
 if ($opt_no_rexx      ); then dostep_rexx=false;      fi
 if ($opt_no_gitclone  ); then dostep_gitclone=false;  fi
@@ -1696,24 +1708,6 @@ if [[ $version_id == freebsd* ]]; then dostep_setcap=false; fi
 if ($opt_no_envscript ); then dostep_envscript=false; fi
 if ($opt_no_bashrc    ); then dostep_bashrc=false;    fi
 
-verbose_msg    # print a newline
-verbose_msg "Performing Steps:"
-set_run_or_skip $dostep_packages;   verbose_msg "$run_or_skip : Check for required system packages"
-set_run_or_skip $dostep_rexx;       verbose_msg "$run_or_skip : Build Regina REXX"
-set_run_or_skip $dostep_gitclone;   verbose_msg "$run_or_skip : Git clone Hercules and external packages"
-set_run_or_skip $dostep_bldlvlck;   verbose_msg "$run_or_skip : Run bldlvlck"
-set_run_or_skip $dostep_extpkgs;    verbose_msg "$run_or_skip : Build Hercules external packages"
-set_run_or_skip $dostep_autogen;    verbose_msg "$run_or_skip : Run autogen"
-set_run_or_skip $dostep_configure;  verbose_msg "$run_or_skip : Run configure"
-set_run_or_skip $dostep_clean;      verbose_msg "$run_or_skip : Run make clean"
-set_run_or_skip $dostep_make;       verbose_msg "$run_or_skip : Run make (compile and link)"
-set_run_or_skip $dostep_tests;      verbose_msg "$run_or_skip : Run make check"
-set_run_or_skip $dostep_install;    verbose_msg "$run_or_skip : Run make install"
-set_run_or_skip $dostep_setcap;     verbose_msg "$run_or_skip : setcap executables"
-set_run_or_skip $dostep_envscript;  verbose_msg "$run_or_skip : Create script to set environment variables"
-set_run_or_skip $dostep_bashrc;     verbose_msg "$run_or_skip : Add setting environment variables from .bashrc"
-
-verbose_msg # output a newline
 verbose_msg "Configuration:"
 verbose_msg "OPT_BUILD_DIR        : $opt_build_dir"
 verbose_msg "OPT_INSTALL_DIR      : $opt_install_dir"
@@ -1747,6 +1741,32 @@ if [[ $version_wsl -eq 1 ]]; then
     error_msg "Not supported under Windows WSL1!"
     exit 1
 fi
+
+#-----------------------------------------------------------------------------
+# Check for --detect-only and exit
+
+if ($opt_detect_only); then
+    return 0
+fi
+
+#-----------------------------------------------------------------------------
+
+verbose_msg    # print a newline
+verbose_msg "Performing Steps:"
+set_run_or_skip $dostep_packages;   verbose_msg "$run_or_skip : Check for required system packages"
+set_run_or_skip $dostep_rexx;       verbose_msg "$run_or_skip : Build Regina REXX"
+set_run_or_skip $dostep_gitclone;   verbose_msg "$run_or_skip : Git clone Hercules and external packages"
+set_run_or_skip $dostep_bldlvlck;   verbose_msg "$run_or_skip : Run bldlvlck"
+set_run_or_skip $dostep_extpkgs;    verbose_msg "$run_or_skip : Build Hercules external packages"
+set_run_or_skip $dostep_autogen;    verbose_msg "$run_or_skip : Run autogen"
+set_run_or_skip $dostep_configure;  verbose_msg "$run_or_skip : Run configure"
+set_run_or_skip $dostep_clean;      verbose_msg "$run_or_skip : Run make clean"
+set_run_or_skip $dostep_make;       verbose_msg "$run_or_skip : Run make (compile and link)"
+set_run_or_skip $dostep_tests;      verbose_msg "$run_or_skip : Run make check"
+set_run_or_skip $dostep_install;    verbose_msg "$run_or_skip : Run make install"
+set_run_or_skip $dostep_setcap;     verbose_msg "$run_or_skip : setcap executables"
+set_run_or_skip $dostep_envscript;  verbose_msg "$run_or_skip : Create script to set environment variables"
+set_run_or_skip $dostep_bashrc;     verbose_msg "$run_or_skip : Add setting environment variables from .bashrc"
 
 #-----------------------------------------------------------------------------
 verbose_msg # output a newline
