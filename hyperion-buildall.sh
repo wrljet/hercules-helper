@@ -862,7 +862,7 @@ detect_system()
             verbose_msg "                 : $version_freebsd_cpu"
             verbose_msg "                 : assuming Raspberry Pi"
 
-            if [ $version_freebsd_memory -lt 2000000 ]; then
+            if [ $version_freebsd_memory -lt 2000 ]; then
                 verbose_msg "                 : FreeBSD Raspberry Pi with low memory"
             fi
         fi
@@ -2145,7 +2145,7 @@ else
         enable_ipv6_option=""
     fi
 
-    # Set up compiler optimization options
+    # Set up compiler optimization options and special options
 
     # Enable cap_sys_nice so Hercules can be run as a normal user
     # FIXME this doesn't work with 'make check', so we use 'setcap' instead
@@ -2171,6 +2171,8 @@ else
     # For FreeBSD, CLANG doesn't accept -march=native
     if [[ $version_id == freebsd* ]]; then
         config_opt_optimization="--enable-optimization=\"-O3\""
+    elif [[ $version_id == alpine* ]]; then
+        config_opt_optimization="--enable-optimization=\"-O2 -march=native -D__gnu_linux__=1 -D__ALPINE_LINUX__=1\""
     else
         config_opt_optimization="--enable-optimization=\"-O3 -march=native\""
     fi
