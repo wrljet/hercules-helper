@@ -41,7 +41,7 @@ KDE Neon   11.19     x86_64          gcc 7.5.0   VMware          12/12/2020
 Mint       20        x86_64          gcc 9.3.0   VMware          12/13/2020
 
 openSUSE   15.1      x86_64          gcc 7.5.0   VMware          01/07/2021
-Manjaro    20.2      x86_64          gcc 10.2.0  VMware          01/19/2021
+Manjaro    20.2      x86_64          gcc 10.2.0  VMware          04/13/2021
 
 RPI OS (beta)        AArch64         gcc 8.3.0   Rasp Pi 4B 8GB  12/13/2020
 Ubuntu Mate 20.10    AArch64         gcc 10.2.0  Rasp Pi 4B 4GB  01/07/2021
