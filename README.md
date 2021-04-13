@@ -49,6 +49,7 @@ Options:
                       and creating a full log file
 
 Sub-functions (in order of operation):
+       --detect-only  run detection only and exit
        --no-packages  skip installing required packages
        --no-rexx      skip building Regina REXX
        --no-gitclone  skip \'git clone\' steps
@@ -81,7 +82,7 @@ $ ~/hercules-helper/hyperion-buildall.sh --auto
 
 Or for finer control:
 ```
-$ ~/hercules-helper/hyperion-buildall.sh --verbose --prompts 2>&1 | tee ./hyperion-buildall.log
+$ ~/hercules-helper/hyperion-buildall.sh --verbose --prompts
 ```
 
 If packages need to be installed you may be asked to supply your sudo password.
