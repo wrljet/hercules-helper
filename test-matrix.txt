@@ -1,6 +1,6 @@
 https://github.com/wrljet/hercules-helper
 
-This chart updated:  02/25/2021
+This chart updated:  04/12/2021
 
 VMware indicates VMware 15.5 running on Windows 10 running on Intel i7 CPU
 All builds are compiled natively on the target OS (not cross compiled)
@@ -41,7 +41,7 @@ KDE Neon   11.19     x86_64          gcc 7.5.0   VMware          12/12/2020
 Mint       20        x86_64          gcc 9.3.0   VMware          12/13/2020
 
 openSUSE   15.1      x86_64          gcc 7.5.0   VMware          01/07/2021
-Manjaro    20.2      x86_64          gcc 10.2.0  VMware          01/19/2021
+Manjaro    20.2      x86_64          gcc 10.2.0  VMware          04/13/2021
 
 RPI OS (beta)        AArch64         gcc 8.3.0   Rasp Pi 4B 8GB  12/13/2020
 Ubuntu Mate 20.10    AArch64         gcc 10.2.0  Rasp Pi 4B 4GB  01/07/2021
@@ -49,5 +49,8 @@ Raspbian 2020-05-07  armv7l          gcc 8.3.0   Rasp Pi 4B 8GB  12/22/2020    C
 Raspbian 2019-07-10  armv7l          gcc 8.3.0   Rasp Pi Zero W                               
 Manjaro    20.12     AArch64         gcc 10.2.0  Rasp Pi 4B 4GB  01/19/2021
 
+FreeBSD    12.2      AArch64         Clang 10    Rasp Pi 3B+     04/08/2021    'mainsize' test skipped
+FreeBSD    12.2      x86_64          Clang 10    Vmware          04/12/2021
+FreeBSD    13.0 RC5  AArch64         Clang 11    Rasp Pi 4B      04/12/2021
 NetBSD     9.0       amd64           gcc 7.4.0   AMD64 PC        not ready yet
 

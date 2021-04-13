@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 18 FEB 2021
+# Updated: 12 APR 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -20,11 +20,54 @@
 #  $
 #  $ ~/hercules-helper/hyperion-buildall.sh --auto
 #     or
-#  $ ~/hercules-helper/hyperion-buildall.sh --verbose --prompts 2>&1 | tee ./hyperion-buildall.log
+#  $ ~/hercules-helper/hyperion-buildall.sh --verbose --prompts
+#
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+#
+# The major steps are (most can be optionally skipped):
+#
+# dostep_detect      Detect system and configuration
+# dostep_packages    Check for required system packages
+#                    Check for REXX and compiler settings (needed to run Hercules tests)
+# dostep_rexx        Build Regina REXX
+# dostep_gitclone    Git clone Hercules and external packages
+# dostep_bldlvlck    Run bldlvlck
+# dostep_extpkgs     Build Hercules external packages
+# dostep_autogen     Run autogen
+# dostep_configure   Run configure
+# dostep_clean       Run make clean
+# dostep_make        Run make (compile and link)
+# dostep_tests       Run make check
+# dostep_install     Run make install
+# dostep_setcap      setcap executables
+# dostep_envscript   Create script to set environment variables
+# dostep_bashrc      Add "source" to set environment variables from .bashrc
 #
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 12 APR 2021
+# - add --detect-only option
+#
+# Updated: 08 APR 2021
+# - a few corrections related to 'set -u'
+# - correct memory size check for FreeBSD 'mainsize' from MB to KB
+# - now also works on FreeBSD 12.2 on x86-64
+# - fix bug in --sudo option
+# - additional system info display
+#
+# Updated: 07 APR 2021
+# - FreeBSD 12 on Raspberry Pi 3B improvements
+# - skip 'mainsize' test on low memory FreeBSD
+#
+# Updated: 06 APR 2021
+# - major changes to the options.  Be sure to check --help
+# - most of the sub steps can now be individually skipped
+# - lowercase all internal variable names
+# - added FreeBSD 12 on Raspberry Pi 3B support (incomplete)
 #
 # Updated: 18 FEB 2021
 # - correct WSL1 detection so it doesn't show both WSL1 and WSL2 together
@@ -150,56 +193,157 @@
 # Updated: 30 NOV 2020
 # - initial commit to GitHub
 
+if test "$BASH" == "" || "$BASH" -uc "a=();true \"${a[@]}\"" 2>/dev/null; then
+    # Bash 4.4+, Zsh
+    # Treat unset variables as an error when substituting
+    set -uo pipefail
+else
+    # Bash 4.3 and older chokes on empty arrays with set -u
+    set -o pipefail
+fi
+
+# Stop on error
+# set -e
+
+shopt -s nullglob globstar
+
+require(){ hash "$@" || exit 127; }
+
 #
 # Default Configuration Parameters:
 #
-# Overall working build diretory is the current directory
-OPT_BUILD_DIR=${OPT_BUILD_DIR:-$(pwd)}
-
-# Prefix (target) directory
-OPT_INSTALL_DIR=${OPT_INSTALL_DIR:-$(pwd)/herc4x}
-
-# Git repo for SDL-Hercules Hyperion
-GIT_REPO_HYPERION=${GIT_REPO_HYPERION:-https://github.com/SDL-Hercules-390/hyperion.git}
-# GIT_REPO_HYPERION=https://github.com/wrljet/hyperion.git
-
-# Git checkout branch for Hyperion
-# GIT_BRANCH_HYPERION=build-netbsd
-
-# Git repo for Hyperion Gists
-GIT_REPO_GISTS=${GIT_REPO_GISTS:-https://github.com/SDL-Hercules-390/gists.git}
-# GIT_REPO_GISTS=https://github.com/wrljet/gists.git
-
-# Git checkout branch for Hyperion Gists
-# GIT_BRANCH_GISTS=build-mods-i686
-
-# Git repo for Hyperion External Packages
-GIT_REPO_EXTPKGS=${GIT_REPO_EXTPKGS:-https://github.com/SDL-Hercules-390}
-# GIT_REPO_EXTPKGS=https://github.com/wrljet
-
-# Git checkout branch for Hyperion External Packages
-# GIT_BRANCH_EXTPKGS=build-mods-i686
 
 # Show/trace every Bash command
 TRACE=${TRACE:-false}  # If TRACE variable not set or null, default to FALSE
 
+# Overall working build diretory is the current directory
+opt_build_dir=${opt_build_dir:-$(pwd)}
+
+# Prefix (target) directory
+opt_install_dir=${opt_install_dir:-$(pwd)/herc4x}
+
+# Git repo for SDL-Hercules Hyperion
+git_repo_hyperion=${git_repo_hyperion:-https://github.com/SDL-Hercules-390/hyperion.git}
+# git_repo_hyperion=https://github.com/wrljet/hyperion.git
+
+# Git checkout branch for Hyperion
+git_branch_hyperion=${git_branch_hyperion:-""}
+# git_branch_hyperion="build-netbsd"
+
+# Git repo for Hyperion Gists
+git_repo_gists=${git_repo_gists:-https://github.com/SDL-Hercules-390/gists.git}
+# git_repo_gists=https://github.com/wrljet/gists.git
+
+# Git checkout branch for Hyperion Gists
+git_branch_gists=${git_branch_gists:-""}
+# git_branch_gists="build-mods-i686"
+
+# Git repo for Hyperion External Packages
+git_repo_extpkgs=${git_repo_extpkgs:-https://github.com/SDL-Hercules-390}
+# git_repo_extpkgs=https://github.com/wrljet
+
+# Git checkout branch for Hyperion External Packages
+git_branch_extpkgs=${git_extpkgs_extpkgs:-""}
+# git_branch_extpkgs="build-mods-i686"
+
 # Print verbose progress information
-OPT_VERBOSE=${OPT_VERBOSE:-false}
+opt_verbose=${opt_verbose:-false}
 
 # Prompt the user before each major step is started
-OPT_PROMPTS=${OPT_PROMPTS:-false}
+opt_prompts=${opt_prompts:-false}
 
-# Do not install missing packages if true
-OPT_NO_PACKAGES=${OPT_NO_PACKAGES:-false}
-
-# Do not 'git clone' if true
-OPT_NO_CLONE=${OPT_NO_CLONE:-false}
-
-# Skip 'make install' after building
-OPT_NO_INSTALL=${OPT_NO_INSTALL:-false}
+# Run detection only and exit
+opt_detect_only=${opt_detect_only:-false}
 
 # Use 'sudo' for 'make install'
-OPT_USESUDO=${OPT_USESUDO:-false}
+opt_usesudo=${opt_usesudo:-false}
+
+# Sub-functions, in order of operation
+#
+# --no-packages  skip installing required packages
+# Do not install missing packages if true
+opt_no_packages=${opt_no_packages:-false}
+
+# --no-rexx      skip building Regina REXX
+# Do not build Regina REXX
+opt_no_rexx=${opt_no_rexx:-false}
+
+# --no-gitclone  skip \'git clone\' steps
+# Do not 'git clone' if true
+opt_no_gitclone=${opt_no_gitclone:-false}
+
+# --no-bldlvlck  skip \'util/bldlvlck\' steps
+opt_no_bldlvlck=${opt_no_bldlvlck:-false}
+
+# --no-extpkgs  skip building Hercules external packages
+opt_no_extpkgs=${opt_no_extpkgs:-false}
+
+# --no-autogen   skip running \'autogen\'
+opt_no_autogen=${opt_no_autogen:-false}
+
+# --no-configure skip running \'configure\'
+opt_no_configure=${opt_no_configure:-false}
+
+# --no-clean     skip running \'make clean\'
+opt_no_clean=${opt_no_clean:-false}
+
+# --no-make      skip running \'make\'
+opt_no_make=${opt_no_make:-false}
+
+# --no-tests     skip running \'make check\'
+opt_no_tests=${opt_no_tests:-false}
+
+# --no-install   skip \'make install\' after building
+# Skip 'make install' after building
+opt_no_install=${opt_no_install:-false}
+
+# --no-setcap    skip running \'setcap\'
+opt_no_setcap=${opt_no_setcap:-false}
+
+# --no-envscript skip creating script to set environment variables
+opt_no_envscript=${opt_no_envscript:-false}
+
+# --no-bashrc    skip modifying .bashrc to set environment variables
+opt_no_bashrc=${opt_no_bashrc:-false}
+
+# Optional steps we perform, assume we want them all
+#
+dostep_packages=${dostep_packages:-true}      # Check for required system packages
+dostep_rexx=${dostep_rexx:-true}              # Build Regina REXX
+dostep_gitclone=${dostep_gitclone:-true}      # Git clone Hercules and external packages
+dostep_bldlvlck=${dostep_bldlvlck:-true}      # Run bldlvlck
+dostep_extpkgs=${dostep_extpkgs:-true}        # Build Hercules external packages
+dostep_autogen=${dostep_autogen:-true}        # Run autogen
+dostep_configure=${dostep_configure:-true}    # Run configure
+dostep_clean=${dostep_clean:-true}             # Run make clean
+dostep_make=${dostep_make:-true}              # Run make (compile and link)
+dostep_tests=${dostep_tests:-true}            # Run make check
+dostep_install=${dostep_install:-true}        # Run make install
+dostep_setcap=${dostep_setcap:-true}          # setcap executables
+dostep_envscript=${dostep_envscript:-true}    # Create script to set environment variables
+dostep_bashrc=${dostep_bashrc:-true}          # Add "source" to set environment variables from .bashrc
+
+#-----------------------------------------------------------------------------
+# Set up default empty values for our variables
+
+debug=${debug:-""}
+DEBUG=${DEBUG:-""}
+
+version_distro=""
+version_id=""
+version_rpidesktop=0
+version_wsl=0
+version_freebsd_cpu=""
+version_freebsd_model=""
+version_freebsd_memory=""
+version_regina=0
+
+uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
+
+CC=${CC:-"cc"}
+CFLAGS=${CFLAGS:-""}
+CPPFLAGS=${CPPFLAGS:-""}
+LD=${LD:-"ld"}
 
 #-----------------------------------------------------------------------------
 
@@ -218,31 +362,67 @@ Options:
   -v,  --verbose      print lots of messages
   -p,  --prompts      print a prompt before each major step
   -c,  --config=FILE  specify config file containing options
+  -s,  --sudo         use \'sudo\' for installing
   -a,  --auto         run everything, with --verbose and --prompts,
                       and creating a full log file
 
-Sub-functions:
-       --no-clone     skip \'git clone\' steps
-       --no-install   run \'make install\' after building
-  -s,  --sudo         use \'sudo\' for installing
+Sub-functions (in order of operation):
+       --detect-only  run detection only and exit
        --no-packages  skip installing required packages
+       --no-rexx      skip building Regina REXX
+       --no-gitclone  skip \'git clone\' steps
+       --no-bldlvlck  skip \'util/bldlvlck\' steps
+       --no-extpkgs   skip building Hercules external packages
+       --no-autogen   skip running \'autogen\'
+       --no-configure skip running \'configure\'
+       --no-clean     skip running \'make clean\'
+       --no-make      skip running \'make\'
+       --no-tests     skip running \'make check\'
+       --no-install   skip \'make install\' after building
+       --no-setcap    skip running \'setcap\'
+       --no-envscript skip creating script to set environment variables
+       --no-bashrc    skip modifying .bashrc to set environment variables
 
-Email bug reports, questions, etc. to <bill@wrljet.com>
+Please email bug reports, questions, etc. to: <bill@wrljet.com>
 "
-
-#-----------------------------------------------------------------------------
-# Stop on error
-# FIXME set -e
 
 #------------------------------------------------------------------------------
 #                               trace
 #------------------------------------------------------------------------------
 trace_msg()
 {
-  if [[ -n $debug ]]  || \
-     [[ -n $DEBUG ]]; then
+  if [ -n $debug ]  || \
+     [ -n $DEBUG ]; then
     echo  "++ $1"
   fi
+}
+
+#------------------------------------------------------------------------------
+#                               set_yes_or_no
+#------------------------------------------------------------------------------
+yes_or_no="no"
+
+set_yes_or_no()
+{
+    if ($1 == true); then
+        yes_or_no="yes"
+    else
+        yes_or_no="no "
+    fi
+}
+
+#------------------------------------------------------------------------------
+#                               set_run_or_skip
+#------------------------------------------------------------------------------
+run_or_skip="no"
+
+set_run_or_skip()
+{
+    if ($1 == true); then
+        run_or_skip="run "
+    else
+        run_or_skip="skip"
+    fi
 }
 
 #------------------------------------------------------------------------------
@@ -250,7 +430,7 @@ trace_msg()
 #------------------------------------------------------------------------------
 verbose_msg()
 {
-    if ($OPT_VERBOSE); then
+    if ($opt_verbose); then
         echo "$@"
     fi
 }
@@ -288,13 +468,13 @@ confirm() {
 
 status_prompter()
 {
-    if ($OPT_PROMPTS); then
+    if ($opt_prompts); then
         read -p "$1  Hit return to continue"
     else
         echo "$1"
     fi
 
-    echo   # move to a new line
+    echo   # output a newline
 }
 
 #------------------------------------------------------------------------------
@@ -355,12 +535,12 @@ function check_pi_version()
     [c03130]="Pi 4004   1.0     4GB     Sony UK"
   )
 
-    verbose_msg "Raspberry Pi ${RPI_REVISIONS[${RPI_REVCODE}]} (${RPI_REVCODE})"
+    verbose_msg "Raspberry Pi ${RPI_REVISIONS[$RPI_REVCODE]} ($RPI_REVCODE)"
 }
 
 function detect_pi()
 {
-    verbose_msg " "  # move to a new line
+    verbose_msg " "  # output a newline
 
 # Raspberry Pi 4B,   Ubuntu 20 64-bit,  uname -m == aarch64
 # Raspberry Pi 4B,   RPiOS     32-bit,  uname -m == armv7l
@@ -397,8 +577,8 @@ detect_darwin()
 #           esac
 #   esac
 
-    if [[ $UNAME_SYSTEM == Darwin ]]; then
-        VERSION_DISTRO=darwin
+    if [ "$uname_system" == "Darwin" ]; then
+        version_distro="darwin"
     fi
 }
 
@@ -454,84 +634,85 @@ detect_system()
 #  VERSION_CODENAME=ulyana
 #  UBUNTU_CODENAME=focal
 
-    verbose_msg " "  # move to a new line
-    verbose_msg "System stats:"
+    verbose_msg "System detection:"
 
-    OS_NAME=$(uname -s)
-    verbose_msg "OS Type          : $OS_NAME"
+    os_is_supported=false
+
+    os_name=$(uname -s)
+    verbose_msg "OS Type          : $os_name"
 
     machine=$(uname -m)
     verbose_msg "Machine Arch     : $machine"
 
-    if [ "${OS_NAME}" = "Linux" ]; then
+    if [ "$os_name" = "Linux" ]; then
         # awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release
-        VERSION_ID=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-        # echo "VERSION_ID is $VERSION_ID"
+        version_id=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+        # echo "VERSION_ID is $version_id"
 
-        VERSION_ID_LIKE=$(awk -F= '$1=="ID_LIKE" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-        # echo "VERSION_ID_LIKE is $VERSION_ID_LIKE"
+        version_id_like=$(awk -F= '$1=="ID_LIKE" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+        # echo "VERSION_ID_LIKE is $version_id_like"
 
-        VERSION_PRETTY_NAME=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-        # echo "VERSION_STR is $VERSION_STR"
+        version_pretty_name=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+        # echo "VERSION_STR is $version_str"
 
-        VERSION_STR=$(awk -F= '$1=="VERSION_ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-        # echo "VERSION_STR is $VERSION_STR"
+        version_str=$(awk -F= '$1=="VERSION_ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+        # echo "VERSION_STR is $version_str"
 
         verbose_msg "Memory Total (MB): $(free -m | awk '/^Mem:/{print $2}')"
         verbose_msg "Memory Free  (MB): $(free -m | awk '/^Mem:/{print $4}')"
 
-        verbose_msg "VERSION_ID       : $VERSION_ID"
-        verbose_msg "VERSION_ID_LIKE  : $VERSION_ID_LIKE"
-        verbose_msg "VERSION_PRETTY   : $VERSION_PRETTY_NAME"
-        verbose_msg "VERSION_STR      : $VERSION_STR"
+        verbose_msg "VERSION_ID       : $version_id"
+        verbose_msg "VERSION_ID_LIKE  : $version_id_like"
+        verbose_msg "VERSION_PRETTY   : $version_pretty_name"
+        verbose_msg "VERSION_STR      : $version_str"
 
         # Look for Alpine Linux
 
-        if [[ $VERSION_ID == alpine* ]];
+        if [[ $version_id == alpine* ]];
         then
-            VERSION_DISTRO=alpine
-            VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
-            VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
+            version_distro="alpine"
+            version_major=$(echo $version_str | cut -f1 -d.)
+            version_minor=$(echo $version_str | cut -f2 -d.)
 
-            verbose_msg "OS               : $VERSION_DISTRO variant"
-            verbose_msg "OS Version       : $VERSION_MAJOR"
+            verbose_msg "OS               : $version_distro variant"
+            verbose_msg "OS Version       : $version_major"
 
-	    error_msg "Alpine Linux is not yet supported!"
+            error_msg "Alpine Linux is not yet supported!"
         fi
 
         # Look for Manjaro
 
-        if [[ $VERSION_ID == arch* || $VERSION_ID == manjaro* ]];
+        if [[ $version_id == arch* || $version_id == manjaro* ]];
         then
-            VERSION_DISTRO=arch
-            VERSION_STR=$(awk -F= '$1=="DISTRIB_RELEASE" { gsub(/"/, "", $2); print $2 ;}' /etc/lsb-release)
-            VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
-            VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
+            version_distro="arch"
+            version_str=$(awk -F= '$1=="DISTRIB_RELEASE" { gsub(/"/, "", $2); print $2 ;}' /etc/lsb-release)
+            version_major=$(echo $version_str | cut -f1 -d.)
+            version_minor=$(echo $version_str | cut -f2 -d.)
 
-            verbose_msg "OS               : $VERSION_DISTRO variant"
-            verbose_msg "OS Version       : $VERSION_MAJOR"
+            verbose_msg "OS               : $version_distro variant"
+            verbose_msg "OS Version       : $version_major"
         fi
 
         # Look for Debian/Ubuntu/Mint
 
-        if [[ $VERSION_ID == debian*  || $VERSION_ID == ubuntu*    || \
-              $VERSION_ID == neon*    || $VERSION_ID == linuxmint* || \
-              $VERSION_ID == raspbian*                             ]];
+        if [[ $version_id == debian*  || $version_id == ubuntu*    || \
+              $version_id == neon*    || $version_id == linuxmint* || \
+              $version_id == raspbian*                             ]];
         then
             # if [[ $(lsb_release -rs) == "18.04" ]]; then
-            VERSION_DISTRO=debian
-            VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
-            VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
+            version_distro="debian"
+            version_major=$(echo $version_str | cut -f1 -d.)
+            version_minor=$(echo $version_str | cut -f2 -d.)
 
-            verbose_msg "OS               : $VERSION_DISTRO variant"
-            verbose_msg "OS Version       : $VERSION_MAJOR"
+            verbose_msg "OS               : $version_distro variant"
+            verbose_msg "OS Version       : $version_major"
         fi
 
-        if [[ $VERSION_ID == raspbian* ]]; then
+        if [[ $version_id == raspbian* ]]; then
             echo "$(cat /boot/issue.txt | head -1)"
         fi
 
-        if [[ $VERSION_ID == centos* ]]; then
+        if [[ $version_id == centos* ]]; then
             verbose_msg "We have a CentOS system"
 
             # CENTOS_VERS="centos-release-7-8.2003.0.el7.centos.x86_64"
@@ -545,29 +726,29 @@ detect_system()
             # CentOS Linux release 8.2.2004
             # CentOS Stream release 8
 
-          # CENTOS_VERS=$(rpm --query centos-release) || true
-            CENTOS_VERS=$(cat /etc/redhat-release) || true
-            CENTOS_VERS="${CENTOS_VERS#*release }"
-            CENTOS_VERS="${CENTOS_VERS/-/.}"
+          # centos_vers=$(rpm --query centos-release) || true
+            centos_vers=$(cat /etc/redhat-release) || true
+            centos_vers="${centos_vers#*release }"
+            centos_vers="${centos_vers/-/.}"
 
-            VERSION_DISTRO=redhat
-            VERSION_MAJOR=$(echo ${CENTOS_VERS} | cut -f1 -d.)
-            VERSION_MINOR=$(echo "${CENTOS_VERS}.0" | cut -f2 -d.)
+            version_distro="redhat"
+            version_major=$(echo $centos_vers | cut -f1 -d.)
+            version_minor=$(echo "$centos_vers.0" | cut -f2 -d.)
 
-            verbose_msg "VERSION_MAJOR    : $VERSION_MAJOR"
-            verbose_msg "VERSION_MINOR    : $VERSION_MINOR"
+            verbose_msg "VERSION_MAJOR    : $version_major"
+            verbose_msg "VERSION_MINOR    : $version_minor"
         fi
 
         # Look for openSUSE
 
-        if [[ ${VERSION_ID,,} == opensuse* ]];
+        if [[ ${version_id,,} == opensuse* ]];
         then
-            VERSION_DISTRO=openSUSE
-            VERSION_MAJOR=$(echo ${VERSION_STR} | cut -f1 -d.)
-            VERSION_MINOR=$(echo ${VERSION_STR} | cut -f2 -d.)
+            version_distro="openSUSE"
+            version_major=$(echo $version_str | cut -f1 -d.)
+            version_minor=$(echo $version_str | cut -f2 -d.)
 
-            verbose_msg "OS               : $VERSION_DISTRO variant"
-            verbose_msg "OS Version       : $VERSION_MAJOR"
+            verbose_msg "OS               : $version_distro variant"
+            verbose_msg "OS Version       : $version_major"
         fi
 
         # show the default language
@@ -575,23 +756,23 @@ detect_system()
         verbose_msg "Language         : $(env | grep LANG)"
 
         # Check if running under Windows WSL
-        verbose_msg " "  # move to a new line
-        VERSION_WSL=0
+        verbose_msg " "  # output a newline
+        version_wsl=0
 
         verbose_msg -n "Checking for Windows WSL2... "
         if [ $(uname -r | sed -n 's/.*\( *Microsoft *\).*/\1/ip') ]; then
             verbose_msg "running on WSL2"
-            VERSION_WSL=2
+            version_wsl=2
         else
             verbose_msg "nope"
 
-	    verbose_msg -n "Checking for Windows WSL1... "
-	    if [[ "$(< /proc/version)" == *@(Microsoft|WSL)* ]]; then
-		verbose_msg "running on WSL1"
-		VERSION_WSL=1
-	    else
-		verbose_msg "nope"
-	    fi
+            verbose_msg -n "Checking for Windows WSL1... "
+            if [[ "$(< /proc/version)" == *@(Microsoft|WSL)* ]]; then
+                verbose_msg "running on WSL1"
+                version_wsl=1
+            else
+                verbose_msg "nope"
+            fi
         fi
 
         # Check if running under Raspberry Pi Desktop (for PC)
@@ -601,14 +782,14 @@ detect_system()
         # Raspberry Pi reference 2020-02-12
         # Generated using pi-gen, https://github.com/RPi-Distro/pi-gen, f3b8a04dc10054b328a56fa7570afe6c6d1b856e, stage5
 
-        VERSION_RPIDESKTOP=0
+        version_rpidesktop=0
 
         if [ -f /etc/rpi-issue ]; then
             if [[ "$(< /etc/rpi-issue)" == *@(Raspberry Pi reference)* &&
                   "$machine" == "x86_64" ]];
             then
                 verbose_msg "Running on Raspberry Pi Desktop (for PC)"
-                VERSION_RPIDESKTOP=1
+                version_rpidesktop=1
             fi
         fi
 
@@ -617,10 +798,10 @@ detect_system()
             detect_pi
         fi
 
-    elif [ "${OS_NAME}" = "NetBSD" ]; then
+    elif [ "$os_name" = "NetBSD" ]; then
 
-        VERSION_DISTRO=netbsd
-        VERSION_ID="netbsd"
+        version_distro="netbsd"
+        version_id="netbsd"
 
 # for NetBSD:
 # [bill@daisy:~/herctest] $ cat /proc/meminfo
@@ -640,25 +821,76 @@ detect_system()
         verbose_msg "Memory Free  (MB): $(cat /proc/meminfo | awk '/^Mem:/{mb = $4/1024/1024; printf "%.0f", mb}')"
 
         # 9.0_STABLE
-        VERSION_STR=$(uname -r)
+        version_str=$(uname -r)
 
-        verbose_msg "VERSION_ID       : $VERSION_ID"
-        verbose_msg "VERSION_STR      : $VERSION_STR"
+        verbose_msg "VERSION_ID       : $version_id"
+        verbose_msg "VERSION_STR      : $version_str"
 
-        VERSION_SUBSTR=$(echo ${VERSION_STR} | cut -f1 -d_)
-        verbose_msg "VERSION_SUBSTR   : $VERSION_SUBSTR"
-        VERSION_MAJOR=$(echo ${VERSION_SUBSTR} | cut -f1 -d.)
-        verbose_msg "VERSION_MAJOR    : $VERSION_MAJOR"
-        VERSION_MINOR=$(echo ${VERSION_SUBSTR} | cut -f2 -d.)
-        verbose_msg "VERSION_MINOR    : $VERSION_MINOR"
+        version_substr=$(echo $version_str | cut -f1 -d_)
+        verbose_msg "VERSION_SUBSTR   : $version_substr"
+        version_major=$(echo $version_substr | cut -f1 -d.)
+        verbose_msg "VERSION_MAJOR    : $version_major"
+        version_minor=$(echo $version_substr | cut -f2 -d.)
+        verbose_msg "VERSION_MINOR    : $version_minor"
 
         # show the default language
-
         # i.e. LANG=en_US.UTF-8
         verbose_msg "Language         : <unknown>"
 
-    elif [ "${OS_NAME}" = "OpenBSD" ]; then
+    elif [ "$os_name" = "OpenBSD" ]; then
         error_msg "OpenBSD is not yet supported!"
+
+    elif [ "$os_name" = "FreeBSD" ]; then
+
+# top -n1 | head -n 4
+#
+# last pid:  1279;  load averages:  0.00,  0.00,  0.00  up 0+00:30:35    15:11:28
+# 23 processes:  1 running, 22 sleeping
+# CPU:  0.2% user,  0.0% nice,  0.2% system,  0.2% interrupt, 99.4% idle
+# Mem: 14M Active, 1636K Inact, 78M Wired, 47M Buf, 813M Free
+
+        version_distro="freebsd"
+        version_id="freebsd"
+
+        # FREEBSD_MEMINFO="$(sysctl hw | grep hw.phys)"
+        version_freebsd_memory="$(sysctl hw.physmem | awk '/^hw.physmem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
+        verbose_msg "Memory Total (MB): $(sysctl hw.physmem | awk '/^hw.physmem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
+
+        # sysctl hw.model
+        # hw.model: ARM Cortex-A53 r0p4
+        version_freebsd_model="$(sysctl hw.model | cut -f2 -d: | awk '{$1=$1};1')"
+        verbose_msg "CPU Model        : $(sysctl hw.model | cut -f2 -d: | awk '{$1=$1};1')"
+
+        # Try to detect FreeBSD on a Raspberry Pi
+        # bcm2835_cpufreq0: <CPU Frequency Control> on cpu0
+        version_freebsd_cpu="$(dmesg | grep CPU | grep bcm2)"
+
+        # Raspberry Pi BCM chipset?
+        if (dmesg | grep CPU | grep -Fqe "bcm2"); then
+            verbose_msg "                 : $version_freebsd_cpu"
+            verbose_msg "                 : assuming Raspberry Pi"
+
+            if [ $version_freebsd_memory -lt 2000 ]; then
+                verbose_msg "                 : FreeBSD Raspberry Pi with low memory"
+            fi
+        fi
+
+        # 12.2-RELEASE
+        version_str=$(uname -r)
+
+        verbose_msg "VERSION_ID       : $version_id"
+        verbose_msg "VERSION_STR      : $version_str"
+
+        version_substr=$(echo $version_str | cut -f1 -d-)
+        # verbose_msg "VERSION_SUBSTR   : $version_substr"
+        version_major=$(echo $version_substr | cut -f1 -d.)
+        # verbose_msg "VERSION_MAJOR    : $version_major"
+        version_minor=$(echo $version_substr | cut -f2 -d.)
+        # verbose_msg "VERSION_MINOR    : $version_minor"
+
+        # show the default language
+        # i.e. LANG=en_US.UTF-8
+        verbose_msg "Language         : <unknown>"
     fi
 }
 
@@ -670,7 +902,7 @@ detect_regina()
 {
     verbose_msg -n "Checking for Regina-REXX... " # no newline!
 
-    VERSION_REGINA=0
+    version_regina=0
 
     which_rexx=$(which rexx) || true
     which_status=$?
@@ -678,7 +910,7 @@ detect_regina()
     # echo "(which rexx) status: $which_status"
 
     if [ -z $which_rexx ]; then
-        verbose_msg "nope"  # move to a new line
+        verbose_msg "nope"
         # verbose_msg "Regina-REXX      : is not installed"
     else
         # rexx -v
@@ -687,24 +919,24 @@ detect_regina()
 
         regina_v=$(rexx -v 2>&1 | grep "Regina" | sed "s#^rexx: ##")
         if [ -z "$regina_v" ]; then
-            verbose_msg "nope"  # move to a new line
+            verbose_msg "nope"
             verbose_msg "Found REXX, but not Regina-REXX"
         else
-            verbose_msg " "  # move to a new line
+            verbose_msg " "  # output a newline
             verbose_msg "Found REXX       : $regina_v"
 
-            regina_name=$(echo ${regina_v} | cut -f1 -d_)
+            regina_name=$(echo $regina_v | cut -f1 -d_)
 
             if [[ $regina_name == "REXX-Regina" ]]; then
                 # echo "we have Regina REXX"
 
-                regina_verstr=$(echo ${regina_v} | cut -f2 -d_)
+                regina_verstr=$(echo {$regina_v | cut -f2 -d_)
                 # echo "regina ver string: $regina_verstr"
-                VERSION_REGINA=$(echo ${regina_verstr} | cut -f1 -d.)
-                # echo "regina version major: $VERSION_REGINA"
-                regina_verminor=$(echo ${regina_verstr} | cut -f2 -d. | cut -f1 -d' ')
+                version_regina=$(echo $regina_verstr | cut -f1 -d.)
+                # echo "regina version major: $version_regina"
+                regina_verminor=$(echo $regina_verstr | cut -f2 -d. | cut -f1 -d' ')
                 # echo "regina version minor: $regina_verminor"
-                verbose_msg "Regina version   : $VERSION_REGINA.$regina_verminor"
+                verbose_msg "Regina version   : $version_regina.$regina_verminor"
             else
                 error_msg "ERROR: Found an unknown Regina-REXX"
             fi
@@ -720,7 +952,7 @@ detect_oorexx()
 {
     verbose_msg -n "Checking for ooRexx... " # no newline!
 
-    VERSION_OOREXX=0
+    version_oorexx=0
 
     which_rexx=$(which rexx) || true
     which_status=$?
@@ -728,7 +960,7 @@ detect_oorexx()
     # echo "(which rexx) status: $which_status"
 
     if [ -z $which_rexx ]; then
-        verbose_msg "nope"  # move to a new line
+        verbose_msg "nope"
         # verbose_msg "ooRexx           : is not installed"
     else
         # rexx -v
@@ -737,22 +969,22 @@ detect_oorexx()
         oorexx_v=$(rexx -v 2>&1 | grep "Open Object Rexx" | sed "s#^rexx: ##")
 
         if [ -z "$oorexx_v" ]; then
-            verbose_msg "nope"  # move to a new line
+            verbose_msg "nope"
             verbose_msg "Found REXX, but not ooRexx"
         else
-            verbose_msg " "  # move to a new line
+            verbose_msg " "  # output a newline
             verbose_msg "Found REXX       : $oorexx_v"
 
             if [[ $oorexx_v =~ "Open Object Rexx" ]]; then
                 # echo "we have ooRexx"
 
-                oorexx_verstr=$(echo ${oorexx_v} | sed "s#^Open Object Rexx Version ##")
+                oorexx_verstr=$(echo $oorexx_v | sed "s#^Open Object Rexx Version ##")
                 # echo "oorexx ver string: $oorexx_verstr"
-                VERSION_OOREXX=$(echo ${oorexx_verstr} | cut -f1 -d.)
-                # echo "oorexx version major: $VERSION_OOREXX"
-                oorexx_verminor=$(echo ${oorexx_verstr} | cut -f2 -d.)
+                version_oorexx=$(echo $oorexx_verstr | cut -f1 -d.)
+                # echo "oorexx version major: $version_oorexx"
+                oorexx_verminor=$(echo $oorexx_verstr | cut -f2 -d.)
                 # echo "oorexx version minor: $oorexx_verminor"
-                verbose_msg "ooRexx version   : $VERSION_OOREXX.$oorexx_verminor"
+                verbose_msg "ooRexx version   : $version_oorexx.$oorexx_verminor"
             else
                 verbose_msg "Found an unknown ooRexx"
             fi
@@ -775,74 +1007,95 @@ detect_rexx()
     detect_regina
 
     # See if the compiler can find the Regina-REXX include file(s)
-    if [[ $VERSION_REGINA -ge 3 ]]; then
-        echo "#include \"rexxsaa.h\"" | gcc $CPPFLAGS $CFLAGS -dI -E -x c - >/dev/null 2>&1
-        gcc_status=$?
+    if [[ $version_regina -ge 3 ]]; then
+        echo "#include \"rexxsaa.h\"" | $CC $CPPFLAGS $CFLAGS -dI -E -x c - >/dev/null 2>&1
+        cc_status=$?
 
         # #include "rexx.h"
         # # 1 "/usr/include/rexx.h" 1 3 4
 
-        # gcc returns exit code 1 if this fails
+        # cc returns exit code 1 if this fails
         # <stdin>:1:10: fatal error: rexx.h: No such file or directory
         # compilation terminated.
         # #include "rexx.h"
 
-        gcc_find_h=$(echo "#include \"rexxsaa.h\"" | gcc $CPPFLAGS $CFLAGS -dI -E -x c - 2>&1 | grep "rexxsaa.h" )
-        if [[ $gcc_status -eq 0 ]]; then
-            verbose_msg "gcc_status = $gcc_status"
-            verbose_msg "rexxsaa.h is found in gcc search path"
-            trace_msg "$gcc_find_h"
+        cc_find_h=$(echo "#include \"rexxsaa.h\"" | $CC $CPPFLAGS $CFLAGS -dI -E -x c - 2>&1 | grep "rexxsaa.h" )
+        if [[ $cc_status -eq 0 ]]; then
+            verbose_msg "cc_status = $cc_status"
+            verbose_msg "rexxsaa.h is found in $CC search path"
+            trace_msg "$cc_find_h"
         else
-            verbose_msg "gcc_status = $gcc_status"
-            error_msg "rexxsaa.h is not found in gcc search path"
-            trace_msg "$gcc_find_h"
+            verbose_msg "cc_status = $cc_status"
+            error_msg "rexxsaa.h is not found in $CC search path"
+            trace_msg "$cc_find_h"
         fi
     fi
 
     detect_oorexx
 
     # See if the compiler can find the ooRexx include file(s)
-    if [[ $VERSION_OOREXX -ge 4 ]]; then
-        echo "#include \"rexx.h\"" | gcc $CPPFLAGS $CFLAGS -dI -E -x c - >/dev/null 2>&1
-        gcc_status=$?
+    if [[ $version_oorexx -ge 4 ]]; then
+        echo "#include \"rexx.h\"" | $CC $CPPFLAGS $CFLAGS -dI -E -x c - >/dev/null 2>&1
+        cc_status=$?
 
         # #include "rexx.h"
         # # 1 "/usr/include/rexx.h" 1 3 4
 
-        # gcc returns exit code 1 if this fails
+        # cc returns exit code 1 if this fails
         # <stdin>:1:10: fatal error: rexx.h: No such file or directory
         # compilation terminated.
         # #include "rexx.h"
 
-        gcc_find_h=$(echo "#include \"rexx.h\"" | gcc $CPPFLAGS $CFLAGS -dI -E -x c - 2>&1 | grep "rexx.h" )
+        cc_find_h=$(echo "#include \"rexx.h\"" | cc $CPPFLAGS $CFLAGS -dI -E -x c - 2>&1 | grep "rexx.h" )
 
-        if [[ $gcc_status -eq 0 ]]; then
-            verbose_msg "gcc_status = $gcc_status"
-            verbose_msg "rexx.h is found in gcc search path"
-            trace_msg "$gcc_find_h"
+        if [[ $cc_status -eq 0 ]]; then
+            verbose_msg "cc_status = $cc_status"
+            verbose_msg "rexx.h is found in $CC search path"
+            trace_msg "$cc_find_h"
         else
-            verbose_msg "gcc_status = $gcc_status"
-            error_msg "rexx.h is not found in gcc search path"
-            trace_msg "$gcc_find_h"
+            verbose_msg "cc_status = $cc_status"
+            error_msg "rexx.h is not found in $CC search path"
+            trace_msg "$cc_find_h"
         fi
     fi
 }
 
 #------------------------------------------------------------------------------
 # Process command line
+#-----------------------------------------------------------------------------
 
-if [[ ${TRACE} == true ]]; then
+# The command line options are parsed first, in case there is a config
+# file mentioned.  And if there is a config file we need to override
+# what's in it with the options from the command line.
+#
+# So, we set the 'opt_override_...' variables while parsing the options
+# and then apply them over top of the config file later.
+
+if [[ $TRACE == true ]]; then
     set -x # For debugging, show all commands as they are being run
 fi
 
 opt_override_trace=false
 opt_override_verbose=false
 opt_override_prompts=false
-opt_override_no_clone=false
-opt_override_no_install=false
-opt_override_usersudo=false
-opt_override_no_packages=false
+opt_override_usesudo=false
 opt_override_auto=false
+
+opt_override_detect_only=false    # Run detection only and exit
+opt_override_no_packages=false    # Check for required system packages
+opt_override_no_rexx=false        # Build Regina REXX
+opt_override_no_gitclone=false    # Git clone Hercules and external packages
+opt_override_no_bldlvlck=false    # Run bldlvlck
+opt_override_no_extpkgs=false     # Build Hercules external packages
+opt_override_no_autogen=false     # Run autogen
+opt_override_no_configure=false   # Run configure
+opt_override_no_clean=false       # Run make clean
+opt_override_no_make=false        # Run make (compile and link)
+opt_override_no_tests=false       # Run make check
+opt_override_no_install=false     # Run make install
+opt_override_no_setcap=false      # setcap executables
+opt_override_no_envscript=false   # Create script to set environment variables
+opt_override_no_bashrc=false      # Add "source" to set environment variables from .bashrc
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -868,7 +1121,7 @@ case $key in
 
   -v|--verbose)
     opt_override_verbose=true
-    OPT_VERBOSE=true
+    opt_verbose=true
     shift # past argument
     ;;
 
@@ -884,8 +1137,63 @@ case $key in
     shift # past argument
     ;;
 
-  --no-clone|--noclone) # skip 'git clone' of sources
-    opt_override_no_clone=true
+  -s|--sudo)
+    opt_override_usesudo=true
+    shift # past argument
+    ;;
+
+  --detect-only) # run detection only and exit
+    opt_override_detect_only=true
+    shift # past argument
+    ;;
+
+  --no-rexx) # skip building Regina REXX
+    opt_override_no_rexx=true
+    shift # past argument
+    ;;
+
+  --no-clone|--noclone|--no-gitclone) # skip 'git clone' of sources
+    opt_override_no_gitclone=true
+    shift # past argument
+    ;;
+
+  --no-bldlvlck) # skip 'util/bldlvlck'
+    opt_override_no_bldlvlck=true
+    shift # past argument
+    ;;
+
+  --no-extpkgs) # skip build Hercules external packages
+    opt_override_no_extpkgs=true
+    shift # past argument
+    ;;
+
+  --no-autogen) # skip 'autogen'
+    opt_override_no_autogen=true
+    shift # past argument
+    ;;
+
+  --no-configure) # skip 'configure'
+    opt_override_no_configure=true
+    shift # past argument
+    ;;
+
+  --no-clean) # skip 'make clean'
+    opt_override_no_clean=true
+    shift # past argument
+    ;;
+
+  --no-make) # skip 'make'
+    opt_override_no_make=true
+    shift # past argument
+    ;;
+
+  --no-tests) # skip 'make check'
+    opt_override_no_tests=true
+    shift # past argument
+    ;;
+
+  --no-install) # skip 'make install'
+    opt_override_no_install=true
     shift # past argument
     ;;
 
@@ -894,18 +1202,18 @@ case $key in
     shift # past argument
     ;;
 
-  --no-install)
-    opt_override_no_install=true
+  --no-setcap) # skip 'setcap'
+    opt_override_no_setcap=true
     shift # past argument
     ;;
 
-  -s|--sudo)
-    opt_override_usersudo=true
+  --no-envscript) # skip creating script to set environment variables
+    opt_override_no_envscript=true
     shift # past argument
     ;;
 
-  --no-packages) # skip installing required packages
-    opt_override_no_packages=true
+  --no-bashrc) # skip modifying .bashrc to set environment variables
+    opt_override_no_bashrc=true
     shift # past argument
     ;;
 
@@ -922,43 +1230,61 @@ esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-if [[ "${TRACE}" == true ]]; then
+if [[ "$TRACE" == true ]]; then
     # Show all commands as they are being run
     set -x
 fi
 
 #-----------------------------------------------------------------------------
 
+#------------------------------------------------------------------------------
+#                               the_works
+#------------------------------------------------------------------------------
 function the_works {  # Put everthing in an I/O redirection
 
 echo "Using logfile $logfile.log"
 
 pushd "$(dirname "$0")" >/dev/null;
-echo "$0: $(git describe --long --tags --dirty --always)"
+echo "script version: $0: $(git describe --long --tags --dirty --always)"
 popd > /dev/null;
-echo    # print a new line
+echo    # print a newline
 
 # Find and read in the configuration
 
 config_dir="$(dirname "$0")"
-config_file="${config_dir}/hercules-helper.conf"
-echo "Using config file: ${config_file}"
+config_file="$config_dir/hercules-helper.conf"
+echo "Config file: $config_file"
 
-if test -f "${config_file}" ; then
-    source "${config_file}"
+if test -f "$config_file" ; then
+    source "$config_file"
 else
     echo "Config file not found.  Using defaults."
 fi
+echo    # print a newline
 
-if [ $opt_override_trace       == true ]; then TRACE=true;   fi
-if [ $opt_override_verbose     == true ]; then OPT_VERBOSE=true; fi
-if [ $opt_override_prompts     == true ]; then OPT_PROMPTS=true; fi
-if [ $opt_override_no_clone    == true ]; then OPT_NO_CLONE=true; fi
-if [ $opt_override_no_install  == true ]; then OPT_NO_INSTALL=true; fi
-if [ $opt_override_usersudo    == true ]; then OPT_USESUDO=true; fi
-if [ $opt_override_no_packages == true ]; then OPT_NO_PACKAGES=true; fi
+if [ $opt_override_trace       == true ]; then TRACE=true; fi
+if [ $opt_override_verbose     == true ]; then opt_verbose=true; fi
+if [ $opt_override_prompts     == true ]; then opt_prompts=true; fi
+if [ $opt_override_usesudo     == true ]; then opt_usesudo=true; fi
+if [ $opt_override_auto        == true ]; then opt_auto=true; fi
 
-if [[ ${TRACE} == true ]]; then
+if [ $opt_override_detect_only == true ]; then opt_detect_only=true; fi
+if [ $opt_override_no_packages == true ]; then opt_no_packages=true; fi
+if [ $opt_override_no_rexx     == true ]; then opt_no_rexx=true; fi
+if [ $opt_override_no_gitclone == true ]; then opt_no_gitclone=true; fi
+if [ $opt_override_no_bldlvlck == true ]; then opt_no_bldlvlck=true; fi
+if [ $opt_override_no_extpkgs  == true ]; then opt_no_extpkgs=true; fi
+if [ $opt_override_no_autogen  == true ]; then opt_no_autogen=true; fi
+if [ $opt_override_no_configure == true ]; then opt_no_configure=true; fi
+if [ $opt_override_no_clean    == true ]; then opt_no_clean=true; fi
+if [ $opt_override_no_make     == true ]; then opt_no_make=true; fi
+if [ $opt_override_no_tests    == true ]; then opt_no_tests=true; fi
+if [ $opt_override_no_install  == true ]; then opt_no_install=true; fi
+if [ $opt_override_no_setcap   == true ]; then opt_no_setcap=true; fi
+if [ $opt_override_no_envscript == true ]; then opt_no_envscript=true; fi
+if [ $opt_override_no_bashrc   == true ]; then opt_no_bashrc=true; fi
+
+if [[ $TRACE == true ]]; then
     set -x # For debugging, show all commands as they are being run
 fi
 
@@ -967,10 +1293,15 @@ fi
 #------------------------------------------------------------------------------
 prepare_packages()
 {
+  echo "Note: your sudo password may be requested"
+  echo    # print a newline
+
   # Look for Debian/Ubuntu/Mint
 
-  if [[ $VERSION_DISTRO == debian  ]]; then
+  if [ "$version_distro" == "debian"  ]; then
       # if [[ $(lsb_release -rs) == "18.04" ]]; then
+
+      os_is_supported=true
 
       declare -a debian_packages=( \
           "git" "wget" \
@@ -998,7 +1329,7 @@ prepare_packages()
           fi
       done
 
-      if [[ $VERSION_REGINA -ge 3 ]]; then
+      if [[ $version_regina -ge 3 ]]; then
           echo "-----------------------------------------------------------------"
           echo "Found an existing Regina REXX"
 
@@ -1022,10 +1353,12 @@ prepare_packages()
 #-----------------------------------------------------------------------------
   # Look for Arch/Manjaro
 
-  if [[ $VERSION_DISTRO == arch  ]]; then
+  if [ "$version_distro" == "arch"  ]; then
+      os_is_supported=true
+
       declare -a arch_packages=( \
           "git" "wget" \
-          "base-devel" "make" "gcc" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
+          "base-devel" "make" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
           "bzip2" "zlib"
       )
 
@@ -1045,7 +1378,7 @@ prepare_packages()
           fi
       done
 
-      if [[ $VERSION_REGINA -ge 3 ]]; then
+      if [[ $version_regina -ge 3 ]]; then
           echo "-----------------------------------------------------------------"
           echo "Found an existing Regina REXX"
 
@@ -1070,11 +1403,13 @@ prepare_packages()
 #-----------------------------------------------------------------------------
   # CentOS 7
 
-  if [[ $VERSION_ID == centos* ]]; then
-      if [[ $VERSION_MAJOR -ge 7 ]]; then
+  if [[ $version_id == centos* ]]; then
+      if [[ $version_major -ge 7 ]]; then
+          os_is_supported=true
+
           echo "CentOS version 7 or later found"
 
-          if [[ $VERSION_MAJOR -eq 7 ]]; then
+          if [[ $version_major -eq 7 ]]; then
               declare -a centos_packages=( \
                   "git" "wget" \
                   "gcc" "make" "autoconf" "automake" "flex" "gawk" "m4"
@@ -1082,7 +1417,7 @@ prepare_packages()
               )
           fi
 
-          if [[ $VERSION_MAJOR -eq 8 ]]; then
+          if [[ $version_major -eq 8 ]]; then
               declare -a centos_packages=( \
                   "git" "wget" \
                   "gcc" "make" "autoconf" "automake" "flex" "gawk" "m4"
@@ -1107,7 +1442,7 @@ prepare_packages()
               fi
           done
 
-          if [[ $VERSION_MAJOR -eq 7 ]]; then
+          if [[ $version_major -eq 7 ]]; then
 
               echo "-----------------------------------------------------------------"
   # cmake presence: /usr/local/bin/cmake
@@ -1161,7 +1496,7 @@ prepare_packages()
               fi
           fi
 
-          echo    # print a new line
+          echo    # print a newline
       else
           error_msg "CentOS version 6 or earlier found, and not supported"
           exit 1
@@ -1172,7 +1507,9 @@ prepare_packages()
 #-----------------------------------------------------------------------------
   # openSUSE (15.1)
 
-  if [[ ${VERSION_ID,,} == opensuse* ]]; then
+  if [[ ${version_id,,} == opensuse* ]]; then
+      os_is_supported=true
+
       declare -a opensuse_packages=( \
           "git" \
           "devel_basis" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
@@ -1203,7 +1540,7 @@ prepare_packages()
 #-----------------------------------------------------------------------------
   # Alpine Linux 3.x
 
-  if [[ ${VERSION_ID,,} == alpine* ]]; then
+  if [[ ${version_id,,} == alpine* ]]; then
       declare -a alpine_packages=( \
           "git" "wget" "bash" \
           "build-base" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
@@ -1237,7 +1574,7 @@ prepare_packages()
 #-----------------------------------------------------------------------------
   # NetBSD
 
-  if [[ $VERSION_ID == netbsd* ]]; then
+  if [[ $version_id == netbsd* ]]; then
       declare -a netbsd_packages=( \
           "git" \
           "build-essential" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
@@ -1262,65 +1599,178 @@ prepare_packages()
 
     return
   fi
+
+#-----------------------------------------------------------------------------
+  # FreeBSD
+
+  if [[ $version_id == freebsd* ]]; then
+      if [[ $version_major -ge 12 ]]; then
+          os_is_supported=true
+
+          echo "FreeBSD version 12 or later found"
+
+          declare -a freebsd_packages=( \
+              "git" "wget" \
+              "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
+              "bzip2" \
+              "gmake"
+          )
+
+          echo "Required packages: "
+          echo "${freebsd_packages[*]}"
+          echo    # print a newline
+
+          for package in "${freebsd_packages[@]}"; do
+              echo "-----------------------------------------------------------------"
+              echo "Checking for package: $package"
+
+              is_installed=$(pkg info $package)
+              status=$?
+
+              # install if missing
+              if [ $status -eq 0 ] ; then
+                  echo "package: $package is already installed"
+              else
+                  # echo "$package : must be installed"
+                  echo "installing package: $package"
+                  sudo pkg install -y $package
+              fi
+          done
+      fi
+
+    return
+  fi
 }
 
 detect_darwin
-if [[ $VERSION_DISTRO == darwin ]]; then
+if [ "$version_distro" == "darwin" ]; then
     error_msg "Not yet supported under Apple Darwin OS!"
     exit 1
 fi
 
-verbose_msg    # print a new line
+#-----------------------------------------------------------------------------
 verbose_msg "General Options:"
-verbose_msg "TRACE                : ${TRACE}"
-verbose_msg "OPT_VERBOSE          : ${OPT_VERBOSE}"
-verbose_msg "OPT_PROMPTS          : ${OPT_PROMPTS}"
-verbose_msg "OPT_NO_PACKAGES      : ${OPT_NO_PACKAGES}"
-verbose_msg "OPT_NO_CLONE         : ${OPT_NO_CLONE}"
-verbose_msg "OPT_NO_INSTALL       : ${OPT_NO_INSTALL}"
-verbose_msg "OPT_USESUDO          : ${OPT_USESUDO}"
+verbose_msg "  --trace         : $TRACE"
+verbose_msg "  --verbose       : $opt_verbose"
+verbose_msg "  --prompts       : $opt_prompts"
+verbose_msg "  --sudo          : $opt_usesudo"
 
-verbose_msg # move to a new line
-verbose_msg "Configuration:"
-verbose_msg "OPT_BUILD_DIR        : ${OPT_BUILD_DIR}"
-verbose_msg "OPT_INSTALL_DIR      : ${OPT_INSTALL_DIR}"
+verbose_msg "  --no_packages   : $opt_no_packages"
+verbose_msg "  --no_rexx       : $opt_no_rexx"
+verbose_msg "  --no_gitclone   : $opt_no_gitclone"
+verbose_msg "  --no_bldlvlck   : $opt_no_bldlvlck"
+verbose_msg "  --no_autogen    : $opt_no_autogen"
+verbose_msg "  --no_configure  : $opt_no_configure"
+verbose_msg "  --no_clean      : $opt_no_clean"
+verbose_msg "  --no_make       : $opt_no_make"
+verbose_msg "  --no_tests      : $opt_no_tests"
+verbose_msg "  --no_install    : $opt_no_install"
+verbose_msg "  --no_setcap     : $opt_no_setcap"
+verbose_msg "  --no_envscript  : $opt_no_envscript"
+verbose_msg "  --no_bashrc     : $opt_no_bashrc"
+verbose_msg    # print a newline
 
-if [ -z "$GIT_BRANCH_HYPERION" ] ; then
-    verbose_msg "GIT_REPO_HYPERION    : ${GIT_REPO_HYPERION}"
-else
-    verbose_msg "GIT_REPO_HYPERION    : ${GIT_REPO_HYPERION} [checkout $GIT_BRANCH_HYPERION]"
-fi
-
-if [ -z "$GIT_BRANCH_GISTS" ] ; then
-    verbose_msg "GIT_REPO_GISTS       : ${GIT_REPO_GISTS}"
-else
-    verbose_msg "GIT_REPO_GISTS       : ${GIT_REPO_GISTS} [checkout $GIT_BRANCH_GISTS]"
-fi
-
-if [ -z "$GIT_BRANCH_EXTPKGS" ] ; then
-    verbose_msg "GIT_REPO_EXTPKGS     : ${GIT_REPO_EXTPKGS}"
-else
-    verbose_msg "GIT_REPO_EXTPKGS     : ${GIT_REPO_EXTPKGS} [checkout $GIT_BRANCH_EXTPKGS]"
-fi
+# sysinfo:
+verbose_msg "System information:"
+# verbose_msg "  /etc/os-release    : $(cat /etc/os-release 2>&1)"
+verbose_msg "  uname -a        : $(uname -a)"
+verbose_msg "  uname -m        : $(uname -m)"
+verbose_msg "  uname -p        : $(uname -p)"
+verbose_msg "  uname -s        : $(uname -s)"
+verbose_msg    # print a newline
 
 # Detect type of system we're running on and display info
 detect_system
+verbose_msg    # print a newline
+
+verbose_msg "Build tools versions:"
+verbose_msg "  autoconf       : $(autoconf --version 2>&1 | head -n 1)"
+verbose_msg "  automake       : $(automake --version 2>&1 | head -n 1)"
+verbose_msg "  m4             : $(m4 --version 2>&1 | head -n 1 | sed 's/.*illegal option.*/BSD version of m4/')"
+verbose_msg "  make           : $(make --version 2>&1 | head -n 1 | sed 's/^usage: make.*/BSD version of make/')"
+verbose_msg "  compiler       : $($CC --version 2>&1 | head -n 1)"
+verbose_msg "  linker         : $($LD --version 2>&1 | head -n 1)"
+verbose_msg    # print a newline
+
+if ($opt_no_packages  ); then dostep_packages=false;  fi
+if ($opt_no_rexx      ); then dostep_rexx=false;      fi
+if ($opt_no_gitclone  ); then dostep_gitclone=false;  fi
+if ($opt_no_bldlvlck  ); then dostep_bldlvlck=false;  fi
+if ($opt_no_extpkgs   ); then dostep_extpkgs=false;   fi
+if ($opt_no_autogen   ); then dostep_autogen=false;   fi
+if ($opt_no_configure ); then dostep_configure=false; fi
+if ($opt_no_clean     ); then dostep_clean=false;     fi
+if ($opt_no_make      ); then dostep_make=false;      fi
+if ($opt_no_tests     ); then dostep_tests=false;     fi
+if ($opt_no_install   ); then dostep_install=false;   fi
+if ($opt_no_setcap    ); then dostep_setcap=false;    fi
+if [[ $version_id == freebsd* ]]; then dostep_setcap=false; fi
+if ($opt_no_envscript ); then dostep_envscript=false; fi
+if ($opt_no_bashrc    ); then dostep_bashrc=false;    fi
+
+verbose_msg "Configuration:"
+verbose_msg "OPT_BUILD_DIR        : $opt_build_dir"
+verbose_msg "OPT_INSTALL_DIR      : $opt_install_dir"
+
+if [ -z "$git_branch_hyperion" ] ; then
+    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hyperion [default branch]"
+else
+    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hyperion} [checkout $git_branch_hyperion]"
+fi
+
+if [ -z "$git_branch_gists" ] ; then
+    verbose_msg "GIT_REPO_GISTS       : $git_repo_gists [default branch]"
+else
+    verbose_msg "GIT_REPO_GISTS       : $git_repo_gists} [checkout $git_branch_gists]"
+fi
+
+if [ -z "$git_branch_extpkgs" ] ; then
+    verbose_msg "GIT_REPO_EXTPKGS     : $git_repo_extpkgs [default branch]"
+else
+    verbose_msg "GIT_REPO_EXTPKGS     : $git_repo_extpkgs} [checkout $git_branch_extpkgs]"
+fi
 
 #-----------------------------------------------------------------------------
 
-if [[ $VERSION_RPIDESKTOP -eq 1 ]]; then
+if [[ $version_rpidesktop -eq 1 ]]; then
     error_msg "Running on Raspberry Pi Desktop (for PC) is not supported!"
     exit 1
 fi
 
-if [[ $VERSION_WSL -eq 1 ]]; then
+if [[ $version_wsl -eq 1 ]]; then
     error_msg "Not supported under Windows WSL1!"
     exit 1
 fi
 
 #-----------------------------------------------------------------------------
-verbose_msg # move to a new line
-if ($OPT_NO_PACKAGES); then
+# Check for --detect-only and exit
+
+if ($opt_detect_only); then
+    return 0
+fi
+
+#-----------------------------------------------------------------------------
+
+verbose_msg    # print a newline
+verbose_msg "Performing Steps:"
+set_run_or_skip $dostep_packages;   verbose_msg "$run_or_skip : Check for required system packages"
+set_run_or_skip $dostep_rexx;       verbose_msg "$run_or_skip : Build Regina REXX"
+set_run_or_skip $dostep_gitclone;   verbose_msg "$run_or_skip : Git clone Hercules and external packages"
+set_run_or_skip $dostep_bldlvlck;   verbose_msg "$run_or_skip : Run bldlvlck"
+set_run_or_skip $dostep_extpkgs;    verbose_msg "$run_or_skip : Build Hercules external packages"
+set_run_or_skip $dostep_autogen;    verbose_msg "$run_or_skip : Run autogen"
+set_run_or_skip $dostep_configure;  verbose_msg "$run_or_skip : Run configure"
+set_run_or_skip $dostep_clean;      verbose_msg "$run_or_skip : Run make clean"
+set_run_or_skip $dostep_make;       verbose_msg "$run_or_skip : Run make (compile and link)"
+set_run_or_skip $dostep_tests;      verbose_msg "$run_or_skip : Run make check"
+set_run_or_skip $dostep_install;    verbose_msg "$run_or_skip : Run make install"
+set_run_or_skip $dostep_setcap;     verbose_msg "$run_or_skip : setcap executables"
+set_run_or_skip $dostep_envscript;  verbose_msg "$run_or_skip : Create script to set environment variables"
+set_run_or_skip $dostep_bashrc;     verbose_msg "$run_or_skip : Add setting environment variables from .bashrc"
+
+#-----------------------------------------------------------------------------
+verbose_msg # output a newline
+if (! $dostep_packages); then
     verbose_msg "Step: Check for required packages: (skipped)"
 else
     status_prompter "Step: Check for required packages:"
@@ -1328,15 +1778,16 @@ else
 fi
 
 #-----------------------------------------------------------------------------
-verbose_msg # move to a new line
-status_prompter "Step: continuing..."
+verbose_msg # output a newline
+status_prompter "Step: Check REXX and compiler files:"
 detect_rexx
 
 #-----------------------------------------------------------------------------
 verbose_msg "CC               : $CC"
 verbose_msg "CFLAGS           : $CFLAGS"
+verbose_msg "CPPFLAGS         : $CPPFLAGS"
 verbose_msg "gcc presence     : $(which gcc || true)"
-verbose_msg "gcc              : $(gcc --version | head -1)"
+verbose_msg "$CC              : $($CC --version | head -1)"
 verbose_msg "g++ presence     : $(which g++ || true)"
 
 # Check for older gcc on i686 systems, that is know to fail CBUC test
@@ -1404,8 +1855,8 @@ as_awk_strverscmp='
 
 hc_gcc_level=$(gcc -dumpversion)
 
-if [[ "$(uname -m)" =~ ^(i686) && $VERSION_DISTRO == debian ]]; then
-    verbose_msg # move to a new line
+if [[ "$(uname -m)" =~ ^(i686) && "$version_distro" == "debian" ]]; then
+    verbose_msg # output a newline
     verbose_msg "Checking for gcc atomics ..."
 
     as_arg_v1=$hc_gcc_level
@@ -1434,7 +1885,7 @@ if [[ "$(uname -m)" =~ ^(i686) && $VERSION_DISTRO == debian ]]; then
         error_msg "gcc versions before $as_arg_v2 will not create a fully functional"
         error_msg "Hercules on this 32-bit system. Certain test are known to fail."
 
-        if ($OPT_PROMPTS); then
+        if ($opt_prompts); then
             if confirm "Continue anyway? [y/N]" ; then
                 echo "OK"
             else
@@ -1451,12 +1902,12 @@ fi
 
 verbose_msg "looking for files ... please wait ..."
 
-if [[ $VERSION_WSL -eq 2 ]]; then
+if [[ $version_wsl -eq 2 ]]; then
     # echo "Windows WSL2 host system found"
     # Don't run a search on /mnt because it takes forever
     which_cc1=$(find / -path /mnt -prune -o -name cc1 -print 2>&1 | grep cc1 | head -5)
     which_cc1plus=$(find / -path /mnt -prune -o -name cc1plus -print 2>&1 | grep cc1plus | head -5)
-elif [[ $VERSION_ID == netbsd* ]]; then
+elif [[ $version_id == netbsd* ]]; then
     which_cc1=$(find / -xdev -name cc1 -print 2>&1 | grep cc1 | head -5)
     which_cc1plus=$(find / -xdev -name cc1plus -print 2>&1 | grep cc1plus | head -5)
 else
@@ -1470,7 +1921,7 @@ verbose_msg "cc1plus presence : $which_cc1plus"
 start_seconds="$(TZ=UTC0 printf '%(%s)T\n' '-1')"
 start_time=$(date)
 
-verbose_msg # move to a new line
+verbose_msg # output a newline
 verbose_msg "Processing started: $start_time"
 
 #-----------------------------------------------------------------------------
@@ -1480,10 +1931,12 @@ verbose_msg "-----------------------------------------------------------------
 
 built_regina_from_source=0
 
-if [[  $VERSION_REGINA -ge 3 ]]; then
+if [[  $version_regina -ge 3 ]]; then
     verbose_msg "Regina REXX is present.  Skipping build from source."
-elif [[  $VERSION_OOREXX -ge 4 ]]; then
+elif [[  $version_oorexx -ge 4 ]]; then
     verbose_msg "ooRexx is present.  Skipping build Regina-REXX from source."
+elif (! $dostep_rexx); then
+    verbose_msg "Skipping step: build Regina-REXX from source (--no-rexx)."
 else
 
     status_prompter "Step: Build Regina Rexx [used for test scripts]:"
@@ -1496,22 +1949,36 @@ else
     tar xfz regina-rexx-3.9.3.tar.gz 
     cd regina-rexx-3.9.3/
 
-    if [[ "$(uname -m)" =~ ^(i686) ]]; then
-        regina_configure_cmd="./configure --prefix=${OPT_BUILD_DIR}/rexx --enable-32bit"
+    if [[ "$(uname -m)" =~ ^i686 ]]; then
+        regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx --enable-32bit"
+    elif [[ "$(uname -m)" =~ ^arm64 ]]; then
+        # If it's an arm64 CPU, and not FreeBSD, enable 64-bit
+        # This should work on Raspberry Pi with both FreeBSD and the Pi OSes
+        if [[ ${version_id,,} == freebsd* ]]; then
+            regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx"
+        else
+            regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx --enable-64bit"
+        fi
     else
-        regina_configure_cmd="./configure --prefix=${OPT_BUILD_DIR}/rexx"
+        regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx"
     fi
 
     verbose_msg $regina_configure_cmd
-    verbose_msg    # move to a new line
+    verbose_msg    # output a newline
     eval "$regina_configure_cmd"
 
     time make
     time make install
 
-    export PATH=${OPT_BUILD_DIR}/rexx/bin:$PATH
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${OPT_BUILD_DIR}/rexx/lib
-    export CPPFLAGS=-I${OPT_BUILD_DIR}/rexx/include
+    export PATH=$opt_build_dir/rexx/bin:$PATH
+
+#   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$opt_build_dir/rexx/lib
+    newpath="$opt_install_dir/rexx/lib"
+    if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
+        export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
+    fi
+
+    export CPPFLAGS=-I$opt_build_dir/rexx/include
 
     verbose_msg "which rexx: $(which rexx)"
     built_regina_from_source=1
@@ -1521,62 +1988,62 @@ fi
 verbose_msg "-----------------------------------------------------------------
 "
 
-if ($OPT_NO_CLONE); then
-    verbose_msg "Skipping: git clone all required repos"
+if (! $dostep_gitclone); then
+    verbose_msg "Skipping step: git clone all required repos (--no-gitclone)."
 else
     status_prompter "Step: git clone all required repos:"
 
-    cd ${OPT_BUILD_DIR}
+    cd $opt_build_dir
     mkdir -p sdl4x
-    mkdir -p ${OPT_INSTALL_DIR}
+    mkdir -p $opt_install_dir
 
     # Grab unmodified SDL-Hercules Hyperion repo
     cd sdl4x
     rm -rf hyperion
 
-    if [ -z "$GIT_REPO_HYPERION" ] ; then
-        error_msg "GIT_REPO_HYPERION variable is not set!"
+    if [ -z "$git_repo_hyperion" ] ; then
+        error_msg "git_repo_hyperion variable is not set!"
         exit 1
     fi
 
-    if [ -z "$GIT_BRANCH_HYPERION" ] ; then
-        verbose_msg "git clone $GIT_REPO_HYPERION"
-        git clone $GIT_REPO_HYPERION
+    if [ -z "$git_branch_hyperion" ] ; then
+        verbose_msg "git clone $git_repo_hyperion"
+        git clone $git_repo_hyperion
     else
-        verbose_msg "git clone -b $GIT_BRANCH_HYPERION $GIT_REPO_HYPERION"
-        git clone -b "$GIT_BRANCH_HYPERION" "$GIT_REPO_HYPERION"
+        verbose_msg "git clone -b $git_branch_hyperion $git_repo_hyperion"
+        git clone -b "$git_branch_hyperion" "$git_repo_hyperion"
     fi
 
     #-------
 
-    verbose_msg    # move to a new line
-    cd ${OPT_BUILD_DIR}
+    verbose_msg    # output a newline
+    cd $opt_build_dir
     rm -rf extpkgs
     mkdir extpkgs
     cd extpkgs/
 
-    if [ -z "$GIT_REPO_GISTS" ] ; then
-        error_msg "GIT_REPO_GISTS variable is not set!"
+    if [ -z "$git_repo_gists" ] ; then
+        error_msg "git_repo_gists variable is not set!"
         exit 1
     fi
 
-    verbose_msg "Cloning gists / extpkgs from $GIT_REPO_GISTS"
-    if [ -z "$GIT_BRANCH_GISTS" ] ; then
-        verbose_msg "git clone $GIT_REPO_GISTS"
-        git clone "$GIT_REPO_GISTS"
+    verbose_msg "Cloning gists / extpkgs from $git_repo_gists"
+    if [ -z "$git_branch_gists" ] ; then
+        verbose_msg "git clone $git_repo_gists"
+        git clone "$git_repo_gists"
     else
-        verbose_msg "git clone -b $GIT_BRANCH_GISTS $GIT_REPO_GISTS"
-        git clone -b "$GIT_BRANCH_GISTS" "$GIT_REPO_GISTS"
+        verbose_msg "git clone -b $git_branch_gists $git_repo_gists"
+        git clone -b "$git_branch_gists" "$git_repo_gists"
     fi
 
     #-------
 
-    verbose_msg    # move to a new line
+    verbose_msg    # output a newline
     mkdir repos && cd repos
     rm -rf *
 
-    if [ -z "$GIT_REPO_EXTPKGS" ] ; then
-        error_msg "GIT_REPO_EXTPKGS variable is not set!"
+    if [ -z "$git_repo_extpkgs" ] ; then
+        error_msg "git_repo_extpkgs variable is not set!"
         exit 1
     fi
 
@@ -1585,12 +2052,12 @@ else
     for pgm in "${pgms[@]}"; do
         verbose_msg "-----------------------------------------------------------------
     "
-        if [ -z "$GIT_BRANCH_EXTPKGS" ] ; then
-            verbose_msg "git clone $GIT_REPO_EXTPKGS/$pgm $pgm-0"
-            git clone "$GIT_REPO_EXTPKGS/$pgm.git" "$pgm-0"
+        if [ -z "$git_branch_extpkgs" ] ; then
+            verbose_msg "git clone $git_repo_extpkgs/$pgm $pgm-0"
+            git clone "$git_repo_extpkgs/$pgm.git" "$pgm-0"
         else
-            verbose_msg "git clone -b $GIT_BRANCH_EXTPKGS $GIT_REPO_EXTPKGS/$pgm $pgm-0"
-            git clone -b "$GIT_BRANCH_EXTPKGS" "$GIT_REPO_EXTPKGS/$pgm.git" "$pgm-0"
+            verbose_msg "git clone -b $git_branch_extpkgs $git_repo_extpkgs/$pgm $pgm-0"
+            git clone -b "$git_branch_extpkgs" "$git_repo_extpkgs/$pgm.git" "$pgm-0"
         fi
     done
 
@@ -1598,195 +2065,296 @@ fi
 
 verbose_msg "-----------------------------------------------------------------
 "
-status_prompter "Step: util/bldlvlck:"
+if (! $dostep_bldlvlck); then
+    verbose_msg "Skipping step: util/bldlvlck (--no-bldlvlck)"
+else
+    status_prompter "Step: util/bldlvlck:"
 
-cd ${OPT_BUILD_DIR}/sdl4x/hyperion
+    cd $opt_build_dir/sdl4x/hyperion
 
-# Check for required packages and minimum versions.
-# Inspect the output carefully and do not continue if there are
-# any error messages or recommendations unless you know what you're doing.
+    # Check for required packages and minimum versions.
+    # Inspect the output carefully and do not continue if there are
+    # any error messages or recommendations unless you know what you're doing.
 
-# On Raspberry Pi Desktop (Buster), the following are often missing:
-# autoconf, automake, cmake, flex, gawk, m4
+    # On Raspberry Pi Desktop (Buster), the following are often missing:
+    # autoconf, automake, cmake, flex, gawk, m4
 
-util/bldlvlck 
+    util/bldlvlck 
+fi
 
 verbose_msg "-----------------------------------------------------------------
 "
-status_prompter "Step: Prepare and build extpkgs:"
 
-cd ${OPT_BUILD_DIR}/extpkgs
-cp gists/extpkgs.sh .
-cp gists/extpkgs.sh.ini .
-
-# Edit extpkgs.sh.ini
-# Change 'x86' to 'aarch64' for 64-bit, or 'arm' for 32-bit, etc.
-
-if   [[ "$(uname -m)" == x86* || "$(uname -m)" == amd64* ]]; then
-    verbose_msg "Defaulting to x86 machine type in extpkgs.sh.ini"
-elif [[ "$(uname -m)" =~ (armv6l|armv7l) ]]; then
-    mv extpkgs.sh.ini extpkgs.sh.ini-orig
-    sed "s/x86/arm/g" extpkgs.sh.ini-orig > extpkgs.sh.ini
+if (! $dostep_extpkgs); then
+    verbose_msg "Skipping step: prepare and build extpkgs (--no-extpkgs)"
 else
-    mv extpkgs.sh.ini extpkgs.sh.ini-orig
-    sed "s/x86/$(uname -m)/" extpkgs.sh.ini-orig > extpkgs.sh.ini
+    status_prompter "Step: Prepare and build extpkgs:"
+
+    cd $opt_build_dir/extpkgs
+    cp gists/extpkgs.sh .
+    cp gists/extpkgs.sh.ini .
+
+    # Edit extpkgs.sh.ini
+    # Change 'x86' to 'aarch64' for 64-bit, or 'arm' for 32-bit, etc.
+
+    if   [[ "$(uname -m)" == x86* || "$(uname -m)" == amd64* ]]; then
+        verbose_msg "Defaulting to x86 machine type in extpkgs.sh.ini"
+    elif [[ "$(uname -m)" =~ (armv6l|armv7l) ]]; then
+        mv extpkgs.sh.ini extpkgs.sh.ini-orig
+        sed "s/x86/arm/" extpkgs.sh.ini-orig > extpkgs.sh.ini
+    elif [[ "$(uname -m)" =~ (arm64) ]]; then
+        mv extpkgs.sh.ini extpkgs.sh.ini-orig
+        sed "s/x86/aarch64/" extpkgs.sh.ini-orig > extpkgs.sh.ini
+    else
+        mv extpkgs.sh.ini extpkgs.sh.ini-orig
+        sed "s/x86/$(uname -m)/" extpkgs.sh.ini-orig > extpkgs.sh.ini
+    fi
+
+    cd $opt_build_dir/extpkgs
+
+    DEBUG=1 ./extpkgs.sh  c d s t
+    # ./extpkgs.sh c d s t
 fi
 
-cd ${OPT_BUILD_DIR}/extpkgs
-
-DEBUG=1 ./extpkgs.sh  c d s t
-# ./extpkgs.sh c d s t
-
-cd ${OPT_BUILD_DIR}/sdl4x/hyperion
-
-# I understand some people don't, but I like to run autogen.
-# We will skip it, though, on x86_64 machines.
-
-if [[ "$(uname -m)" == x86* ]]; then
-    verbose_msg "Skipping autogen step on x86* architecture"
-else
-    verbose_msg "-----------------------------------------------------------------
+verbose_msg "-----------------------------------------------------------------
 "
+
+cd $opt_build_dir/sdl4x/hyperion
+
+# FIXME filter out FreeBSD here also
+
+if (! $dostep_autogen); then
+    verbose_msg "Skipping step: autogen.sh (--no-autogen)"
+elif [[ "$(uname -m)" == x86* ]]; then
+    # We will skip autogen on Linux x86_64 machines.
+    verbose_msg "Skipping autogen step on Linux x86* architecture"
+else
     status_prompter "Step: autogen.sh:"
     ./autogen.sh
 fi
 
 verbose_msg "-----------------------------------------------------------------
 "
-status_prompter "Step: configure:"
-
-if   [[ $VERSION_REGINA -ge 3 ]]; then
-    verbose_msg "Regina REXX is present. Using configure option: --enable-regina-rexx"
-    enable_rexx_option="--enable-regina-rexx" # enable regina rexx support
-elif [[ $VERSION_OOREXX -ge 4 ]]; then
-    verbose_msg "ooRexx is present. Using configure option: --enable-object-rexx"
-    enable_rexx_option="--enable-object-rexx" # enable OORexx support
-elif [[ $built_regina_from_source -eq 1 ]]; then
-    enable_rexx_option="--enable-regina-rexx" # enable regina rexx support
+if (! $dostep_configure); then
+    verbose_msg "Skipping step: configure (--no-configure)"
 else
-    error_msg "No REXX support.  Tests will not be run"
-    enable_rexx_option=""
-fi
+    status_prompter "Step: configure:"
 
-if [[ ${VERSION_ID,,} == alpine* ]]; then
-    verbose_msg "Disabling IPv6 support for Alpine Linux"
-    enable_ipv6_option="--disable-ipv6"
-else
-    enable_ipv6_option=""
-fi
+    # Check for REXX and set up its configure option
+    if   [[ $version_regina -ge 3 ]]; then
+        verbose_msg "Regina REXX is present. Using configure option: --enable-regina-rexx"
+        enable_rexx_option="--enable-regina-rexx" # enable regina rexx support
+    elif [[ $version_oorexx -ge 4 ]]; then
+        verbose_msg "ooRexx is present. Using configure option: --enable-object-rexx"
+        enable_rexx_option="--enable-object-rexx" # enable OORexx support
+    elif [[ $built_regina_from_source -eq 1 ]]; then
+        enable_rexx_option="--enable-regina-rexx" # enable regina rexx support
+    else
+        error_msg "No REXX support.  Tests will not be run"
+        enable_rexx_option=""
+    fi
 
-# gcc -dM -E - < /dev/null | grep __gnu_linux__
-# FIXME
+    # Set up IPv6 configure option
+    if [[ ${version_id,,} == alpine* ]]; then
+        verbose_msg "Disabling IPv6 support for Alpine Linux"
+        enable_ipv6_option="--disable-ipv6"
+    elif [[ ${version_id,,} == freebsd* ]]; then
+        verbose_msg "Disabling IPv6 support for FreeBSD"
+        enable_ipv6_option="--disable-ipv6"
+    else
+        enable_ipv6_option=""
+    fi
 
-# for Alpine
-# --enable-optimization="-O2 -march=native -D__gnu_linux__=1 -D__ALPINE_LINUX__=1"
+    # Set up compiler optimization options and special options
 
-configure_cmd=$(cat <<-END-CONFIGURE
+    # Enable cap_sys_nice so Hercules can be run as a normal user
+    # FIXME this doesn't work with 'make check', so we use 'setcap' instead
+    #   --enable-capabilities
+    # which dpkg-query
+    # dpkg-query --show libcap-dev
+    # sudo apt-get install libcap-dev
+    # dpkg-query --show libcap-dev
+    # find / -name capability.h -print
+
+    # Debian 10 x86_64, gcc 8.3.0
+    # CBUC test fails without this
+    #   --enable-optimization="-O3 -march=native"
+
+    # Debian 8 & 9, i686, gcc older then 6.3.0 fails CBUC test
+
+    # WRL original for Pi 4 64-bit
+    #   --enable-optimization="-O3 -pipe"
+
+    # For Alpine
+    # --enable-optimization="-O2 -march=native -D__gnu_linux__=1 -D__ALPINE_LINUX__=1"
+
+    # For FreeBSD, CLANG doesn't accept -march=native
+    if [[ $version_id == freebsd* ]]; then
+        config_opt_optimization="--enable-optimization=\"-O3\""
+    elif [[ $version_id == alpine* ]]; then
+        config_opt_optimization="--enable-optimization=\"-O2 -march=native -D__gnu_linux__=1 -D__ALPINE_LINUX__=1\""
+    else
+        config_opt_optimization="--enable-optimization=\"-O3 -march=native\""
+    fi
+
+    configure_cmd=$(cat <<-END-CONFIGURE
 ./configure \
-    --enable-optimization="-O3 -march=native" \
-    --enable-extpkgs=${OPT_BUILD_DIR}/extpkgs \
-    --prefix=${OPT_INSTALL_DIR} \
+    $config_opt_optimization \
+    --enable-extpkgs=$opt_build_dir/extpkgs \
+    --prefix=$opt_install_dir \
     --enable-custom="Built using hercules-helper" \
     $enable_rexx_option \
     $enable_ipv6_option
 END-CONFIGURE
 )
 
-verbose_msg $configure_cmd
-verbose_msg    # move to a new line
-eval "$configure_cmd"
+    # Actually do the configure
+    verbose_msg $configure_cmd
+    verbose_msg    # output a newline
+    eval "$configure_cmd"
 
-verbose_msg    # move to a new line
-verbose_msg "./config.status --config ..."
-./config.status --config
-
-# Debian 10 x86_64, gcc 8.3.0
-# CBUC test fails without this
-#   --enable-optimization="-O3 -march=native" \
-
-# Debian 8 & 9, i686, gcc older then 6.3.0 fails CBUC test
-
-# WRL original for Pi 4 64-bit
-#   --enable-optimization="-O3 -pipe" \
-
-# Enable cap_sys_nice so Hercules can be run as a normal user
-# FIXME this doesn't work with 'make check', so we use 'setcap' instead
-#   --enable-capabilities
-# which dpkg-query
-# dpkg-query --show libcap-dev
-# sudo apt-get install libcap-dev
-# dpkg-query --show libcap-dev
-# find / -name capability.h -print
-
-
-# Compile and link
-verbose_msg "-----------------------------------------------------------------
-"
-status_prompter "Step: make:"
-
-make clean
-
-if [[ $VERSION_ID == netbsd* ]]; then
-    NPROCS="$(sysctl -n hw.ncpu 2>/dev/null || echo 1)"
-else
-    NPROCS="$(nproc 2>/dev/null || echo 1)"
+    # Print the configuration we wound up with
+    verbose_msg    # output a newline
+    verbose_msg "./config.status --config ..."
+    ./config.status --config
 fi
 
-verbose_msg    # move to a new line
-verbose_msg "time make -j $NPROCS 2>&1"
-time make -j "$NPROCS" 2>&1
+# Clean, compile and link
+verbose_msg "-----------------------------------------------------------------
+"
 
-if [ ${PIPESTATUS[0]} -ne 0 ]; then
-    error_msg "Make failed!"
+if [[ $version_id == freebsd* || $version_id == netbsd* ]]; then
+    nprocs="$(sysctl -n hw.ncpu 2>/dev/null || echo 1)"
+else
+    nprocs="$(nproc 2>/dev/null || echo 1)"
+fi
+
+# For FreeBSD, BSD make acts up, so we'll use gmake.
+
+if [[ $version_id == freebsd* ]]; then
+    make_clean_cmd="gmake clean"
+    make_cmd="time gmake -j $nprocs 2>&1"
+else
+    make_clean_cmd="make clean"
+    make_cmd="time make -j $nprocs 2>&1"
+fi
+
+# make clean
+if (! $dostep_clean); then
+    verbose_msg "Skipping step: make clean (--no-clean)"
+else
+    status_prompter "Step: make clean:"
+
+    verbose_msg "$make_clean_cmd"
+    eval "$make_clean_cmd"
 fi
 
 verbose_msg "-----------------------------------------------------------------
 "
-status_prompter "Step: tests:"
 
-time make check 2>&1
-# time ./tests/runtest ./tests
-
-# Failed test "mainsize" on openSUSE 15.1 with 4GB RAM
-# HHC01603I mainsize 3g
-# HHC01430S Error in function configure_storage( 3G ): Cannot allocate memory
-# HHC00007I Previous message from function 'configure_storage' at config.c(337)
-# HHC02388E Configure storage error -1
-# HHC00007I Previous message from function 'mainsize_cmd' at hsccmd.c(3377)
-# HHC01603I archlvl s/370
-# HHC00811I Processor CP00: architecture mode S/370
-# HHC02204I ARCHLVL        set to S/370
-# HHC02204I LPARNUM        set to BASIC
-# HHC01603I *Info 1 HHC17006W MAINSIZE decreased to 2G architectural maximim
-
-# Quickie test to see if hercules works at all
-# sudo ./hercules
-
-  verbose_msg "-----------------------------------------------------------------
-"
-if ($OPT_NO_INSTALL); then
-    verbose_msg "Step: install: (skipped)"
+if (! $dostep_make); then
+    verbose_msg "Skipping step: make (--no-make)"
 else
-  if ($OPT_USESUDO); then
-    status_prompter "Step: install [with sudo]:"
+    status_prompter "Step: make:"
 
-    sudo time make install 2>&1
-  else
-    status_prompter "Step: install [without sudo]:"
+    verbose_msg    # output a newline
+    # verbose_msg "time make -j $nprocs 2>&1"
+    verbose_msg "$make_cmd"
+    eval "$make_cmd"
 
-    time make install 2>&1
-  fi
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        error_msg "Make failed!"
+    fi
+fi
 
-  verbose_msg "-----------------------------------------------------------------
+verbose_msg "-----------------------------------------------------------------
 "
-  verbose_msg "Step: setcap operations so Hercules can run without elevated privileges:"
-  verbose_msg    # move to a new line
-  verbose_msg "sudo setcap 'cap_sys_nice=eip' ${OPT_INSTALL_DIR}/bin/hercules"
-  sudo setcap 'cap_sys_nice=eip' ${OPT_INSTALL_DIR}/bin/hercules
-  verbose_msg "sudo setcap 'cap_sys_nice=eip' ${OPT_INSTALL_DIR}/bin/herclin"
-  sudo setcap 'cap_sys_nice=eip' ${OPT_INSTALL_DIR}/bin/herclin
-  verbose_msg "sudo setcap 'cap_net_admin+ep' ${OPT_INSTALL_DIR}/bin/hercifc"
-  sudo setcap 'cap_net_admin+ep' ${OPT_INSTALL_DIR}/bin/hercifc
+
+if (! $dostep_tests); then
+    verbose_msg "Skipping step: make check (--no-tests)"
+else
+    status_prompter "Step: tests:"
+    verbose_msg "Be patient, this can take a while."
+
+    if [[ $version_id == freebsd* ]]; then
+        make_check_cmd="gmake check"
+
+        # Also for FreeBSD we will try to detect low memory conditions
+        # such as on a Raspberry Pi 3B, and skip the 'mainsize' test.
+        if [ $version_freebsd_memory -lt 2000 ]; then
+            verbose_msg "FreeBSD with low memory"
+
+            if [ -f ./tests/mainsize.tst ]; then
+                verbose_msg "Skipping 'mainsize.tst'"
+                mv ./tests/mainsize.tst ./tests/mainsize.tst.skipped
+            fi
+        fi
+    else
+        make_check_cmd="make check"
+    fi
+
+    eval "$make_check_cmd"
+
+    # time ./tests/runtest ./tests
+
+    # "mainsize" test fails on Raspberry Pi 3B with FreeBSD 12.2
+    # and FreeBSD kills the entire prodess since the system it out of memory.
+
+    # Failed test "mainsize" on openSUSE 15.1 with 4GB RAM
+    # HHC01603I mainsize 3g
+    # HHC01430S Error in function configure_storage( 3G ): Cannot allocate memory
+    # HHC00007I Previous message from function 'configure_storage' at config.c(337)
+    # HHC02388E Configure storage error -1
+    # HHC00007I Previous message from function 'mainsize_cmd' at hsccmd.c(3377)
+    # HHC01603I archlvl s/370
+    # HHC00811I Processor CP00: architecture mode S/370
+    # HHC02204I ARCHLVL        set to S/370
+    # HHC02204I LPARNUM        set to BASIC
+    # HHC01603I *Info 1 HHC17006W MAINSIZE decreased to 2G architectural maximim
+
+    # Quickie test to see if hercules works at all
+    # sudo ./hercules
+fi
+
+verbose_msg "-----------------------------------------------------------------
+"
+if (! $dostep_install); then
+    verbose_msg "Skipping step: install (--no-install)"
+else
+    if [[ $version_id == freebsd* ]]; then
+        make_install_cmd="time gmake install 2>&1"
+    else
+        make_install_cmd="time make install 2>&1"
+    fi
+
+    if ($opt_usesudo); then
+        status_prompter "Step: install [with sudo]:"
+        sudo eval "$make_install_cmd"
+    else
+        status_prompter "Step: install [without sudo]:"
+        eval "$make_install_cmd"
+    fi
+
+    verbose_msg "-----------------------------------------------------------------
+    "
+
+    if [[ $version_id == freebsd* ]]; then
+        verbose_msg "Skipping step: setcap operations on FreeBSD."
+    elif (! $dostep_setcap); then
+        verbose_msg "Skipping step: setcap (--no-setcap)"
+    else
+        verbose_msg "Step: setcap operations so Hercules can run without elevated privileges:"
+
+        verbose_msg    # output a newline
+        verbose_msg "sudo setcap 'cap_sys_nice=eip' $opt_install_dir/bin/hercules"
+        sudo setcap 'cap_sys_nice=eip' $opt_install_dir/bin/hercules
+        verbose_msg "sudo setcap 'cap_sys_nice=eip' $opt_install_dir/bin/herclin"
+        sudo setcap 'cap_sys_nice=eip' $opt_install_dir/bin/herclin
+        verbose_msg "sudo setcap 'cap_net_admin+ep' $opt_install_dir/bin/hercifc"
+        sudo setcap 'cap_net_admin+ep' $opt_install_dir/bin/hercifc
+    fi
+
+    verbose_msg    # output a newline
 fi
 
 verbose_msg "-----------------------------------------------------------------
@@ -1798,68 +2366,106 @@ verbose_msg "Overall build processing ended:   $end_time"
 elapsed_seconds="$(( $(TZ=UTC0 printf '%(%s)T\n' '-1') - start_seconds ))"
 verbose_msg "total elapsed seconds: $elapsed_seconds"
 verbose_msg "Overall elpased time: $( TZ=UTC0 printf '%(%H:%M:%S)T\n' "$elapsed_seconds" )"
-verbose_msg    # move to a new line
+verbose_msg    # output a newline
 
-if ($OPT_INSTALL); then
+# FIXME
+if (! $dostep_install || ! $dostep_envscript); then
+    verbose_msg "Skipping step: create environment variables script (--no-envscript)"
+else
+    status_prompter "Step: create script to set environment variables [may require sudo]:"
+
     shell=$(/usr/bin/basename $(/bin/ps -p $$ -ocomm=))
-    cat <<FOE >"${OPT_INSTALL_DIR}/hyperion-init-$shell.sh"
-#!/bin/bash
+    cat <<FOE >"$opt_install_dir/hyperion-init-$shell.sh"
+#!/usr/bin/env bash
 #
 # Set up environment variables for Hercules
-#
-# e.g.
-#  export PATH=${OPT_INSTALL_DIR}/bin:${OPT_BUILD_DIR}/rexx/bin:$PATH
-#  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${OPT_INSTALL_DIR}/lib:${OPT_BUILD_DIR}/rexx/lib
 #
 # This script was created by $0, $(date)
 #
 
-newpath="${OPT_INSTALL_DIR}/bin"
+# LD_LIBRARY_PATH is often empty, and we don't want to error out on that
+set +u
+
+echo "Setting environment variables for Hercules"
+
+newpath="$opt_install_dir/bin"
 if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
   # export PATH="\${PATH:+"\$PATH:"}\$newpath"
     export PATH="\$newpath\${PATH:+":\$PATH"}"
 fi
 
-newpath="${OPT_INSTALL_DIR}/lib"
+newpath="$opt_install_dir/lib"
 if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
   # export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}\$newpath"
     export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
 fi
 
-if [[ $built_regina_from_source -eq 1 ]]; then
-    newpath="${OPT_BUILD_DIR}/rexx/bin"
-    if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
-      # export PATH="\${PATH:+"\$PATH:"}\$newpath"
-        export PATH="\$newpath\${PATH:+":\$PATH"}"
-    fi
-
-    newpath="${OPT_BUILD_DIR}/rexx/lib"
-    if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
-      # export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}\$newpath"
-        export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
-    fi
-
-    newpath="${OPT_BUILD_DIR}/rexx/include"
-    if [ -d "\$newpath" ] && [[ ":\$CPPFLAGS:" != *":-I\$newpath:"* ]]; then
-      # export CPPFLAGS="\${CPPFLAGS:+"\$CPPFLAGS:"}-I\$newpath"
-        export CPPFLAGS="-I\$newpath\${CPPFLAGS:+" \$CPPFLAGS"}"
-    fi
-fi
-
 FOE
 # end of inline "here" file
 
-    chmod +x "${OPT_INSTALL_DIR}/hyperion-init-$shell.sh"
-    source "${OPT_INSTALL_DIR}/hyperion-init-$shell.sh"
-
-#   echo "To set the required environment variables, run:"
-#   echo "    source ${OPT_BUILD_DIR}/hercules-setvars.sh"
+if [[ "$built_regina_from_source" -eq 1 ]]; then
+    cat <<FOE2 >>"$opt_install_dir/hyperion-init-$shell.sh"
+newpath="$opt_build_dir/rexx/bin"
+if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
+  # export PATH="\${PATH:+"\$PATH:"}\$newpath"
+    export PATH="\$newpath\${PATH:+":\$PATH"}"
 fi
 
-if (! $OPT_NO_INSTALL); then
+newpath="$opt_build_dir/rexx/lib"
+if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
+  # export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}\$newpath"
+    export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
+fi
+
+newpath="$opt_build_dir/rexx/include"
+if [ -d "\$newpath" ] && [[ ":\$CPPFLAGS:" != *":-I\$newpath:"* ]]; then
+  # export CPPFLAGS="\${CPPFLAGS:+"\$CPPFLAGS:"}-I\$newpath"
+    export CPPFLAGS="-I\$newpath\${CPPFLAGS:+" \$CPPFLAGS"}"
+fi
+FOE2
+# end of inline "here" file
+fi
+
+    chmod +x "$opt_install_dir/hyperion-init-$shell.sh"
+    source "$opt_install_dir/hyperion-init-$shell.sh"
+
+#   echo "To set the required environment variables, run:"
+#   echo "    source $opt_build_dir/hercules-setvars.sh"
+fi
+
+if ($dostep_bashrc); then
   verbose_msg "-----------------------------------------------------------------
 "
-    status_prompter "Step: create shell profile [requires sudo]:"
+    status_prompter "Step: add 'source' environment variables to shell profile:"
+
+    if [[ $version_id == freebsd* ]]; then
+        verbose_msg "Skipping /etc/profile.d/hyperion.sh on FreeBSD"
+
+        if true; then
+            shell=$(/usr/bin/basename $(/bin/ps -p $$ -ocomm=))
+
+            # Only do this for Bash
+            if [[ $shell != bash ]]; then
+                error_msg "Login shell is not Bash.  Unable to create profile commands."
+            else
+                # Add .../hyperioninit-bash.sh to ~/.bashrc if not already present
+                if grep -Fqe "$opt_install_dir/hyperion-init-$shell.sh" ~/.bashrc ; then
+                    verbose_msg "Hyperion profile commands are already present in your ~/.bashrc"
+                else
+                    verbose_msg "Adding profile commands to your ~/.bashrc"
+                    cat <<-BASHRC >> ~/.bashrc
+
+# For SDL-Hyperion
+if [ -f $opt_install_dir/hyperion-init-$shell.sh ]; then
+    . $opt_install_dir/hyperion-init-$shell.sh
+fi
+
+BASHRC
+# end of inline "here" file
+                fi
+            fi # if bash
+        fi
+    else # if not FreeBSD
 
 # Create /etc/profile.d/hyperion.sh
 # Requires sudo
@@ -1871,12 +2477,12 @@ if (! $OPT_NO_INSTALL); then
 
         # Check if the profile already exists
         if [ -f /etc/profile.d/hyperion.sh ]; then
-            if ($OPT_PROMPTS); then
+            if ($opt_prompts); then
                 if confirm "/etc/profile.d/hyperion.sh already exists.  Overwrite? [y/N]" ; then
                     echo "OK"
                     add_profile=1
                 else
-                    verbose_msg # move to a new line
+                    verbose_msg # output a newline
                 fi
             else
                 verbose_msg "Overwriting existing /etc/profile.d/hyperion.sh"
@@ -1896,9 +2502,9 @@ if (! $OPT_NO_INSTALL); then
 #
 shell=\$(/usr/bin/basename \$(/bin/ps -p \$\$ -ocomm=))
 
-# location of script: ${OPT_INSTALL_DIR}
-if [ -f "${OPT_INSTALL_DIR}/hyperion-init-\$shell.sh" ]; then
-   . "${OPT_INSTALL_DIR}/hyperion-init-\$shell.sh"
+# location of script: $opt_install_dir
+if [ -f "$opt_install_dir/hyperion-init-\$shell.sh" ]; then
+   . "$opt_install_dir/hyperion-init-\$shell.sh"
 else
    echo "Cannot create Hyperion profile variables on \$shell, script is missing."
 fi  
@@ -1930,17 +2536,32 @@ fi
 BASHRC
 # end of inline "here" file
 
-            fi
-
+            fi # if commands already present in .bashrc
         fi # if bash
-
     fi
-
-fi # if (! $OPT_NO_INSTALL)
+  fi # if not FreeBSD
+fi # if (! $dostep_bashrc)
      
+#-----------------------------------------------------------------------------
+
+if (! $opt_no_install); then
+    echo   # output a newline
+    echo "To make this new Hercules immediately available, run:"
+    echo "(note the '.', which will source the script)"
+    echo   # output a newline
+
+    # FIXME needs to split case based on init vs. systemd
+    if [[ $version_id == freebsd* ]]; then
+        echo "  . $opt_install_dir/hyperion-init-$shell.sh"
+    else
+        echo "  . /etc/profile.d/hyperion.sh"
+    fi
+fi
+
 verbose_msg "Done!"
 
 } # End of I/O redirection function
+#-----------------------------------------------------------------------------
 
 current_time=$(date "+%Y-%m-%d")
 logfile="$(basename "$0")"
@@ -1958,15 +2579,6 @@ fi
 # tee the output to the log file.
 
 the_works 2>&1 | tee "$logfile.log"
-
-#-----------------------------------------------------------------------------
-
-if (! $OPT_NO_INSTALL); then
-    echo "To make this new Hercules immediately available, run:"
-    echo "(note the '.', which will source the script)"
-    echo   # move to a new line
-    echo "  . /etc/profile.d/hyperion.sh"
-fi
 
 # ---- end of script ----
 
