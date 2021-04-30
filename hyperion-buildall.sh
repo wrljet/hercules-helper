@@ -348,7 +348,15 @@ LD=${LD:-"ld"}
 #-----------------------------------------------------------------------------
 
 pushd "$(dirname "$0")" >/dev/null;
-version_info="$0: $(git describe --long --tags --dirty --always)"
+    which_git=$(which git 2>/dev/null) || true
+    which_status=$?
+
+    if [ -z $which_git ]; then
+        # verbose_msg "git is not installed"
+        version_info=""
+    else
+	version_info="$0: $(git describe --long --tags --dirty --always)"
+    fi
 popd > /dev/null;
 
 usage="Hercules-Helper $version_info
@@ -1245,7 +1253,14 @@ function the_works {  # Put everthing in an I/O redirection
 echo "Using logfile $logfile.log"
 
 pushd "$(dirname "$0")" >/dev/null;
-echo "script version: $0: $(git describe --long --tags --dirty --always)"
+    which_git=$(which git 2>/dev/null) || true
+    which_status=$?
+
+    if [ -z $which_git ]; then
+        echo "git is not installed"
+    else
+        echo "script version: $0: $(git describe --long --tags --dirty --always)"
+    fi
 popd > /dev/null;
 echo    # print a newline
 
