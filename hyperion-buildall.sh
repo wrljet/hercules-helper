@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 12 APR 2021
+# Updated: 01 MAY 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,12 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 01 MAY 2021
+# - add initial support for macOS Mojave 10.14 (Darwin)
+# - various changes to work with Bash 3.2
+# - replace 'printf %()T' with 'date +%s'
+# - remove /etc/profile.d/hyperion.sh stuff entirely
 #
 # Updated: 12 APR 2021
 # - add --detect-only option
@@ -205,7 +211,18 @@ fi
 # Stop on error
 # set -e
 
-shopt -s nullglob globstar
+# Instructions on updating Bash on macOS Mojave 10.14
+# https://itnext.io/upgrading-bash-on-macos-7138bd1066ba
+
+if ((BASH_VERSINFO[0] < 4))
+then
+    echo "Bash version 4+ is required"
+else
+    shopt -s globstar
+fi
+
+shopt -s nullglob
+shopt -s extglob # Required for MacOS
 
 require(){ hash "$@" || exit 127; }
 
@@ -315,7 +332,7 @@ dostep_bldlvlck=${dostep_bldlvlck:-true}      # Run bldlvlck
 dostep_extpkgs=${dostep_extpkgs:-true}        # Build Hercules external packages
 dostep_autogen=${dostep_autogen:-true}        # Run autogen
 dostep_configure=${dostep_configure:-true}    # Run configure
-dostep_clean=${dostep_clean:-true}             # Run make clean
+dostep_clean=${dostep_clean:-true}            # Run make clean
 dostep_make=${dostep_make:-true}              # Run make (compile and link)
 dostep_tests=${dostep_tests:-true}            # Run make check
 dostep_install=${dostep_install:-true}        # Run make install
@@ -347,6 +364,39 @@ LD=${LD:-"ld"}
 
 #-----------------------------------------------------------------------------
 
+uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
+
+if [ "$uname_system" == "Darwin" ]; then
+    darwin_need_prereqs=false
+
+  # echo "Checking for Xcode command line tools ..."
+    xcode-select -p 1>/dev/null 2>/dev/null
+    if [[ $? == 2 ]] ; then
+        darwin_need_prereqs=true
+  # else
+  #     echo "    Command line tools are already installed"
+    fi
+
+  # echo "Checking for Homebrew package manager ..."
+    which -s brew
+    if [[ $? != 0 ]] ; then
+        darwin_need_prereqs=true
+  # else
+  #     echo "    Homebrew is already installed"
+    fi
+
+    if ( $darwin_need_prereqs == true ) ; then
+        echo   # output a newline
+        echo "Please run macOS_prerequisites.sh first"
+        echo   # output a newline
+        exit 1
+    fi
+
+    echo   # output a newline
+fi
+
+#-----------------------------------------------------------------------------
+
 pushd "$(dirname "$0")" >/dev/null;
     which_git=$(which git 2>/dev/null) || true
     which_status=$?
@@ -355,7 +405,7 @@ pushd "$(dirname "$0")" >/dev/null;
         # verbose_msg "git is not installed"
         version_info=""
     else
-	version_info="$0: $(git describe --long --tags --dirty --always)"
+	version_info="$0: $(git describe --long --tags --dirty --always 2>/dev/null)"
     fi
 popd > /dev/null;
 
@@ -749,7 +799,7 @@ detect_system()
 
         # Look for openSUSE
 
-        if [[ ${version_id,,} == opensuse* ]];
+        if [[ $version_id == opensuse* ]];
         then
             version_distro="openSUSE"
             version_major=$(echo $version_str | cut -f1 -d.)
@@ -774,6 +824,7 @@ detect_system()
         else
             verbose_msg "nope"
 
+# FIXME Apple Darwin
             verbose_msg -n "Checking for Windows WSL1... "
             if [[ "$(< /proc/version)" == *@(Microsoft|WSL)* ]]; then
                 verbose_msg "running on WSL1"
@@ -806,6 +857,7 @@ detect_system()
             detect_pi
         fi
 
+#------------------------------------------------------------------------------
     elif [ "$os_name" = "NetBSD" ]; then
 
         version_distro="netbsd"
@@ -845,9 +897,11 @@ detect_system()
         # i.e. LANG=en_US.UTF-8
         verbose_msg "Language         : <unknown>"
 
+#------------------------------------------------------------------------------
     elif [ "$os_name" = "OpenBSD" ]; then
         error_msg "OpenBSD is not yet supported!"
 
+#------------------------------------------------------------------------------
     elif [ "$os_name" = "FreeBSD" ]; then
 
 # top -n1 | head -n 4
@@ -899,6 +953,29 @@ detect_system()
         # show the default language
         # i.e. LANG=en_US.UTF-8
         verbose_msg "Language         : <unknown>"
+
+#------------------------------------------------------------------------------
+    elif [ "$os_name" = "Darwin" ]; then
+
+# uname -a        : Darwin Bills-Mac.local 18.0.0 Darwin Kernel Version 18.0.0: Wed Aug 22 20:13:40 PDT 2018; root:xnu-4903.201.2~1/RELEASE_X86_64 x86_64
+# uname -m        : x86_64
+# uname -p        : i386
+# uname -s        : Darwin
+# uname -r        : 18.0.0
+
+# 18.0.0 = macOS v10.14 (Mojave)
+
+        version_id="darwin"
+
+        version_str=$(uname -r)
+
+        verbose_msg "VERSION_ID       : $version_id"
+        verbose_msg "VERSION_STR      : $version_str"
+
+        version_major=$(echo $version_str | cut -f1 -d.)
+          verbose_msg "VERSION_MAJOR    : $version_major"
+        version_minor=$(echo $version_str | cut -f2 -d.)
+          verbose_msg "VERSION_MINOR    : $version_minor"
     fi
 }
 
@@ -1236,7 +1313,7 @@ case $key in
     ;;
 esac
 done
-set -- "${POSITIONAL[@]}" # restore positional parameters
+set -- "${POSITIONAL[@]-default}" # restore positional parameters
 
 if [[ "$TRACE" == true ]]; then
     # Show all commands as they are being run
@@ -1259,7 +1336,7 @@ pushd "$(dirname "$0")" >/dev/null;
     if [ -z $which_git ]; then
         echo "git is not installed"
     else
-        echo "script version: $0: $(git describe --long --tags --dirty --always)"
+        echo "script version: $0: $(git describe --long --tags --dirty --always 2>/dev/null)"
     fi
 popd > /dev/null;
 echo    # print a newline
@@ -1494,23 +1571,22 @@ prepare_packages()
           echo "-----------------------------------------------------------------"
 
           which_cc1=$(find / -name cc1 -print 2>&1 | grep cc1)
-          echo "cc1 presence:       $which_cc1"
+          verbose_msg "cc1 presence:       $which_cc1"
 
           which_cc1plus=$(find / -name cc1plus -print 2>&1 | grep cc1plus)
           which_status=$?
-          echo "cc1plus presence:   $which_cc1plus"
+          verbose_msg "cc1plus presence:   $which_cc1plus"
 
           if [ -z $which_cc1plus ]; then
               echo "On CentOS and there is no cc1plus"
 
               if [ ! -z $which_cc1 ]; then
-                  echo "We do have cc1; linking cc1plus to cc1"
+                  verbose_msg "We do have cc1; linking cc1plus to cc1"
                   sudo ln -s "$which_cc1" /usr/bin/cc1plus
               else
                   error_msg "We do not have cc1 either; full gcc-c++ package is required"
               fi
           fi
-
           echo    # print a newline
       else
           error_msg "CentOS version 6 or earlier found, and not supported"
@@ -1522,7 +1598,7 @@ prepare_packages()
 #-----------------------------------------------------------------------------
   # openSUSE (15.1)
 
-  if [[ ${version_id,,} == opensuse* ]]; then
+  if [[ $version_id == opensuse* ]]; then
       os_is_supported=true
 
       declare -a opensuse_packages=( \
@@ -1555,7 +1631,7 @@ prepare_packages()
 #-----------------------------------------------------------------------------
   # Alpine Linux 3.x
 
-  if [[ ${version_id,,} == alpine* ]]; then
+  if [[ $version_id == alpine* ]]; then
       declare -a alpine_packages=( \
           "git" "wget" "bash" \
           "build-base" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
@@ -1582,6 +1658,49 @@ prepare_packages()
               sudo apk add --no-cache $package
           fi
       done
+
+    return
+  fi
+
+#-----------------------------------------------------------------------------
+  # Apple Darwin (macOS)
+
+  if [[ $version_id == darwin* ]]; then
+      # 18.0.0 = macOS 10.14 Mojave
+      if [[ $version_major -eq 18 ]]; then
+          os_is_supported=true
+
+          echo "Apple macOS version 10 (Mojave) found"
+
+          declare -a darwin_packages=( \
+              "wget" \
+              "autoconf" "automake" \
+              "libtool" \
+              "cmake"
+            # "flex" "gawk" "m4" \
+            # "bzip2" "zlib"
+          )
+
+          echo "Required packages: "
+          echo "${darwin_packages[*]}"
+          echo    # print a newline
+
+          for package in "${darwin_packages[@]}"; do
+              echo "-----------------------------------------------------------------"
+              echo "Checking for package: $package"
+
+              is_installed=$(brew info $package)
+              status=$?
+
+              # install if missing
+              if [[ $status -eq 1 || $is_installed == *"Not installed"* ]] ; then
+                  echo "installing package: $package"
+                  brew install $package
+              else
+                  echo "package: $package is already installed"
+              fi
+          done
+      fi
 
     return
   fi
@@ -1655,12 +1774,13 @@ prepare_packages()
 
     return
   fi
+
 }
 
 detect_darwin
 if [ "$version_distro" == "darwin" ]; then
-    error_msg "Not yet supported under Apple Darwin OS!"
-    exit 1
+    verbose_msg "Not yet fully supported under MacOS"
+    verbose_msg    # print a newline
 fi
 
 #-----------------------------------------------------------------------------
@@ -1670,6 +1790,7 @@ verbose_msg "  --verbose       : $opt_verbose"
 verbose_msg "  --prompts       : $opt_prompts"
 verbose_msg "  --sudo          : $opt_usesudo"
 
+verbose_msg "  --detect-only   : $opt_detect_only"
 verbose_msg "  --no_packages   : $opt_no_packages"
 verbose_msg "  --no_rexx       : $opt_no_rexx"
 verbose_msg "  --no_gitclone   : $opt_no_gitclone"
@@ -1701,7 +1822,18 @@ verbose_msg    # print a newline
 verbose_msg "Build tools versions:"
 verbose_msg "  autoconf       : $(autoconf --version 2>&1 | head -n 1)"
 verbose_msg "  automake       : $(automake --version 2>&1 | head -n 1)"
-verbose_msg "  m4             : $(m4 --version 2>&1 | head -n 1 | sed 's/.*illegal option.*/BSD version of m4/')"
+
+libtool_str="$(libtool --version 2>/dev/null)"
+if [[ $? -ne 0 ]]; then
+    libtool_str="$(libtool -V 2>/dev/null)"
+    if [[ $? -ne 0 ]]; then
+	libtool_str="unknown"
+    fi
+fi
+libtool_str="$(echo "$libtool_str" | head -n 1)"
+verbose_msg "  libtool        : $libtool_str"
+
+verbose_msg "  m4             : $(m4   --version 2>&1 | head -n 1 | sed 's/.*illegal option.*/BSD version of m4/')"
 verbose_msg "  make           : $(make --version 2>&1 | head -n 1 | sed 's/^usage: make.*/BSD version of make/')"
 verbose_msg "  compiler       : $($CC --version 2>&1 | head -n 1)"
 verbose_msg "  linker         : $($LD --version 2>&1 | head -n 1)"
@@ -1925,6 +2057,14 @@ if [[ $version_wsl -eq 2 ]]; then
 elif [[ $version_id == netbsd* ]]; then
     which_cc1=$(find / -xdev -name cc1 -print 2>&1 | grep cc1 | head -5)
     which_cc1plus=$(find / -xdev -name cc1plus -print 2>&1 | grep cc1plus | head -5)
+elif [[ $version_id == darwin* ]]; then
+    # On macOS these two find commands can trigger:
+    # "Terminal wants to access your contacts"
+    # This looks scary, and we don't want to be suspected of being malware
+    # so we'll skip these checks.  They are mostly for debugging anyways.
+
+    which_cc1="skipped on macOS"
+    which_cc1plus="skipped on macOS"
 else
     which_cc1=$(find / -mount -name cc1 -print 2>&1 | grep cc1 | head -5)
     which_cc1plus=$(find / -mount -name cc1plus -print 2>&1 | grep cc1plus | head -5)
@@ -1933,7 +2073,9 @@ fi
 verbose_msg "cc1 presence     : $which_cc1"
 verbose_msg "cc1plus presence : $which_cc1plus"
 
-start_seconds="$(TZ=UTC0 printf '%(%s)T\n' '-1')"
+# FIXME macOS
+# start_seconds="$(TZ=UTC0 printf '%(%s)T\n' '-1')"
+start_seconds="$(date +%s)"
 start_time=$(date)
 
 verbose_msg # output a newline
@@ -1969,7 +2111,7 @@ else
     elif [[ "$(uname -m)" =~ ^arm64 ]]; then
         # If it's an arm64 CPU, and not FreeBSD, enable 64-bit
         # This should work on Raspberry Pi with both FreeBSD and the Pi OSes
-        if [[ ${version_id,,} == freebsd* ]]; then
+        if [[ $version_id == freebsd* ]]; then
             regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx"
         else
             regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx --enable-64bit"
@@ -2136,11 +2278,11 @@ verbose_msg "-----------------------------------------------------------------
 
 cd $opt_build_dir/sdl4x/hyperion
 
-# FIXME filter out FreeBSD here also
+# FIXME filter out FreeBSD and Apple Darwin here also
 
 if (! $dostep_autogen); then
     verbose_msg "Skipping step: autogen.sh (--no-autogen)"
-elif [[ "$(uname -m)" == x86* ]]; then
+elif [[ "$(uname -m)" == x86* && "$version_distro" != "darwin" ]]; then
     # We will skip autogen on Linux x86_64 machines.
     verbose_msg "Skipping autogen step on Linux x86* architecture"
 else
@@ -2170,10 +2312,10 @@ else
     fi
 
     # Set up IPv6 configure option
-    if [[ ${version_id,,} == alpine* ]]; then
+    if [[ $version_id == alpine* ]]; then
         verbose_msg "Disabling IPv6 support for Alpine Linux"
         enable_ipv6_option="--disable-ipv6"
-    elif [[ ${version_id,,} == freebsd* ]]; then
+    elif [[ $version_id == freebsd* ]]; then
         verbose_msg "Disabling IPv6 support for FreeBSD"
         enable_ipv6_option="--disable-ipv6"
     else
@@ -2212,6 +2354,15 @@ else
         config_opt_optimization="--enable-optimization=\"-O3 -march=native\""
     fi
 
+    # For Apple Darwin, avoid fork bomb
+    if [[ $version_id == darwin* ]]; then
+        verbose_msg "Disabling \"getopt wrapper kludge\" for Apple Darwin"
+        verbose_msg    # output a newline
+        enable_getoptwrapper_option="--disable-getoptwrapper"
+    else
+        enable_getoptwrapper_option=""
+    fi
+
     configure_cmd=$(cat <<-END-CONFIGURE
 ./configure \
     $config_opt_optimization \
@@ -2219,7 +2370,8 @@ else
     --prefix=$opt_install_dir \
     --enable-custom="Built using hercules-helper" \
     $enable_rexx_option \
-    $enable_ipv6_option
+    $enable_ipv6_option \
+    $enable_getoptwrapper_option
 END-CONFIGURE
 )
 
@@ -2238,7 +2390,7 @@ fi
 verbose_msg "-----------------------------------------------------------------
 "
 
-if [[ $version_id == freebsd* || $version_id == netbsd* ]]; then
+if [[ $version_id == freebsd* || $version_id == netbsd* || $version_id == darwin* ]]; then
     nprocs="$(sysctl -n hw.ncpu 2>/dev/null || echo 1)"
 else
     nprocs="$(nproc 2>/dev/null || echo 1)"
@@ -2378,9 +2530,14 @@ verbose_msg "-----------------------------------------------------------------
 end_time=$(date)
 verbose_msg "Overall build processing ended:   $end_time"
 
-elapsed_seconds="$(( $(TZ=UTC0 printf '%(%s)T\n' '-1') - start_seconds ))"
-verbose_msg "total elapsed seconds: $elapsed_seconds"
-verbose_msg "Overall elpased time: $( TZ=UTC0 printf '%(%H:%M:%S)T\n' "$elapsed_seconds" )"
+# FIXME macOS
+# elapsed_seconds="$(( $(TZ=UTC0 printf '%(%s)T\n' '-1') - start_seconds ))"
+elapsed_seconds="$(( $(date +%s) - start_seconds ))"
+verbose_msg "Total elapsed seconds: $elapsed_seconds"
+
+if ((BASH_VERSINFO[0] >= 4)); then
+    verbose_msg "Overall elpased time: $( TZ=UTC0 printf '%(%H:%M:%S)T\n' "$elapsed_seconds" )"
+fi
 verbose_msg    # output a newline
 
 # FIXME
@@ -2443,6 +2600,7 @@ fi
 
     chmod +x "$opt_install_dir/hyperion-init-$shell.sh"
     source "$opt_install_dir/hyperion-init-$shell.sh"
+    verbose_msg "Created: $opt_install_dir/hyperion-init-$shell.sh"
 
 #   echo "To set the required environment variables, run:"
 #   echo "    source $opt_build_dir/hercules-setvars.sh"
@@ -2453,8 +2611,7 @@ if ($dostep_bashrc); then
 "
     status_prompter "Step: add 'source' environment variables to shell profile:"
 
-    if [[ $version_id == freebsd* ]]; then
-        verbose_msg "Skipping /etc/profile.d/hyperion.sh on FreeBSD"
+    if true; then # available for future system specific inclusion
 
         if true; then
             shell=$(/usr/bin/basename $(/bin/ps -p $$ -ocomm=))
@@ -2462,6 +2619,9 @@ if ($dostep_bashrc); then
             # Only do this for Bash
             if [[ $shell != bash ]]; then
                 error_msg "Login shell is not Bash.  Unable to create profile commands."
+
+            elif [ ! -f ~/.bashrc ]; then # Check for .bashrc existing first!
+                verbose_msg "Not adding environment variables to ~/.bashrc. File not found."
             else
                 # Add .../hyperioninit-bash.sh to ~/.bashrc if not already present
                 if grep -Fqe "$opt_install_dir/hyperion-init-$shell.sh" ~/.bashrc ; then
@@ -2477,84 +2637,10 @@ fi
 
 BASHRC
 # end of inline "here" file
-                fi
+                fi # if commands not already present
             fi # if bash
-        fi
-    else # if not FreeBSD
-
-# Create /etc/profile.d/hyperion.sh
-# Requires sudo
-
-    add_profile=0
-
-    # Make sure we have the profile directory on this system
-    if [ -d /etc/profile.d ]; then
-
-        # Check if the profile already exists
-        if [ -f /etc/profile.d/hyperion.sh ]; then
-            if ($opt_prompts); then
-                if confirm "/etc/profile.d/hyperion.sh already exists.  Overwrite? [y/N]" ; then
-                    echo "OK"
-                    add_profile=1
-                else
-                    verbose_msg # output a newline
-                fi
-            else
-                verbose_msg "Overwriting existing /etc/profile.d/hyperion.sh"
-                add_profile=1
-            fi
-        else
-            verbose_msg "Creating /etc/profile.d/hyperion.sh"
-            add_profile=1
-        fi
-    else
-        error_msg "/etc/profile.d directory not found.  Cannot add paths to profile."
-    fi
-
-    if [[ $add_profile -eq 1 ]]; then
-        cat <<FOE2 | sudo tee /etc/profile.d/hyperion.sh >/dev/null
-#!/bin/bash
-#
-shell=\$(/usr/bin/basename \$(/bin/ps -p \$\$ -ocomm=))
-
-# location of script: $opt_install_dir
-if [ -f "$opt_install_dir/hyperion-init-\$shell.sh" ]; then
-   . "$opt_install_dir/hyperion-init-\$shell.sh"
-else
-   echo "Cannot create Hyperion profile variables on \$shell, script is missing."
-fi  
-
-FOE2
-# end of inline "here" file
-    fi
-
-    if true; then
-        shell=$(/usr/bin/basename $(/bin/ps -p $$ -ocomm=))
-        # echo $shell
-
-        # Only do this for Bash
-        if [[ $shell != bash ]]; then
-            error_msg "Login shell is not Bash.  Unable to create profile commands."
-        else
-            # Add /etc/profile.d/hyperion.sh to ~/.bashrc if not already present
-            if grep -Fqe "/etc/profile.d/hyperion.sh" ~/.bashrc ; then
-                verbose_msg "Hyperion profile commands are already present in  ~/.bashrc"
-            else
-                verbose_msg "Adding profile commands to ~/.bashrc"
-                cat <<-"BASHRC" >> ~/.bashrc
-
-# For SDL-Hyperion
-if [ -f /etc/profile.d/hyperion.sh ]; then
-    . /etc/profile.d/hyperion.sh
-fi
-
-BASHRC
-# end of inline "here" file
-
-            fi # if commands already present in .bashrc
-        fi # if bash
-    fi
-  fi # if not FreeBSD
+        fi # if true
+    fi # if true
 fi # if (! $dostep_bashrc)
      
 #-----------------------------------------------------------------------------
@@ -2564,13 +2650,7 @@ if (! $opt_no_install); then
     echo "To make this new Hercules immediately available, run:"
     echo "(note the '.', which will source the script)"
     echo   # output a newline
-
-    # FIXME needs to split case based on init vs. systemd
-    if [[ $version_id == freebsd* ]]; then
-        echo "  . $opt_install_dir/hyperion-init-$shell.sh"
-    else
-        echo "  . /etc/profile.d/hyperion.sh"
-    fi
+    echo "  . $opt_install_dir/hyperion-init-$shell.sh"
 fi
 
 verbose_msg "Done!"
