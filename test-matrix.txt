@@ -1,6 +1,6 @@
 https://github.com/wrljet/hercules-helper
 
-This chart updated:  04/12/2021
+This chart updated:  05/02/2021
 
 VMware indicates VMware 15.5 running on Windows 10 running on Intel i7 CPU
 All builds are compiled natively on the target OS (not cross compiled)
@@ -17,17 +17,17 @@ CentOS     Stream 8  x86_64          gcc 8.4.1   VMware          01/14/2021
 CentOS     8.2.2004  x86_64          gcc 8.3.1   VMware          01/14/2021
 CentOS     7.9.2009  x86_64          gcc 4.8.5   VMware          01/14/2021
 
-Debian     10.0      x86_64    4 GB  gcc 8.3.0   VMware          01/07/2021
+Debian     10.9      x86_64    4 GB  gcc 8.3.0   VMware          05/02/2021    'mojave' branch
 Debian     10.6      i686            gcc 8.3.0   VMware          12/22/2020
-Debian     9.9       i686            gcc 6.3.0   VMware          12/12/2020
-Debian     8.6       i686            gcc 8.3.0   VMware          12/18/2020
-Debian     8.6       i686            gcc 6.3.0   VMware          12/17/2020
-Debian     8.6       i686            gcc 5.4.0   VMware          12/20/2020    CBUC test fails
-Debian     8.6       i686            gcc 4.9.3   VMware          12/12/2020    CBUC test fails
-Debian     8.6       i686            gcc 4.9.2   VMware          12/12/2020    Tests failed; crashed
+Debian      9.9      i686            gcc 6.3.0   VMware          12/12/2020
+Debian      8.6      i686            gcc 8.3.0   VMware          12/18/2020
+Debian      8.6      i686            gcc 6.3.0   VMware          12/17/2020
+Debian      8.6      i686            gcc 5.4.0   VMware          12/20/2020    CBUC test fails
+Debian      8.6      i686            gcc 4.9.3   VMware          12/12/2020    CBUC test fails
+Debian      8.6      i686            gcc 4.9.2   VMware          12/12/2020    Tests failed; crashed
 
 Kubuntu    20.04     x86_64          gcc 9.3.0   VMware          01/07/2021
-Ubuntu     20.04     x86_64          gcc 9.3.0   Windows WSL2    12/13/2020
+Ubuntu     20.04     x86_64          gcc 9.3.0   Windows WSL2    05/02/2021    'mojave' branch
 Ubuntu     18.04     x86_64          gcc 7.5.0   VMware          12/12/2020
 Ubuntu     16.04     x86_64          gcc 5.4.0   Docker          02/18/2021    Docker on WSL2
 Ubuntu     12.04     i686            gcc 8.3.0   VMware          12/18/2020
@@ -41,6 +41,7 @@ KDE Neon   11.19     x86_64          gcc 7.5.0   VMware          12/12/2020
 Mint       20        x86_64          gcc 9.3.0   VMware          12/13/2020
 
 openSUSE   15.1      x86_64          gcc 7.5.0   VMware          01/07/2021
+openSUSE   15.3 RC   x86_64          gcc 7.5.0   VMware          04/30/2021    Bug in 15.3RC, not in 15.2, test hang waiting for input
 Manjaro    20.2      x86_64          gcc 10.2.0  VMware          04/13/2021
 
 RPI OS (beta)        AArch64         gcc 8.3.0   Rasp Pi 4B 8GB  12/13/2020
@@ -54,3 +55,4 @@ FreeBSD    12.2      x86_64          Clang 10    Vmware          04/12/2021
 FreeBSD    13.0 RC5  AArch64         Clang 11    Rasp Pi 4B      04/12/2021
 NetBSD     9.0       amd64           gcc 7.4.0   AMD64 PC        not ready yet
 
+MacOS      10.14.6   amd64           Clang 10    VMware          05/02/2021    'mojave' branch
