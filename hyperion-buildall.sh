@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 01 MAY 2021
+# Updated: 02 MAY 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -49,11 +49,12 @@
 
 # Changelog:
 #
-# Updated: 01 MAY 2021
+# Updated: 02 MAY 2021
 # - add initial support for macOS Mojave 10.14 (Darwin)
 # - various changes to work with Bash 3.2
 # - replace 'printf %()T' with 'date +%s'
 # - remove /etc/profile.d/hyperion.sh stuff entirely
+# - requires 'libtool' package until updates have been applied to Hyperion
 #
 # Updated: 12 APR 2021
 # - add --detect-only option
@@ -1397,7 +1398,8 @@ prepare_packages()
 
       declare -a debian_packages=( \
           "git" "wget" \
-          "build-essential" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
+          "build-essential" "cmake" \
+          "autoconf" "automake" "flex" "gawk" "m4" "libtool" \
           "libbz2-dev" "zlib1g-dev"
       )
 
@@ -2279,12 +2281,13 @@ verbose_msg "-----------------------------------------------------------------
 cd $opt_build_dir/sdl4x/hyperion
 
 # FIXME filter out FreeBSD and Apple Darwin here also
+# FIXME until we update everything on Hyperion, skip autogen.sh
 
 if (! $dostep_autogen); then
     verbose_msg "Skipping step: autogen.sh (--no-autogen)"
-elif [[ "$(uname -m)" == x86* && "$version_distro" != "darwin" ]]; then
-    # We will skip autogen on Linux x86_64 machines.
-    verbose_msg "Skipping autogen step on Linux x86* architecture"
+# elif [[ "$(uname -m)" == x86* && "$version_distro" != "darwin" ]]; then
+#     # We will skip autogen on Linux x86_64 machines.
+#     verbose_msg "Skipping autogen step on Linux x86* architecture"
 else
     status_prompter "Step: autogen.sh:"
     ./autogen.sh
