@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 02 MAY 2021
+# Updated: 06 MAY 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 06 MAY 2021
+# - corrected macOS version detection to now recognize 10.13 (High Sierra),
+#   10.14 (Mojave), and 11 (Big Sur)
 #
 # Updated: 02 MAY 2021
 # - add initial support for macOS Mojave 10.14 (Darwin)
@@ -217,7 +221,7 @@ fi
 
 if ((BASH_VERSINFO[0] < 4))
 then
-    echo "Bash version 4+ is required"
+    # echo "Bash version 4+ is required"
 else
     shopt -s globstar
 fi
@@ -620,22 +624,6 @@ detect_darwin()
     # uname -a
     # Darwin Sunils-Air 20.2.0 Darwin Kernel Version 20.2.0: Wed Dec  2 20:40:21 PST 2020; root:xnu-7195.60.75~1/RELEASE_ARM64_T8101 x86_64
 
-#   UNAME_MACHINE=$( (uname -m) 2>/dev/null) || UNAME_MACHINE=unknown
-#   UNAME_RELEASE=$( (uname -r) 2>/dev/null) || UNAME_RELEASE=unknown
-#   UNAME_SYSTEM=$( (uname -s) 2>/dev/null) || UNAME_SYSTEM=unknown
-#   UNAME_VERSION=$( (uname -v) 2>/dev/null) || UNAME_VERSION=unknown
-
-#   case "$UNAME_MACHINE:$UNAME_SYSTEM:$UNAME_RELEASE:$UNAME_VERSION" in
-#       arm64:Darwin:*:*)
-#           echo aarch64-apple-darwin"$UNAME_RELEASE"
-#           ;;
-#       *:Darwin:*:*)
-#           UNAME_PROCESSOR=$(uname -p)
-#           case $UNAME_PROCESSOR in
-#               unknown) UNAME_PROCESSOR=powerpc ;;
-#           esac
-#   esac
-
     if [ "$uname_system" == "Darwin" ]; then
         version_distro="darwin"
     fi
@@ -825,7 +813,6 @@ detect_system()
         else
             verbose_msg "nope"
 
-# FIXME Apple Darwin
             verbose_msg -n "Checking for Windows WSL1... "
             if [[ "$(< /proc/version)" == *@(Microsoft|WSL)* ]]; then
                 verbose_msg "running on WSL1"
@@ -967,16 +954,32 @@ detect_system()
 # 18.0.0 = macOS v10.14 (Mojave)
 
         version_id="darwin"
+        version_str=$(sw_vers -productVersion)
 
-        version_str=$(uname -r)
-
-        verbose_msg "VERSION_ID       : $version_id"
-        verbose_msg "VERSION_STR      : $version_str"
+        echo "VERSION_ID       : $version_id"
+        echo "VERSION_STR      : $version_str"
 
         version_major=$(echo $version_str | cut -f1 -d.)
-          verbose_msg "VERSION_MAJOR    : $version_major"
+        echo "VERSION_MAJOR    : $version_major"
         version_minor=$(echo $version_str | cut -f2 -d.)
-          verbose_msg "VERSION_MINOR    : $version_minor"
+        echo "VERSION_MINOR    : $version_minor"
+        version_build=$(echo $version_str | cut -f3 -d.)
+        echo "VERSION_BUILD    : $version_build"
+
+        if [[ $version_major -eq 10 && $version_minor -eq 13 ]]; then
+            os_is_supported=true
+            echo "Apple macOS version $version_str (High Sierra) found"
+        elif [[ $version_major -eq 10 && $version_minor -eq 14 ]]; then
+            os_is_supported=true
+            echo "Apple macOS version $version_str (Mojave) found"
+        elif [[ $version_major -eq 11 ]]; then
+            os_is_supported=true
+            echo "Apple macOS version $version_str (Big Sur) found"
+        else
+            os_is_supported=false
+            echo "Apple macOS version $version_major found, is currently unsupported"
+            exit 1
+        fi
     fi
 }
 
@@ -1668,12 +1671,7 @@ prepare_packages()
   # Apple Darwin (macOS)
 
   if [[ $version_id == darwin* ]]; then
-      # 18.0.0 = macOS 10.14 Mojave
-      if [[ $version_major -eq 18 ]]; then
-          os_is_supported=true
-
-          echo "Apple macOS version 10 (Mojave) found"
-
+      if ( $os_is_supported ); then
           declare -a darwin_packages=( \
               "wget" \
               "autoconf" "automake" \

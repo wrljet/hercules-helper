@@ -26,7 +26,8 @@ uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
 
         version_id="darwin"
 
-        version_str=$(uname -r)
+        # version_str=$(uname -r)
+        version_str=$(sw_vers -productVersion)
 
         echo "VERSION_ID       : $version_id"
         echo "VERSION_STR      : $version_str"
@@ -35,10 +36,21 @@ uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
           echo "VERSION_MAJOR    : $version_major"
         version_minor=$(echo $version_str | cut -f2 -d.)
           echo "VERSION_MINOR    : $version_minor"
+        version_build=$(echo $version_str | cut -f3 -d.)
+          echo "VERSION_BUILD    : $version_build"
 
-      if [[ $version_major -eq 18 ]]; then
+      if [[ $version_major -eq 10 && $version_minor -eq 13 ]]; then
           os_is_supported=true
-          echo "Apple macOS version 10 (Mojave) found"
+          echo "Apple macOS version $version_str (High Sierra) found"
+      elif [[ $version_major -eq 10 && $version_minor -eq 14 ]]; then
+          os_is_supported=true
+          echo "Apple macOS version $version_str (Mojave) found"
+      elif [[ $version_major -eq 11 ]]; then
+          os_is_supported=true
+          echo "Apple macOS version $version_str (Big Sur) found"
+      else
+          os_is_supported=false
+          echo "Apple macOS version $version_major found, is unsupported"
       fi
 echo    # print a newline
 
