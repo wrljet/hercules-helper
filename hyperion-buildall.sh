@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 06 MAY 2021
+# Updated: 09 MAY 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 09 MAY 2021
+# - corrected comment-only if/else clause
 #
 # Updated: 06 MAY 2021
 # - corrected macOS version detection to now recognize 10.13 (High Sierra),
@@ -221,7 +224,7 @@ fi
 
 if ((BASH_VERSINFO[0] < 4))
 then
-    # echo "Bash version 4+ is required"
+    echo "Bash version < v4"
 else
     shopt -s globstar
 fi
