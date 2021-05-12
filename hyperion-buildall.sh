@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 09 MAY 2021
+# Updated: 11 MAY 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 11 MAY 2021
+# - add package libtool-ltdl-devel for CentOS and newer autoconf/libtool
 #
 # Updated: 09 MAY 2021
 # - corrected comment-only if/else clause
@@ -1512,7 +1515,8 @@ prepare_packages()
           if [[ $version_major -eq 7 ]]; then
               declare -a centos_packages=( \
                   "git" "wget" \
-                  "gcc" "make" "autoconf" "automake" "flex" "gawk" "m4"
+                  "gcc" "make" "flex" "gawk" "m4" \
+                  "autoconf" "automake" "libtool-ltdl-devel" \
                   "bzip2-devel" "zlib-devel"
               )
           fi
@@ -1520,7 +1524,8 @@ prepare_packages()
           if [[ $version_major -eq 8 ]]; then
               declare -a centos_packages=( \
                   "git" "wget" \
-                  "gcc" "make" "autoconf" "automake" "flex" "gawk" "m4"
+                  "gcc" "make" "flex" "gawk" "m4" \
+                  "autoconf" "automake" "libtool-ltdl-devel" \
                   "cmake"
                   "bzip2-devel" "zlib-devel"
               )
