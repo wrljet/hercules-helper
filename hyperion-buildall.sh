@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 11 MAY 2021
+# Updated: 12 MAY 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 12 MAY 2021
+# - call 'autoreconf --force --install' to get latest libtool, etc.
 #
 # Updated: 11 MAY 2021
 # - add package libtool-ltdl-devel for CentOS and newer autoconf/libtool
@@ -2287,7 +2290,7 @@ verbose_msg "-----------------------------------------------------------------
 cd $opt_build_dir/sdl4x/hyperion
 
 # FIXME filter out FreeBSD and Apple Darwin here also
-# FIXME until we update everything on Hyperion, skip autogen.sh
+# FIXME until we update everything on Hyperion, run autogen.sh
 
 if (! $dostep_autogen); then
     verbose_msg "Skipping step: autogen.sh (--no-autogen)"
@@ -2296,6 +2299,7 @@ if (! $dostep_autogen); then
 #     verbose_msg "Skipping autogen step on Linux x86* architecture"
 else
     status_prompter "Step: autogen.sh:"
+    autoreconf --force --install >./autoreconf.log 2>&1 && echo "autoreconf OK"
     ./autogen.sh
 fi
 
