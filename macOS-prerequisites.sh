@@ -45,12 +45,15 @@ uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
       elif [[ $version_major -eq 10 && $version_minor -eq 14 ]]; then
           os_is_supported=true
           echo "Apple macOS version $version_str (Mojave) found"
+      elif [[ $version_major -eq 10 && $version_minor -eq 15 ]]; then
+          os_is_supported=true
+          echo "Apple macOS version $version_str (Catalina) found"
       elif [[ $version_major -eq 11 ]]; then
           os_is_supported=true
           echo "Apple macOS version $version_str (Big Sur) found"
       else
           os_is_supported=false
-          echo "Apple macOS version $version_major found, is unsupported"
+          echo "Apple macOS version $version_major.$version_minor found, is unsupported"
       fi
 echo    # print a newline
 

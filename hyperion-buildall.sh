@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 12 MAY 2021
+# Updated: 15 MAY 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 15 MAY 2021
+# - corrected macOS version detection to now recognize 10.15 (Catalina)
 #
 # Updated: 12 MAY 2021
 # - call 'autoreconf --force --install' to get latest libtool, etc.
@@ -981,12 +984,15 @@ detect_system()
         elif [[ $version_major -eq 10 && $version_minor -eq 14 ]]; then
             os_is_supported=true
             echo "Apple macOS version $version_str (Mojave) found"
+        elif [[ $version_major -eq 10 && $version_minor -eq 15 ]]; then
+            os_is_supported=true
+            echo "Apple macOS version $version_str (Catalina) found"
         elif [[ $version_major -eq 11 ]]; then
             os_is_supported=true
             echo "Apple macOS version $version_str (Big Sur) found"
         else
             os_is_supported=false
-            echo "Apple macOS version $version_major found, is currently unsupported"
+            echo "Apple macOS version $version_major.$version_minor found, is currently unsupported"
             exit 1
         fi
     fi
