@@ -50,6 +50,9 @@
 # Changelog:
 #
 # Updated: 26 MAY 2021
+# - clean up display around 'autoreconf'
+#
+# Updated: 26 MAY 2021
 # - add feature to 'git checkout' a specific revision
 #
 # Updated: 15 MAY 2021
@@ -2323,7 +2326,18 @@ if (! $dostep_autogen); then
 #     verbose_msg "Skipping autogen step on Linux x86* architecture"
 else
     status_prompter "Step: autogen.sh:"
-    autoreconf --force --install >./autoreconf.log 2>&1 && echo "autoreconf OK"
+
+# this ECHO stuff taken from Hercules autogen.sh
+case `echo "testing\c"; echo 1,2,3`,`echo -n testing; echo 1,2,3` in
+  *c*,-n*) ECHO_N= ECHO_C='
+' ECHO_T='	' ;;
+  *c*,*  ) ECHO_N=-n ECHO_C= ECHO_T= ;;
+  *)       ECHO_N= ECHO_C='\c' ECHO_T= ;;
+esac
+
+    echo $ECHO_N "autoreconf... $ECHO_C" && autoreconf --force --install >./autoreconf.log 2>&1 && echo "OK."
+    verbose_msg    # output a newline
+
     ./autogen.sh
 fi
 
