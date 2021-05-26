@@ -2496,7 +2496,7 @@ if (! $dostep_tests); then
     verbose_msg "Skipping step: make check (--no-tests)"
 else
     status_prompter "Step: tests:"
-    verbose_msg "Be patient, this can take a while."
+    verbose_msg "Be patient, this can take a while with no output."
 
     if [[ $version_id == freebsd* ]]; then
         make_check_cmd="gmake check"
