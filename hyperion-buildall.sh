@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 15 MAY 2021
+# Updated: 26 MAY 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 26 MAY 2021
+# - add feature to 'git checkout' a specific revision
 #
 # Updated: 15 MAY 2021
 # - corrected macOS version detection to now recognize 10.15 (Catalina)
@@ -263,6 +266,10 @@ git_repo_hyperion=${git_repo_hyperion:-https://github.com/SDL-Hercules-390/hyper
 # Git checkout branch for Hyperion
 git_branch_hyperion=${git_branch_hyperion:-""}
 # git_branch_hyperion="build-netbsd"
+
+# Git checkout commit for Hyperion
+git_commit_hyperion=${git_commit_hyperion:-""}
+# git_commit_hyperion=cb24398
 
 # Git repo for Hyperion Gists
 git_repo_gists=${git_repo_gists:-https://github.com/SDL-Hercules-390/gists.git}
@@ -1882,6 +1889,10 @@ else
     verbose_msg "GIT_REPO_HYPERION    : $git_repo_hyperion} [checkout $git_branch_hyperion]"
 fi
 
+if [ ! -z "$git_commit_hyperion" ] ; then
+    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hyperion} [checkout $git_commit_hyperion]"
+fi
+
 if [ -z "$git_branch_gists" ] ; then
     verbose_msg "GIT_REPO_GISTS       : $git_repo_gists [default branch]"
 else
@@ -2186,6 +2197,13 @@ else
     else
         verbose_msg "git clone -b $git_branch_hyperion $git_repo_hyperion"
         git clone -b "$git_branch_hyperion" "$git_repo_hyperion"
+    fi
+
+    if [ ! -z "$git_commit_hyperion" ] ; then
+        verbose_msg "git checkout $git_commit_hyperion"
+        pushd hyperion
+        git checkout "$git_commit_hyperion"
+        popd
     fi
 
     #-------
