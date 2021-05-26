@@ -50,6 +50,10 @@
 # Changelog:
 #
 # Updated: 26 MAY 2021
+# - add configure option: CFLAGS=-frecord-gcc-switches
+#   for: 'readelf -p .GCC.command.line herc4x/bin/hercules'
+#
+# Updated: 26 MAY 2021
 # - clean up display around 'autoreconf'
 #
 # Updated: 26 MAY 2021
@@ -2415,7 +2419,7 @@ else
     fi
 
     configure_cmd=$(cat <<-END-CONFIGURE
-./configure \
+CFLAGS=-frecord-gcc-switches ./configure \
     $config_opt_optimization \
     --enable-extpkgs=$opt_build_dir/extpkgs \
     --prefix=$opt_install_dir \
