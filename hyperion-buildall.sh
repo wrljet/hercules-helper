@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 26 MAY 2021
+# Updated: 27 MAY 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 27 MAY 2021
+# - CFLAGS=-frecord-gcc-switches broke macOS
 #
 # Updated: 26 MAY 2021
 # - add configure option: CFLAGS=-frecord-gcc-switches
@@ -2416,6 +2419,12 @@ else
         enable_getoptwrapper_option="--disable-getoptwrapper"
     else
         enable_getoptwrapper_option=""
+    fi
+
+    if [[ $version_id == darwin* ]]; then
+        frecord_gcc_switches_option=""
+    else
+        frecord_gcc_switches_option="CFLAGS=-frecord-gcc-switches"
     fi
 
     configure_cmd=$(cat <<-END-CONFIGURE
