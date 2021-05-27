@@ -2428,7 +2428,7 @@ else
     fi
 
     configure_cmd=$(cat <<-END-CONFIGURE
-CFLAGS=-frecord-gcc-switches ./configure \
+$frecord_gcc_switches_option ./configure \
     $config_opt_optimization \
     --enable-extpkgs=$opt_build_dir/extpkgs \
     --prefix=$opt_install_dir \
