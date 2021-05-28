@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 27 MAY 2021
+# Updated: 28 MAY 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 28 MAY 2021
+# - default to skipping autoreconf/autogen
+# - add --autogen switch
 #
 # Updated: 27 MAY 2021
 # - CFLAGS=-frecord-gcc-switches broke macOS
@@ -326,11 +330,11 @@ opt_no_gitclone=${opt_no_gitclone:-false}
 # --no-bldlvlck  skip \'util/bldlvlck\' steps
 opt_no_bldlvlck=${opt_no_bldlvlck:-false}
 
-# --no-extpkgs  skip building Hercules external packages
+# --no-extpkgs   skip building Hercules external packages
 opt_no_extpkgs=${opt_no_extpkgs:-false}
 
 # --no-autogen   skip running \'autogen\'
-opt_no_autogen=${opt_no_autogen:-false}
+opt_no_autogen=${opt_no_autogen:-true}
 
 # --no-configure skip running \'configure\'
 opt_no_configure=${opt_no_configure:-false}
@@ -357,14 +361,14 @@ opt_no_envscript=${opt_no_envscript:-false}
 # --no-bashrc    skip modifying .bashrc to set environment variables
 opt_no_bashrc=${opt_no_bashrc:-false}
 
-# Optional steps we perform, assume we want them all
+# Optional steps we perform
 #
 dostep_packages=${dostep_packages:-true}      # Check for required system packages
 dostep_rexx=${dostep_rexx:-true}              # Build Regina REXX
 dostep_gitclone=${dostep_gitclone:-true}      # Git clone Hercules and external packages
 dostep_bldlvlck=${dostep_bldlvlck:-true}      # Run bldlvlck
 dostep_extpkgs=${dostep_extpkgs:-true}        # Build Hercules external packages
-dostep_autogen=${dostep_autogen:-true}        # Run autogen
+dostep_autogen=${dostep_autogen:-false}       # Run autoreconf / autogen
 dostep_configure=${dostep_configure:-true}    # Run configure
 dostep_clean=${dostep_clean:-true}            # Run make clean
 dostep_make=${dostep_make:-true}              # Run make (compile and link)
@@ -465,6 +469,7 @@ Sub-functions (in order of operation):
        --no-gitclone  skip \'git clone\' steps
        --no-bldlvlck  skip \'util/bldlvlck\' steps
        --no-extpkgs   skip building Hercules external packages
+       --autogen      run \'autoreconf\' and \'autogen\'
        --no-autogen   skip running \'autogen\'
        --no-configure skip running \'configure\'
        --no-clean     skip running \'make clean\'
@@ -1208,7 +1213,8 @@ opt_override_no_rexx=false        # Build Regina REXX
 opt_override_no_gitclone=false    # Git clone Hercules and external packages
 opt_override_no_bldlvlck=false    # Run bldlvlck
 opt_override_no_extpkgs=false     # Build Hercules external packages
-opt_override_no_autogen=false     # Run autogen
+opt_override_do_autogen=false     # Run autoreconf / autogen
+opt_override_no_autogen=false     # Skip autogen
 opt_override_no_configure=false   # Run configure
 opt_override_no_clean=false       # Run make clean
 opt_override_no_make=false        # Run make (compile and link)
@@ -1285,6 +1291,11 @@ case $key in
 
   --no-extpkgs) # skip build Hercules external packages
     opt_override_no_extpkgs=true
+    shift # past argument
+    ;;
+
+  --autogen) # run 'autoreconf' and 'autogen'
+    opt_override_do_autogen=true
     shift # past argument
     ;;
 
@@ -1402,7 +1413,14 @@ if [ $opt_override_no_rexx     == true ]; then opt_no_rexx=true; fi
 if [ $opt_override_no_gitclone == true ]; then opt_no_gitclone=true; fi
 if [ $opt_override_no_bldlvlck == true ]; then opt_no_bldlvlck=true; fi
 if [ $opt_override_no_extpkgs  == true ]; then opt_no_extpkgs=true; fi
+
+if [ $opt_override_do_autogen == true ] && [ $opt_override_no_autogen == true ]; then
+  error_msg "--autogen and --no-autogen are mutually exclusive"
+  exit 1
+fi
+if [ $opt_override_do_autogen  == true ]; then opt_no_autogen=false; fi
 if [ $opt_override_no_autogen  == true ]; then opt_no_autogen=true; fi
+
 if [ $opt_override_no_configure == true ]; then opt_no_configure=true; fi
 if [ $opt_override_no_clean    == true ]; then opt_no_clean=true; fi
 if [ $opt_override_no_make     == true ]; then opt_no_make=true; fi
