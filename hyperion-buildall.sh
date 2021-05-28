@@ -2604,6 +2604,8 @@ else
     fi
 
     verbose_msg    # output a newline
+
+    readelf -p .GCC.command.line "$opt_install_dir/bin/hercules" > "$opt_install_dir/gcc-options.txt"
 fi
 
 verbose_msg "-----------------------------------------------------------------
