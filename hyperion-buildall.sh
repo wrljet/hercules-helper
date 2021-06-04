@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 28 MAY 2021
+# Updated: 04 JUN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 04 JUN 2021
+# - switch Regina from 3.9.3 to 3.6 due to bug affecting MVS-SYSGEN
+# - make Regina download configurable
 #
 # Updated: 28 MAY 2021
 # - default to skipping autoreconf/autogen
@@ -300,6 +304,11 @@ git_repo_extpkgs=${git_repo_extpkgs:-https://github.com/SDL-Hercules-390}
 # Git checkout branch for Hyperion External Packages
 git_branch_extpkgs=${git_extpkgs_extpkgs:-""}
 # git_branch_extpkgs="build-mods-i686"
+
+# Regina download
+opt_regina_dir="Regina-REXX-3.6"
+opt_regina_tarfile="Regina-REXX-3.6.tar.gz"
+opt_regina_url="http://www.wrljet.com/ibm360/Regina-REXX-3.6.tar.gz"
 
 # Print verbose progress information
 opt_verbose=${opt_verbose:-false}
@@ -1911,6 +1920,10 @@ verbose_msg "Configuration:"
 verbose_msg "OPT_BUILD_DIR        : $opt_build_dir"
 verbose_msg "OPT_INSTALL_DIR      : $opt_install_dir"
 
+verbose_msg "Regina build dir     : $opt_regina_dir"
+verbose_msg "Regina tar file      : $opt_regina_tarfile"
+verbose_msg "Regina download URL  : $opt_regina_url"
+
 if [ -z "$git_branch_hyperion" ] ; then
     verbose_msg "GIT_REPO_HYPERION    : $git_repo_hyperion [default branch]"
 else
@@ -2155,12 +2168,12 @@ else
     status_prompter "Step: Build Regina Rexx [used for test scripts]:"
 
     # Remove any existing Regina, download and untar
-    rm -f regina-rexx-3.9.3.tar.gz
-    rm -rf regina-rexx-3.9.3/
+    rm -f "$opt_regina_tarfile"
+    rm -rf "$opt_regina_dir"
 
-    wget http://www.wrljet.com/ibm360/regina-rexx-3.9.3.tar.gz
-    tar xfz regina-rexx-3.9.3.tar.gz 
-    cd regina-rexx-3.9.3/
+    wget "$opt_regina_url"
+    tar xfz "$opt_regina_tarfile"
+    cd "$opt_regina_dir"
 
     if [[ "$(uname -m)" =~ ^i686 ]]; then
         regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx --enable-32bit"
