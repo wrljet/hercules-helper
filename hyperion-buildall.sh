@@ -50,8 +50,12 @@
 # Changelog:
 #
 # Updated: 04 JUN 2021
-# - switch Regina from 3.9.3 to 3.6 due to bug affecting MVS-SYSGEN
+# - build Regina using the default PREFIX
+# - don't bother adding our Regina to path, etc.  Use system defaults
+#
+# Updated: 04 JUN 2021
 # - make Regina download configurable
+# - switch default Regina from 3.9.3 to 3.6 due to bug affecting MVS-SYSGEN
 #
 # Updated: 28 MAY 2021
 # - default to skipping autoreconf/autogen
@@ -2176,17 +2180,18 @@ else
     cd "$opt_regina_dir"
 
     if [[ "$(uname -m)" =~ ^i686 ]]; then
-        regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx --enable-32bit"
+        regina_configure_cmd="./configure --enable-32bit"
     elif [[ "$(uname -m)" =~ ^arm64 ]]; then
         # If it's an arm64 CPU, and not FreeBSD, enable 64-bit
         # This should work on Raspberry Pi with both FreeBSD and the Pi OSes
         if [[ $version_id == freebsd* ]]; then
-            regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx"
+            regina_configure_cmd="./configure"
         else
-            regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx --enable-64bit"
+            regina_configure_cmd="./configure --enable-64bit"
         fi
     else
-        regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx"
+        # regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx"
+        regina_configure_cmd="./configure"
     fi
 
     verbose_msg $regina_configure_cmd
@@ -2194,18 +2199,22 @@ else
     eval "$regina_configure_cmd"
 
     time make
-    time make install
 
-    export PATH=$opt_build_dir/rexx/bin:$PATH
+    verbose_msg "sudo required to install Regina REXX in the default system directories"
+    verbose_msg    # output a newline
+    sudo time make install
 
+#   export PATH=$opt_build_dir/rexx/bin:$PATH
+#
 #   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$opt_build_dir/rexx/lib
-    newpath="$opt_install_dir/rexx/lib"
-    if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
-        export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
-    fi
+#   newpath="$opt_install_dir/rexx/lib"
+#   if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
+#       export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
+#   fi
+#
+#   export CPPFLAGS=-I$opt_build_dir/rexx/include
 
-    export CPPFLAGS=-I$opt_build_dir/rexx/include
-
+    verbose_msg    # output a newline
     verbose_msg "which rexx: $(which rexx)"
     built_regina_from_source=1
 fi
@@ -2672,28 +2681,28 @@ fi
 FOE
 # end of inline "here" file
 
-if [[ "$built_regina_from_source" -eq 1 ]]; then
-    cat <<FOE2 >>"$opt_install_dir/hyperion-init-$shell.sh"
-newpath="$opt_build_dir/rexx/bin"
-if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
-  # export PATH="\${PATH:+"\$PATH:"}\$newpath"
-    export PATH="\$newpath\${PATH:+":\$PATH"}"
-fi
-
-newpath="$opt_build_dir/rexx/lib"
-if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
-  # export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}\$newpath"
-    export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
-fi
-
-newpath="$opt_build_dir/rexx/include"
-if [ -d "\$newpath" ] && [[ ":\$CPPFLAGS:" != *":-I\$newpath:"* ]]; then
-  # export CPPFLAGS="\${CPPFLAGS:+"\$CPPFLAGS:"}-I\$newpath"
-    export CPPFLAGS="-I\$newpath\${CPPFLAGS:+" \$CPPFLAGS"}"
-fi
-FOE2
+#if [[ "$built_regina_from_source" -eq 1 ]]; then
+#    cat <<FOE2 >>"$opt_install_dir/hyperion-init-$shell.sh"
+#newpath="$opt_build_dir/rexx/bin"
+#if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
+#  # export PATH="\${PATH:+"\$PATH:"}\$newpath"
+#    export PATH="\$newpath\${PATH:+":\$PATH"}"
+#fi
+#
+#newpath="$opt_build_dir/rexx/lib"
+#if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
+#  # export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}\$newpath"
+#    export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
+#fi
+#
+#newpath="$opt_build_dir/rexx/include"
+#if [ -d "\$newpath" ] && [[ ":\$CPPFLAGS:" != *":-I\$newpath:"* ]]; then
+#  # export CPPFLAGS="\${CPPFLAGS:+"\$CPPFLAGS:"}-I\$newpath"
+#    export CPPFLAGS="-I\$newpath\${CPPFLAGS:+" \$CPPFLAGS"}"
+#fi
+#FOE2
 # end of inline "here" file
-fi
+#fi
 
     chmod +x "$opt_install_dir/hyperion-init-$shell.sh"
     source "$opt_install_dir/hyperion-init-$shell.sh"
