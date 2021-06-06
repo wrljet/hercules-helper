@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 04 JUN 2021
+# Updated: 06 JUN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,11 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 06 JUN 2021
+# - configure Regina with --libdir=/usr/lib
+#   (so far just on Debian derivatives)
+# - bug in Regina 3.7+ that affects MVS-SYSGEN found, and may be worked around with LINES(,'C')
 #
 # Updated: 04 JUN 2021
 # - build Regina using the default PREFIX
@@ -310,9 +315,9 @@ git_branch_extpkgs=${git_extpkgs_extpkgs:-""}
 # git_branch_extpkgs="build-mods-i686"
 
 # Regina download
-opt_regina_dir="Regina-REXX-3.6"
-opt_regina_tarfile="Regina-REXX-3.6.tar.gz"
-opt_regina_url="http://www.wrljet.com/ibm360/Regina-REXX-3.6.tar.gz"
+opt_regina_dir=${opt_regina_dir:-"Regina-REXX-3.6"}
+opt_regina_tarfile=${opt_regina_tarfile:-"Regina-REXX-3.6.tar.gz"}
+opt_regina_url=${opt_regina_url:-"http://www.wrljet.com/ibm360/Regina-REXX-3.6.tar.gz"}
 
 # Print verbose progress information
 opt_verbose=${opt_verbose:-false}
@@ -1924,9 +1929,9 @@ verbose_msg "Configuration:"
 verbose_msg "OPT_BUILD_DIR        : $opt_build_dir"
 verbose_msg "OPT_INSTALL_DIR      : $opt_install_dir"
 
-verbose_msg "Regina build dir     : $opt_regina_dir"
-verbose_msg "Regina tar file      : $opt_regina_tarfile"
-verbose_msg "Regina download URL  : $opt_regina_url"
+verbose_msg "OPT_REGINA_DIR       : $opt_regina_dir"
+verbose_msg "OPT_REGINA_TARFILE   : $opt_regina_tarfile"
+verbose_msg "OPT_REGINA_URL       : $opt_regina_url"
 
 if [ -z "$git_branch_hyperion" ] ; then
     verbose_msg "GIT_REPO_HYPERION    : $git_repo_hyperion [default branch]"
@@ -2192,6 +2197,10 @@ else
     else
         # regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx"
         regina_configure_cmd="./configure"
+    fi
+
+    if [ "$version_distro" == "debian"  ]; then
+        regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib"
     fi
 
     verbose_msg $regina_configure_cmd
