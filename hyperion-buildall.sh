@@ -50,9 +50,13 @@
 # Changelog:
 #
 # Updated: 06 JUN 2021
+# - don't use gcc -O3
+#
+# Updated: 06 JUN 2021
 # - configure Regina with --libdir=/usr/lib
 #   (so far just on Debian derivatives)
-# - bug in Regina 3.7+ that affects MVS-SYSGEN found, and may be worked around with LINES(,'C')
+# - bug in Regina 3.7+ that affects MVS-SYSGEN found, and may be worked
+#   around with LINES(,'C')
 #
 # Updated: 04 JUN 2021
 # - build Regina using the default PREFIX
@@ -2454,11 +2458,11 @@ else
 
     # For FreeBSD, CLANG doesn't accept -march=native
     if [[ $version_id == freebsd* ]]; then
-        config_opt_optimization="--enable-optimization=\"-O3\""
+        config_opt_optimization="--enable-optimization=\"-O2\""
     elif [[ $version_id == alpine* ]]; then
         config_opt_optimization="--enable-optimization=\"-O2 -march=native -D__gnu_linux__=1 -D__ALPINE_LINUX__=1\""
     else
-        config_opt_optimization="--enable-optimization=\"-O3 -march=native\""
+        config_opt_optimization="--enable-optimization=\"-O2 -march=native\""
     fi
 
     # For Apple Darwin, avoid fork bomb
