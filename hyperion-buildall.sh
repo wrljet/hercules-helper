@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 06 JUN 2021
+# Updated: 07 JUN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 07 JUN 2021
+# - install 'time' which is missing on some Debian based systems
+# - install 'ncat' because it's useful for submitting JCL to test Hercules
 #
 # Updated: 06 JUN 2021
 # - don't use gcc -O3
@@ -1472,7 +1476,7 @@ prepare_packages()
       os_is_supported=true
 
       declare -a debian_packages=( \
-          "git" "wget" \
+          "git" "wget" "time" "ncat" \
           "build-essential" "cmake" \
           "autoconf" "automake" "flex" "gawk" "m4" "libtool" \
           "libbz2-dev" "zlib1g-dev"
