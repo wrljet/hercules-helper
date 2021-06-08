@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 07 JUN 2021
+# Updated: 08 JUN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 08 JUN 2021
+# - look for both 'arm64' and 'aarch64' in uname -m detection
 #
 # Updated: 07 JUN 2021
 # - install 'time' which is missing on some Debian based systems
@@ -2194,7 +2197,7 @@ else
 
     if [[ "$(uname -m)" =~ ^i686 ]]; then
         regina_configure_cmd="./configure --enable-32bit"
-    elif [[ "$(uname -m)" =~ ^arm64 ]]; then
+    elif [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
         # If it's an arm64 CPU, and not FreeBSD, enable 64-bit
         # This should work on Raspberry Pi with both FreeBSD and the Pi OSes
         if [[ $version_id == freebsd* ]]; then
