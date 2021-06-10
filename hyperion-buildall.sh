@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 08 JUN 2021
+# Updated: 10 JUN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 10 JUN 2021
+# - add Hercules-Helper version (git commit ID) to the Hercules custom build string
 #
 # Updated: 08 JUN 2021
 # - look for both 'arm64' and 'aarch64' in uname -m detection
@@ -1411,8 +1414,12 @@ pushd "$(dirname "$0")" >/dev/null;
 
     if [ -z $which_git ]; then
         echo "git is not installed"
+        hercules_helper_version="unknown"
     else
         echo "script version: $0: $(git describe --long --tags --dirty --always 2>/dev/null)"
+
+        # add hercules-helper version to the build description
+        hercules_helper_version="$(git describe --long --tags --dirty --always 2>/dev/null)"
     fi
 popd > /dev/null;
 echo    # print a newline
@@ -2492,7 +2499,7 @@ $frecord_gcc_switches_option ./configure \
     $config_opt_optimization \
     --enable-extpkgs=$opt_build_dir/extpkgs \
     --prefix=$opt_install_dir \
-    --enable-custom="Built using hercules-helper" \
+    --enable-custom="Built using Hercules-Helper (version: $hercules_helper_version)" \
     $enable_rexx_option \
     $enable_ipv6_option \
     $enable_getoptwrapper_option
