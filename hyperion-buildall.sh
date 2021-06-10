@@ -51,6 +51,7 @@
 #
 # Updated: 10 JUN 2021
 # - add Hercules-Helper version (git commit ID) to the Hercules custom build string
+# - patch configure for Regina REXX 3.9.3 to add build support for 64-bit Pi
 #
 # Updated: 08 JUN 2021
 # - look for both 'arm64' and 'aarch64' in uname -m detection
@@ -2219,6 +2220,16 @@ else
 
     if [ "$version_distro" == "debian"  ]; then
         regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib"
+    fi
+
+    # If this is a RPIOS 64-bit, then we need to patch configure
+    # for Regina above version 3.6
+    if [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
+      if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
+	verbose_msg "Patching Regina source for Raspberry Pi 64-bit"
+	patch -u configure -i "$(dirname "$0")/patches/regina-rexx-3.9.3.patch"
+	verbose_msg    # output a newline
+      fi
     fi
 
     verbose_msg $regina_configure_cmd
