@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 10 JUN 2021
+# Updated: 11 JUN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 11 JUN 2021
+# - remove prompts from '--auto' mode
+# - add '--prompt' as a synonym for '--prompts' because it's an easy typo to make
 #
 # Updated: 10 JUN 2021
 # - add Hercules-Helper version (git commit ID) to the Hercules custom build string
@@ -492,8 +496,8 @@ Options:
   -p,  --prompts      print a prompt before each major step
   -c,  --config=FILE  specify config file containing options
   -s,  --sudo         use \'sudo\' for installing
-  -a,  --auto         run everything, with --verbose and --prompts,
-                      and creating a full log file
+  -a,  --auto         run everything, with --verbose (but not --prompts),
+                      and create a full log file
 
 Sub-functions (in order of operation):
        --detect-only  run detection only and exit
@@ -1285,15 +1289,15 @@ case $key in
     shift # past argument
     ;;
 
-  -p|--prompts)
+  -p|--prompt|--prompts)
     opt_override_prompts=true
     shift # past argument
     ;;
 
-  -a|--auto)  # run everything using all defaults, prompts, and logging
+  -a|--auto)  # run everything using all defaults, w/o prompts, and with logging
     opt_override_auto=true
     opt_override_verbose=true
-    opt_override_prompts=true
+    opt_override_prompts=false
     shift # past argument
     ;;
 
