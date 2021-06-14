@@ -2652,7 +2652,7 @@ else
         make_check_cmd="make check"
     fi
 
-    eval "$make_check_cmd"
+    eval "time $make_check_cmd"
 
     # time ./tests/runtest ./tests
 
