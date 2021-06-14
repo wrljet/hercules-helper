@@ -50,6 +50,9 @@
 # Changelog:
 #
 # Updated: 14 JUN 2021
+# - some initial work for the Apple Mac M1 CPU, detection
+#
+# Updated: 14 JUN 2021
 # - before telling the user how to source the script to set environment vars
 #   make sure we actually created it.
 # - add '--no-packages' command, and fix related bugs in command parsing
@@ -455,6 +458,8 @@ LD=${LD:-"ld"}
 
 uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
 
+# Check for Apple macOS and prerequisites
+
 if [ "$uname_system" == "Darwin" ]; then
     darwin_need_prereqs=false
 
@@ -708,6 +713,7 @@ detect_darwin()
 
     # uname -a
     # Darwin Sunils-Air 20.2.0 Darwin Kernel Version 20.2.0: Wed Dec  2 20:40:21 PST 2020; root:xnu-7195.60.75~1/RELEASE_ARM64_T8101 x86_64
+    # Darwin xxxx.cyberlynk.net 20.5.0 Darwin Kernel Version 20.5.0: Sat May  8 05:10:31 PDT 2021; root:xnu-7195.121.3~9/RELEASE_ARM64_T8101 arm64
 
     if [ "$uname_system" == "Darwin" ]; then
         version_distro="darwin"
@@ -1036,7 +1042,16 @@ detect_system()
 # uname -s        : Darwin
 # uname -r        : 18.0.0
 
+# uname -a        : Darwin xxx.cyberlynk.net 20.5.0 Darwin Kernel Version 20.5.0: Sat May  8 05:10:31 PDT 2021; root:xnu-7195.121.3~9/RELEASE_ARM64_T8101 arm64
+# uname -m        : arm64
+# uname -p        : arm
+# uname -s        : Darwin
+# config.guess    :aarch64-apple-darwin20.5.0
+
+# uname -a        : Darwin Sunils-Air 20.2.0 Darwin Kernel Version 20.2.0: Wed Dec  2 20:40:21 PST 2020; root:xnu-7195.60.75~1/RELEASE_ARM64_T8101 x86_64
+
 # 18.0.0 = macOS v10.14 (Mojave)
+
 
         version_id="darwin"
         version_str=$(sw_vers -productVersion)
@@ -1062,7 +1077,12 @@ detect_system()
             echo "Apple macOS version $version_str (Catalina) found"
         elif [[ $version_major -eq 11 ]]; then
             os_is_supported=true
-            echo "Apple macOS version $version_str (Big Sur) found"
+
+            if [[ "$(uname -m)" =~ ^arm64 ]]; then
+                echo "Apple macOS version $version_str (Big Sur) on ARM CPU found"
+            else
+                echo "Apple macOS version $version_str (Big Sur) found"
+            fi
         else
             os_is_supported=false
             echo "Apple macOS version $version_major.$version_minor found, is currently unsupported"
