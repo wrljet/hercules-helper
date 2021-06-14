@@ -50,6 +50,9 @@
 # Changelog:
 #
 # Updated: 14 JUN 2021
+# - add '--no-packages' command, and fix related bugs in command parsing
+#
+# Updated: 14 JUN 2021
 # - fix zypper install patterns vs. packages on openSUSE
 # - add 'sudo ldconfig' after building Regina on openSUSE
 #   (this might be required elsewhere as well)
@@ -1320,6 +1323,11 @@ case $key in
     shift # past argument
     ;;
 
+  --no-packages) # skip checking for and installing packages
+    opt_override_no_packages=true
+    shift # past argument
+    ;;
+
   --no-rexx) # skip building Regina REXX
     opt_override_no_rexx=true
     shift # past argument
@@ -1917,19 +1925,19 @@ verbose_msg "  --prompts       : $opt_prompts"
 verbose_msg "  --sudo          : $opt_usesudo"
 
 verbose_msg "  --detect-only   : $opt_detect_only"
-verbose_msg "  --no_packages   : $opt_no_packages"
-verbose_msg "  --no_rexx       : $opt_no_rexx"
-verbose_msg "  --no_gitclone   : $opt_no_gitclone"
-verbose_msg "  --no_bldlvlck   : $opt_no_bldlvlck"
-verbose_msg "  --no_autogen    : $opt_no_autogen"
-verbose_msg "  --no_configure  : $opt_no_configure"
-verbose_msg "  --no_clean      : $opt_no_clean"
-verbose_msg "  --no_make       : $opt_no_make"
-verbose_msg "  --no_tests      : $opt_no_tests"
-verbose_msg "  --no_install    : $opt_no_install"
-verbose_msg "  --no_setcap     : $opt_no_setcap"
-verbose_msg "  --no_envscript  : $opt_no_envscript"
-verbose_msg "  --no_bashrc     : $opt_no_bashrc"
+verbose_msg "  --no-packages   : $opt_no_packages"
+verbose_msg "  --no-rexx       : $opt_no_rexx"
+verbose_msg "  --no-gitclone   : $opt_no_gitclone"
+verbose_msg "  --no-bldlvlck   : $opt_no_bldlvlck"
+verbose_msg "  --no-autogen    : $opt_no_autogen"
+verbose_msg "  --no-configure  : $opt_no_configure"
+verbose_msg "  --no-clean      : $opt_no_clean"
+verbose_msg "  --no-make       : $opt_no_make"
+verbose_msg "  --no-tests      : $opt_no_tests"
+verbose_msg "  --no-install    : $opt_no_install"
+verbose_msg "  --no-setcap     : $opt_no_setcap"
+verbose_msg "  --no-envscript  : $opt_no_envscript"
+verbose_msg "  --no-bashrc     : $opt_no_bashrc"
 verbose_msg    # print a newline
 
 # sysinfo:
