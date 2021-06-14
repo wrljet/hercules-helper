@@ -50,6 +50,8 @@
 # Changelog:
 #
 # Updated: 14 JUN 2021
+# - before telling the user how to source the script to set environment vars
+#   make sure we actually created it.
 # - add '--no-packages' command, and fix related bugs in command parsing
 #
 # Updated: 14 JUN 2021
@@ -2840,11 +2842,15 @@ fi # if (! $dostep_bashrc)
 #-----------------------------------------------------------------------------
 
 if (! $opt_no_install); then
-    echo   # output a newline
-    echo "To make this new Hercules immediately available, run:"
-    echo "(note the '.', which will source the script)"
-    echo   # output a newline
-    echo "  . $opt_install_dir/hyperion-init-$shell.sh"
+    if [ -f ~/.bashrc ]; then # Check for .bashrc existing first!
+      if [ -f $opt_install_dir/hyperion-init-$shell.sh ]; then
+        echo   # output a newline
+        echo "To make this new Hercules immediately available, run:"
+        echo "(note the '.', which will source the script)"
+        echo   # output a newline
+        echo "  . $opt_install_dir/hyperion-init-$shell.sh"
+      fi
+    fi
 fi
 
 verbose_msg "Done!"
