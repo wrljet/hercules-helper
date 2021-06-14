@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 11 JUN 2021
+# Updated: 12 JUN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 12 JUN 2021
+# - install 'libcap-progs' on openSUSE to use set capabilities
+# - configure Regina with --libdir=/usr/lib on openSUSE
 #
 # Updated: 11 JUN 2021
 # - remove prompts from '--auto' mode
@@ -1703,7 +1707,8 @@ prepare_packages()
           "git" \
           "devel_basis" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
           "bzip2" \
-          "libz1" "zlib-devel"
+          "libz1" "zlib-devel" \
+          "libcap-progs"
       )
 
       for package in "${opensuse_packages[@]}"; do
@@ -2222,7 +2227,7 @@ else
         regina_configure_cmd="./configure"
     fi
 
-    if [ "$version_distro" == "debian"  ]; then
+    if [[ "$version_distro" == "debian" || "$version_distro" == "openSUSE" ]]; then
         regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib"
     fi
 
