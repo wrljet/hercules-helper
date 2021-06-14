@@ -51,6 +51,7 @@
 #
 # Updated: 14 JUN 2021
 # - some initial work for the Apple Mac M1 CPU, detection
+# - add '-Wno-error=implicit-function-declaration' to Regina REXX build for CLang
 #
 # Updated: 14 JUN 2021
 # - before telling the user how to source the script to set environment vars
@@ -2287,6 +2288,12 @@ else
 
     if [[ "$version_distro" == "debian" || "$version_distro" == "openSUSE" ]]; then
         regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib"
+    fi
+
+    if [[ $version_id == darwin* &&
+          "$(uname -m)" =~ (^arm64|^aarch64) ]];
+    then
+        regina_configure_cmd="CFLAGS=\"-Wno-error=implicit-function-declaration\" ./configure"
     fi
 
     # If this is a RPIOS 64-bit, then we need to patch configure
