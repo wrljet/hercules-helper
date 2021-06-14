@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 12 JUN 2021
+# Updated: 14 JUN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,11 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 14 JUN 2021
+# - fix zypper install patterns vs. packages on openSUSE
+# - add 'sudo ldconfig' after building Regina on openSUSE
+#   (this might be required elsewhere as well)
 #
 # Updated: 12 JUN 2021
 # - install 'libcap-progs' on openSUSE to use set capabilities
@@ -1703,11 +1708,34 @@ prepare_packages()
   if [[ $version_id == opensuse* ]]; then
       os_is_supported=true
 
-      declare -a opensuse_packages=( \
-          "git" \
+# devel_basis is a "pattern"
+# libcap-progs is not, and won't install it -t pattern
+
+      declare -a opensuse_patterns=( \
           "devel_basis" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
           "bzip2" \
-          "libz1" "zlib-devel" \
+          "libz1" "zlib-devel"
+      )
+
+      for package in "${opensuse_patterns[@]}"; do
+          echo "-----------------------------------------------------------------"
+          echo "Checking for pattern: $package"
+
+          is_installed=$(zypper search --installed-only --match-exact "$package")
+          status=$?
+
+          # install if missing
+          if [ $status -eq 0 ] ; then
+              echo "package: $package is already installed"
+          else
+              echo "installing package: $package"
+              echo "sudo zypper install -y -t pattern $package"
+              sudo zypper install -y -t pattern $package
+          fi
+      done
+
+      declare -a opensuse_packages=( \
+          "git" \
           "libcap-progs"
       )
 
@@ -1723,8 +1751,8 @@ prepare_packages()
               echo "package: $package is already installed"
           else
               echo "installing package: $package"
-              echo "sudo zypper install -y -t pattern $package"
-              sudo zypper install -y -t pattern $package
+              echo "sudo zypper install -y $package"
+              sudo zypper install -y $package
           fi
       done
 
@@ -2250,6 +2278,11 @@ else
     verbose_msg "sudo required to install Regina REXX in the default system directories"
     verbose_msg    # output a newline
     sudo time make install
+
+    if [[ "$version_distro" == "openSUSE" ]]; then
+        verbose_msg "sudo ldconfig (for openSUSE)"
+        sudo ldconfig
+    fi
 
 #   export PATH=$opt_build_dir/rexx/bin:$PATH
 #
