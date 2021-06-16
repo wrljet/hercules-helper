@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 14 JUN 2021
+# Updated: 15 JUN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,15 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 15 JUN 2021
+# - for Apple Mac M1:
+#   always run 'autogen.sh' but skip 'autoreconf'
+#   use '--without-included-ltdl' configure option
+#   find include files and librarys with 'brew --cellar libtool'
+#   skip 'setcap'
+#   (currently only works with apple-m1 branch of wrljet hyperion fork)
+# - don't run 'readelf' for Clang
 #
 # Updated: 14 JUN 2021
 # - some initial work for the Apple Mac M1 CPU, detection
@@ -454,6 +463,7 @@ CC=${CC:-"cc"}
 CFLAGS=${CFLAGS:-""}
 CPPFLAGS=${CPPFLAGS:-""}
 LD=${LD:-"ld"}
+LDFLAGS=${LDFLAGS:-""}
 
 #-----------------------------------------------------------------------------
 
@@ -2098,6 +2108,7 @@ detect_rexx
 verbose_msg "CC               : $CC"
 verbose_msg "CFLAGS           : $CFLAGS"
 verbose_msg "CPPFLAGS         : $CPPFLAGS"
+verbose_msg "LDFLAGS          : $LDFLAGS"
 verbose_msg "gcc presence     : $(which gcc || true)"
 verbose_msg "$CC              : $($CC --version | head -1)"
 verbose_msg "g++ presence     : $(which g++ || true)"
@@ -2481,28 +2492,49 @@ verbose_msg "-----------------------------------------------------------------
 cd $opt_build_dir/sdl4x/hyperion
 
 # FIXME filter out FreeBSD and Apple Darwin here also
-# FIXME until we update everything on Hyperion, run autogen.sh
 
-if (! $dostep_autogen); then
-    verbose_msg "Skipping step: autogen.sh (--no-autogen)"
-# elif [[ "$(uname -m)" == x86* && "$version_distro" != "darwin" ]]; then
-#     # We will skip autogen on Linux x86_64 machines.
-#     verbose_msg "Skipping autogen step on Linux x86* architecture"
-else
-    status_prompter "Step: autogen.sh:"
+# If we're on an Apple Mac M1 ARM CPU, run autogen, but skip autoreconf
 
-# this ECHO stuff taken from Hercules autogen.sh
-case `echo "testing\c"; echo 1,2,3`,`echo -n testing; echo 1,2,3` in
-  *c*,-n*) ECHO_N= ECHO_C='
-' ECHO_T='	' ;;
-  *c*,*  ) ECHO_N=-n ECHO_C= ECHO_T= ;;
-  *)       ECHO_N= ECHO_C='\c' ECHO_T= ;;
-esac
+if [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
+    status_prompter "Step: forcing autogen.sh on Apple Mac M1:"
 
-    echo $ECHO_N "autoreconf... $ECHO_C" && autoreconf --force --install >./autoreconf.log 2>&1 && echo "OK."
-    verbose_msg    # output a newline
+    # save away original ltdl.[ch] source files
+    # verbose_msg "Saving original ltdl.[ch] source files"
+    # if [ -f ltdl.c ]; then mv ltdl.c ltdl.c.orig; fi
+    # if [ -f ltdl.h ]; then mv ltdl.h ltdl.h.orig; fi
+    # verbose_msg    # output a newline
 
+    # save original Makefile.am and apply our patch
+    # if [ ! -f Makefile.am.orig ]; then
+    #     verbose_msg "Patching Makefile.am"
+    #     cp Makefile.am Makefile.am.orig
+    #     patch -u Makefile.am -i "$(dirname "$0")/patches/Makefile.am.M1.patch"
+    #     verbose_msg    # output a newline
+    # fi
+
+    verbose_msg "Running autogen.sh"
     ./autogen.sh
+else
+    if (! $dostep_autogen); then
+        verbose_msg "Skipping step: autogen.sh (--no-autogen)"
+    # elif [[ "$(uname -m)" == x86* && "$version_distro" != "darwin" ]]; then
+    #     # We will skip autogen on Linux x86_64 machines.
+    #     verbose_msg "Skipping autogen step on Linux x86* architecture"
+    else
+        status_prompter "Step: autogen.sh:"
+
+        # this ECHO stuff taken from Hercules autogen.sh
+        case `echo "testing\c"; echo 1,2,3`,`echo -n testing; echo 1,2,3` in
+          *c*,-n*) ECHO_N= ECHO_C='
+        ' ECHO_T='	' ;;
+          *c*,*  ) ECHO_N=-n ECHO_C= ECHO_T= ;;
+          *)       ECHO_N= ECHO_C='\c' ECHO_T= ;;
+        esac
+
+        echo $ECHO_N "autoreconf... $ECHO_C" && autoreconf --force --install >./autoreconf.log 2>&1 && echo "OK."
+        verbose_msg    # output a newline
+        ./autogen.sh
+    fi
 fi
 
 verbose_msg "-----------------------------------------------------------------
@@ -2565,6 +2597,10 @@ else
         config_opt_optimization="--enable-optimization=\"-O2\""
     elif [[ $version_id == alpine* ]]; then
         config_opt_optimization="--enable-optimization=\"-O2 -march=native -D__gnu_linux__=1 -D__ALPINE_LINUX__=1\""
+    elif [[ $version_id == darwin* &&
+            "$(uname -m)" =~ (^arm64|^aarch64) ]];
+    then
+        config_opt_optimization="--enable-optimization=\"-O2\""
     else
         config_opt_optimization="--enable-optimization=\"-O2 -march=native\""
     fi
@@ -2578,10 +2614,24 @@ else
         enable_getoptwrapper_option=""
     fi
 
-    if [[ $version_id == darwin* ]]; then
+    # Unless this is Clang (e.g. Apple Darwin), record the gcc switches in the binaries
+
+    if (cc --version | grep -Fiqe "clang"); then
         frecord_gcc_switches_option=""
     else
         frecord_gcc_switches_option="CFLAGS=-frecord-gcc-switches"
+    fi
+
+    # For Apple Mac M1, we use the system libltdl rather than compiling our own
+    # We dig out where to find this in the brew cellar and set environment vars
+
+    if [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
+        without_included_ltdl_option="--without-included-ltdl"
+
+        export CFLAGS="$CFLAGS -I$(find $(brew --cellar libtool) -type d -name "include" | sort -n | tail -n 1)"
+        export LDFLAGS="$LDFLAGS -L$(find $(brew --cellar libtool) -type d -name "lib" | sort -n | tail -n 1)"
+    else
+        without_included_ltdl_option=""
     fi
 
     configure_cmd=$(cat <<-END-CONFIGURE
@@ -2592,7 +2642,8 @@ $frecord_gcc_switches_option ./configure \
     --enable-custom="Built using Hercules-Helper (version: $hercules_helper_version)" \
     $enable_rexx_option \
     $enable_ipv6_option \
-    $enable_getoptwrapper_option
+    $enable_getoptwrapper_option \
+    $without_included_ltdl_option
 END-CONFIGURE
 )
 
@@ -2728,6 +2779,8 @@ else
 
     if [[ $version_id == freebsd* ]]; then
         verbose_msg "Skipping step: setcap operations on FreeBSD."
+    elif [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
+        verbose_msg "Skipping step: setcap operations on Apple M1 ARM."
     elif (! $dostep_setcap); then
         verbose_msg "Skipping step: setcap (--no-setcap)"
     else
@@ -2744,7 +2797,11 @@ else
 
     verbose_msg    # output a newline
 
-    readelf -p .GCC.command.line "$opt_install_dir/bin/hercules" > "$opt_install_dir/gcc-options.txt"
+    if (cc --version | grep -Fiqe "clang"); then
+        verbose_msg "Clang: skipping readelf"
+    else
+        readelf -p .GCC.command.line "$opt_install_dir/bin/hercules" > "$opt_install_dir/gcc-options.txt"
+    fi
 fi
 
 verbose_msg "-----------------------------------------------------------------
