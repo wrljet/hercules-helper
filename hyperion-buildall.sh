@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 15 JUN 2021
+# Updated: 17 JUN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 17 JUN 2021
+# - remove sdl4x directory, as it is not necessary
 #
 # Updated: 15 JUN 2021
 # - for Apple Mac M1:
@@ -510,7 +513,7 @@ pushd "$(dirname "$0")" >/dev/null;
         # verbose_msg "git is not installed"
         version_info=""
     else
-	version_info="$0: $(git describe --long --tags --dirty --always 2>/dev/null)"
+        version_info="$0: $(git describe --long --tags --dirty --always 2>/dev/null)"
     fi
 popd > /dev/null;
 
@@ -1994,7 +1997,7 @@ libtool_str="$(libtool --version 2>/dev/null)"
 if [[ $? -ne 0 ]]; then
     libtool_str="$(libtool -V 2>/dev/null)"
     if [[ $? -ne 0 ]]; then
-	libtool_str="unknown"
+        libtool_str="unknown"
     fi
 fi
 libtool_str="$(echo "$libtool_str" | head -n 1)"
@@ -2311,9 +2314,9 @@ else
     # for Regina above version 3.6
     if [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
       if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
-	verbose_msg "Patching Regina source for Raspberry Pi 64-bit"
-	patch -u configure -i "$(dirname "$0")/patches/regina-rexx-3.9.3.patch"
-	verbose_msg    # output a newline
+        verbose_msg "Patching Regina source for Raspberry Pi 64-bit"
+        patch -u configure -i "$(dirname "$0")/patches/regina-rexx-3.9.3.patch"
+        verbose_msg    # output a newline
       fi
     fi
 
@@ -2357,11 +2360,9 @@ else
     status_prompter "Step: git clone all required repos:"
 
     cd $opt_build_dir
-    mkdir -p sdl4x
     mkdir -p $opt_install_dir
 
     # Grab unmodified SDL-Hercules Hyperion repo
-    cd sdl4x
     rm -rf hyperion
 
     if [ -z "$git_repo_hyperion" ] ; then
@@ -2440,7 +2441,7 @@ if (! $dostep_bldlvlck); then
 else
     status_prompter "Step: util/bldlvlck:"
 
-    cd $opt_build_dir/sdl4x/hyperion
+    cd $opt_build_dir/hyperion
 
     # Check for required packages and minimum versions.
     # Inspect the output carefully and do not continue if there are
@@ -2489,7 +2490,7 @@ fi
 verbose_msg "-----------------------------------------------------------------
 "
 
-cd $opt_build_dir/sdl4x/hyperion
+cd $opt_build_dir/hyperion
 
 # FIXME filter out FreeBSD and Apple Darwin here also
 
