@@ -51,6 +51,7 @@
 #
 # Updated: 17 JUN 2021
 # - remove sdl4x directory, as it is not necessary
+# - compile Hercules in a build subdirectory, rather than in-source
 #
 # Updated: 15 JUN 2021
 # - for Apple Mac M1:
@@ -2635,8 +2636,13 @@ else
         without_included_ltdl_option=""
     fi
 
+    # Do an out-of-source build
+    pushd $opt_build_dir/hyperion
+    mkdir -p build
+    cd build
+
     configure_cmd=$(cat <<-END-CONFIGURE
-$frecord_gcc_switches_option ./configure \
+$frecord_gcc_switches_option ../configure \
     $config_opt_optimization \
     --enable-extpkgs=$opt_build_dir/extpkgs \
     --prefix=$opt_install_dir \
@@ -2657,11 +2663,15 @@ END-CONFIGURE
     verbose_msg    # output a newline
     verbose_msg "./config.status --config ..."
     ./config.status --config
+
+    popd >/dev/null;
 fi
 
 # Clean, compile and link
 verbose_msg "-----------------------------------------------------------------
 "
+
+cd build
 
 if [[ $version_id == freebsd* || $version_id == netbsd* || $version_id == darwin* ]]; then
     nprocs="$(sysctl -n hw.ncpu 2>/dev/null || echo 1)"
@@ -2715,6 +2725,7 @@ if (! $dostep_tests); then
 else
     status_prompter "Step: tests:"
     verbose_msg "Be patient, this can take a while with no output."
+    verbose_msg    # output a newline
 
     if [[ $version_id == freebsd* ]]; then
         make_check_cmd="gmake check"
