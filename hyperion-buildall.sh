@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 17 JUN 2021
+# Updated: 18 JUN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 18 JUN 2021
+# - patch Regina-REXX 3.6 source for building on Raspberry Pi Ubuntu
 #
 # Updated: 17 JUN 2021
 # - remove sdl4x directory, as it is not necessary
@@ -2311,13 +2314,35 @@ else
         regina_configure_cmd="CFLAGS=\"-Wno-error=implicit-function-declaration\" ./configure"
     fi
 
-    # If this is a RPIOS 64-bit, then we need to patch configure
-    # for Regina above version 3.6
+    # FIXME on macOS on Apple M1 build Regina with a separate helper
+    # before running this script!
+
+    # If this is a RPIOS 64-bit:
+    #   for Regina 3.9.3:
+    #     we need to patch configure
+    #
+    #   for Regina 3.6:
+    #     we need to patch configure
+    #     and supply a more modern config.{guess,sub}
+
     if [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
-      if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
-        verbose_msg "Patching Regina source for Raspberry Pi 64-bit"
-        patch -u configure -i "$(dirname "$0")/patches/regina-rexx-3.9.3.patch"
-        verbose_msg    # output a newline
+      if [[ $RPI_MODEL =~ "Raspberry" ]]; then
+
+        if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
+          verbose_msg "Patching Regina 3.9.3 source for Raspberry Pi 64-bit"
+          patch -u configure -i "$(dirname "$0")/patches/regina-rexx-3.9.3.patch"
+          verbose_msg    # output a newline
+        elif [[ "$opt_regina_dir" =~ "3.6" ]]; then
+          verbose_msg "Patching Regina 3.6 source for Raspberry Pi 64-bit"
+          patch -u configure -i "$(dirname "$0")/patches/regina-rexx-3.6.patch"
+          verbose_msg "Replacing config.{guess,sub}"
+          cp "$(dirname "$0")/patches/config.guess" ./common/
+          cp "$(dirname "$0")/patches/config.sub" ./common/
+          verbose_msg    # output a newline
+        else
+          error_msg "Don't know how to build your Regina on the Pi!"
+          exit 1
+        fi
       fi
     fi
 

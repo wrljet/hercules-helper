@@ -1,0 +1,11 @@
+--- /home/bill/tools/Regina-REXX-3.6/configure	2011-12-31 03:50:28.000000000 -0500
++++ configure	2021-06-18 12:22:45.796632567 -0400
+@@ -3445,7 +3445,7 @@
+       ;;
+    *linux*|*kfreebsd*-gnu*)
+       mach="`uname -m`"
+-      if test "$mach" = "x86_64" -o "$mach" = "ia86" -o "$mach" = "alpha" -o "$mach" = "ppc64" -o "$mach" = "s390x"; then
++      if test "$mach" = "x86_64" -o "$mach" = "ia86" -o "$mach" = "alpha" -o "$mach" = "ppc64" -o "$mach" = "s390x" -o "$mach" = "aarch64"; then
+          bitflag="64"
+          osis64bit=yes
+       fi
