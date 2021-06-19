@@ -2619,6 +2619,9 @@ else
     # For Alpine
     # --enable-optimization="-O2 -march=native -D__gnu_linux__=1 -D__ALPINE_LINUX__=1"
 
+    # For Address Sanitizer:
+    # config_opt_optimization="--enable-optimization=\"-O1 -g -fsanitize=address -fsanitize-recover=address -fno-omit-frame-pointer\""
+
     # For FreeBSD, CLANG doesn't accept -march=native
     if [[ $version_id == freebsd* ]]; then
         config_opt_optimization="--enable-optimization=\"-O2\""
