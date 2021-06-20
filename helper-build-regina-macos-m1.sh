@@ -28,22 +28,22 @@ Your sudo password will be required.
 
 # Building Regina REXX
 
-  499  wget "http://www.wrljet.com/ibm360/Regina-REXX-3.6.tar.gz"
-  500  tar xfz Regina-REXX-3.6.tar.gz
-  501  cd Regina-REXX-3.6
+    wget "http://www.wrljet.com/ibm360/Regina-REXX-3.6.tar.gz"
+    tar xfz Regina-REXX-3.6.tar.gz
+    cd Regina-REXX-3.6
 
-  512  CFLAGS="-Wno-error=implicit-function-declaration" ./configure
-  514  make clean
-  515  make
+    CFLAGS="-Wno-error=implicit-function-declaration" ./configure
+    make clean
+    make
 
 # quickie test
-  518  ./regina -v
+    ./regina -v
 
 # install
-  531  sudo make install
-  532  cd ..
+    sudo make install
+    cd ..
 
 # test the installation
-  533  which regina
-  534  regina -v
+    which regina
+    regina -v
 
