@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 18 JUN 2021
+# Updated: 21 JUN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -49,6 +49,10 @@
 
 # Changelog:
 #
+# Updated: 21 JUN 2021
+# - add '-Wno-error=implicit-function-declaration' to Regina REXX build for Clang
+#   rather than macOS Darwin
+#
 # Updated: 18 JUN 2021
 # - patch Regina-REXX 3.6 source for building on Raspberry Pi Ubuntu
 #
@@ -67,7 +71,7 @@
 #
 # Updated: 14 JUN 2021
 # - some initial work for the Apple Mac M1 CPU, detection
-# - add '-Wno-error=implicit-function-declaration' to Regina REXX build for CLang
+# - add '-Wno-error=implicit-function-declaration' to Regina REXX build for Clang
 #
 # Updated: 14 JUN 2021
 # - before telling the user how to source the script to set environment vars
@@ -2308,9 +2312,10 @@ else
         regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib"
     fi
 
-    if [[ $version_id == darwin* &&
-          "$(uname -m)" =~ (^arm64|^aarch64) ]];
-    then
+    if (cc --version | grep -Fiqe "clang"); then
+#   if [[ $version_id == darwin* &&
+#         "$(uname -m)" =~ (^arm64|^aarch64) ]];
+#   then
         regina_configure_cmd="CFLAGS=\"-Wno-error=implicit-function-declaration\" ./configure"
     fi
 
@@ -2622,7 +2627,7 @@ else
     # For Address Sanitizer:
     # config_opt_optimization="--enable-optimization=\"-O1 -g -fsanitize=address -fsanitize-recover=address -fno-omit-frame-pointer\""
 
-    # For FreeBSD, CLANG doesn't accept -march=native
+    # For FreeBSD, Clang doesn't accept -march=native
     if [[ $version_id == freebsd* ]]; then
         config_opt_optimization="--enable-optimization=\"-O2\""
     elif [[ $version_id == alpine* ]]; then
