@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# helper-build-ncat.sh
+
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
 # or:
