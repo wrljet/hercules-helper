@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 21 JUN 2021
+# Updated: 23 JUN 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 23 JUN 2021
+# - fix error introduced in Regina build by Raspberry Pi detection
 #
 # Updated: 21 JUN 2021
 # - add '-Wno-error=implicit-function-declaration' to Regina REXX build for Clang
@@ -796,6 +799,7 @@ detect_system()
 
     verbose_msg "System detection:"
 
+    RPI_MODEL=""
     os_is_supported=false
 
     os_name=$(uname -s)
@@ -2331,7 +2335,7 @@ else
     #     and supply a more modern config.{guess,sub}
 
     if [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
-      if [[ $RPI_MODEL =~ "Raspberry" ]]; then
+      if [[ ! -z "$RPI_MODEL" && "$RPI_MODEL" =~ "Raspberry" ]]; then
 
         if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
           verbose_msg "Patching Regina 3.9.3 source for Raspberry Pi 64-bit"
