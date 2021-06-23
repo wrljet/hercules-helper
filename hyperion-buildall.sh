@@ -51,6 +51,7 @@
 #
 # Updated: 23 JUN 2021
 # - fix error introduced in Regina build by Raspberry Pi detection
+# - install gsed on macOS
 #
 # Updated: 21 JUN 2021
 # - add '-Wno-error=implicit-function-declaration' to Regina REXX build for Clang
@@ -1855,10 +1856,11 @@ prepare_packages()
   if [[ $version_id == darwin* ]]; then
       if ( $os_is_supported ); then
           declare -a darwin_packages=( \
-              "wget" \
+              "wget"    \
               "autoconf" "automake" \
               "libtool" \
-              "cmake"
+              "cmake"   \
+              "gsed"
             # "flex" "gawk" "m4" \
             # "bzip2" "zlib"
           )
