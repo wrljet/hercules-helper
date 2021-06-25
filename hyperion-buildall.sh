@@ -1560,6 +1560,7 @@ prepare_packages()
           "git" "wget" "time" "ncat" \
           "build-essential" "cmake" \
           "autoconf" "automake" "flex" "gawk" "m4" "libtool" \
+          "libcap2-bin" \
           "libbz2-dev" "zlib1g-dev"
       )
 
