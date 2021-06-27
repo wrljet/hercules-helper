@@ -31,7 +31,8 @@ Your sudo password will be required.
 
     read -p "Ctrl+C to abort here, or hit return to continue"
 
-    sudo apt-get install openssl openssl-dev libssl-dev
+  # sudo apt-get install openssl openssl-dev libssl-dev
+    sudo apt-get install openssl libssl-dev
 
     mkdir -p ~/tools
     pushd ~/tools
