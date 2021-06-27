@@ -34,6 +34,12 @@ Your sudo password will be required.
     tar xfz Regina-REXX-3.6.tar.gz
     cd Regina-REXX-3.6
 
+    patch -u configure -i "$(dirname "$0")/patches/regina-rexx-3.6.patch"
+
+    echo "Replacing config.{guess,sub}"
+    cp "$(dirname "$0")/patches/config.guess" ./common/
+    cp "$(dirname "$0")/patches/config.sub" ./common/
+
     CFLAGS="-Wno-error=implicit-function-declaration" ./configure
     make clean
     make
