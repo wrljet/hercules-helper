@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 23 JUN 2021
+# Updated: 01 JUL 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 01 JUL 2021
+# - Fedora 34 support
 #
 # Updated: 23 JUN 2021
 # - fix error introduced in Regina build by Raspberry Pi detection
@@ -791,12 +794,14 @@ detect_system()
 #  ID_LIKE=ubuntu
 #  PRETTY_NAME="Linux Mint 20"
 #  VERSION_ID="20"
-#  HOME_URL="https://www.linuxmint.com/"
-#  SUPPORT_URL="https://forums.linuxmint.com/"
-#  BUG_REPORT_URL="http://linuxmint-troubleshooting-guide.readthedocs.io/en/latest/"
-#  PRIVACY_POLICY_URL="https://www.linuxmint.com/"
-#  VERSION_CODENAME=ulyana
-#  UBUNTU_CODENAME=focal
+
+# /etc/os-release
+#
+# NAME=Fedora
+# VERSION="34 (Workstation Edition)"
+# ID=fedora
+# VERSION_ID=34
+# PRETTY_NAME="Fedora 34 (Workstation Edition)"
 
     verbose_msg "System detection:"
 
@@ -877,6 +882,7 @@ detect_system()
             echo "$(cat /boot/issue.txt | head -1)"
         fi
 
+        # Look for CentOS
         if [[ $version_id == centos* ]]; then
             verbose_msg "We have a CentOS system"
 
@@ -904,8 +910,30 @@ detect_system()
             verbose_msg "VERSION_MINOR    : $version_minor"
         fi
 
-        # Look for openSUSE
+        # Look for Fedora
+# NAME=Fedora
+# VERSION="34 (Workstation Edition)"
+# ID=fedora
+# VERSION_ID=34
+# PRETTY_NAME="Fedora 34 (Workstation Edition)"
 
+        if [[ $version_id == fedora* ]]; then
+            verbose_msg "We have a Fedora system"
+
+            # cat /etc/redhat-release
+            # Fedora release 34 (Thirty Four)
+            fedora_vers=$(cat /etc/redhat-release) || true
+
+            fedora_vers="${fedora_vers#*release }"
+            fedora_vers="${fedora_vers/-/.}"
+
+            version_distro="redhat"
+            version_major=$(echo $fedora_vers | cut -f1 -d' ')
+            verbose_msg "VERSION_MAJOR    : $version_major"
+        fi
+#######################################################
+
+        # Look for openSUSE
         if [[ $version_id == opensuse* ]];
         then
             version_distro="openSUSE"
@@ -1656,6 +1684,44 @@ prepare_packages()
 
 
 #-----------------------------------------------------------------------------
+  # Fedora
+
+  if [[ $version_id == fedora* ]]; then
+      if [[ $version_major -ge 34 ]]; then
+          os_is_supported=true
+
+          echo "Fedora version 34 or later found"
+
+          declare -a fedora_packages=( \
+              "git" "wget" \
+              "gcc" "make" "flex" "gawk" "m4" \
+              "autoconf" "automake" "libtool-ltdl-devel" \
+              "cmake"
+              "bzip2-devel" "zlib-devel"
+              )
+
+          for package in "${fedora_packages[@]}"; do
+              echo "-----------------------------------------------------------------"
+
+              dnf list installed $package
+              status=$?
+
+              # install if missing
+              if [ $status -eq 0 ]; then
+                  echo "package $package is already installed"
+              else
+                  echo "installing package: $package"
+                  sudo dnf -y install $package
+              fi
+          done
+      else
+          error_msg "Fedora version 33 or earlier found, and not supported"
+          exit 1
+      fi
+    return
+  fi
+
+#-----------------------------------------------------------------------------
   # CentOS 7
 
   if [[ $version_id == centos* ]]; then
@@ -1963,10 +2029,10 @@ prepare_packages()
 }
 
 detect_darwin
-if [ "$version_distro" == "darwin" ]; then
-    verbose_msg "Not yet fully supported under MacOS"
-    verbose_msg    # print a newline
-fi
+# if [ "$version_distro" == "darwin" ]; then
+#     verbose_msg "Not yet fully supported under MacOS"
+#     verbose_msg    # print a newline
+# fi
 
 #-----------------------------------------------------------------------------
 verbose_msg "General Options:"
@@ -2315,7 +2381,10 @@ else
         regina_configure_cmd="./configure"
     fi
 
-    if [[ "$version_distro" == "debian" || "$version_distro" == "openSUSE" ]]; then
+    if [[ "$version_distro" == "debian" ||
+          "$version_distro" == "openSUSE" ||
+          "$version_distro" == "fedora" ]];
+    then
         regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib"
     fi
 
@@ -2368,8 +2437,11 @@ else
     verbose_msg    # output a newline
     sudo time make install
 
-    if [[ "$version_distro" == "openSUSE" ]]; then
-        verbose_msg "sudo ldconfig (for openSUSE)"
+    if [[ "$version_distro" == "debian" ||
+          "$version_distro" == "openSUSE" ||
+          "$version_distro" == "fedora" ]];
+    then
+        verbose_msg "sudo ldconfig (for libregina.so)"
         sudo ldconfig
     fi
 
