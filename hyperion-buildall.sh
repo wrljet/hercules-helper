@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 01 JUL 2021
+# Updated: 04 JUL 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 04 JUL 2021
+# - add 'libtool' to required packages for openSUSE
 #
 # Updated: 01 JUL 2021
 # - Fedora 34 support
@@ -1837,6 +1840,7 @@ prepare_packages()
 
       declare -a opensuse_patterns=( \
           "devel_basis" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
+          "libtool" \
           "bzip2" \
           "libz1" "zlib-devel"
       )
