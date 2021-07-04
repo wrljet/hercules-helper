@@ -51,6 +51,9 @@
 #
 # Updated: 04 JUL 2021
 # - add 'libtool' to required packages for openSUSE
+# - skip setcap operations on Apple macOS
+# - add error handling to various steps
+#
 #
 # Updated: 01 JUL 2021
 # - Fedora 34 support
@@ -621,11 +624,33 @@ verbose_msg()
 }
 
 #------------------------------------------------------------------------------
+#                               ANSI escape codes
+#------------------------------------------------------------------------------
+Black        0;30     Dark Gray     1;30
+Red          0;31     Light Red     1;31
+Green        0;32     Light Green   1;32
+Brown/Orange 0;33     Yellow        1;33
+Blue         0;34     Light Blue    1;34
+Purple       0;35     Light Purple  1;35
+Cyan         0;36     Light Cyan    1;36
+Light Gray   0;37     White         1;37
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
 #                               error_msg
 #------------------------------------------------------------------------------
 error_msg()
 {
-    printf "\033[1;37m[[ \033[1;31merror: \033[1;37m]] \033[0m$1\n"
+#   printf "\033[1;37m[[ \033[1;31merror: \033[1;37m]] \033[0m$1\n"
+    printf "\033[1;31m[[ error: ]] \033[0m$1\n"
+}
+
+#------------------------------------------------------------------------------
+#                               note_msg
+#------------------------------------------------------------------------------
+note_msg()
+{
+    printf "\033[0;32m[[ note: ]] \033[0m$1\n"
 }
 
 #------------------------------------------------------------------------------
@@ -1577,7 +1602,7 @@ fi
 #------------------------------------------------------------------------------
 prepare_packages()
 {
-  echo "Note: your sudo password may be requested"
+  note_msg "Note: your sudo password may be requested"
   echo    # print a newline
 
   # Look for Debian/Ubuntu/Mint
@@ -1929,9 +1954,9 @@ prepare_packages()
           declare -a darwin_packages=( \
               "wget"    \
               "autoconf" "automake" \
-              "libtool" \
               "cmake"   \
               "gsed"
+            # "libtool" \
             # "flex" "gawk" "m4" \
             # "bzip2" "zlib"
           )
@@ -1941,18 +1966,24 @@ prepare_packages()
           echo    # print a newline
 
           for package in "${darwin_packages[@]}"; do
-              echo "-----------------------------------------------------------------"
-              echo "Checking for package: $package"
+              verbose_msg "-----------------------------------------------------------------"
+              verbose_msg "Checking for package: $package"
 
               is_installed=$(brew info $package)
               status=$?
 
               # install if missing
               if [[ $status -eq 1 || $is_installed == *"Not installed"* ]] ; then
-                  echo "installing package: $package"
+                  verbose_msg "installing package: $package"
                   brew install $package
+
+                  if [ ${PIPESTATUS[0]} -ne 0 ]; then
+                    echo    # print a newline
+                    error_msg "brew install failed!"
+                    echo    # print a newline
+                  fi
               else
-                  echo "package: $package is already installed"
+                  verbose_msg "package: $package is already installed"
               fi
           done
       fi
@@ -2367,7 +2398,17 @@ else
     rm -rf "$opt_regina_dir"
 
     wget "$opt_regina_url"
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        error_msg "wget $opt_regina_url failed!"
+        exit 1
+    fi
+
     tar xfz "$opt_regina_tarfile"
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        error_msg "tar failed!"
+        exit 1
+    fi
+
     cd "$opt_regina_dir"
 
     if [[ "$(uname -m)" =~ ^i686 ]]; then
@@ -2435,9 +2476,14 @@ else
     verbose_msg    # output a newline
     eval "$regina_configure_cmd"
 
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        error_msg "configure failed!"
+        exit 1
+    fi
+
     time make
 
-    verbose_msg "sudo required to install Regina REXX in the default system directories"
+    note_msg "sudo required to install Regina REXX in the default system directories"
     verbose_msg    # output a newline
     sudo time make install
 
@@ -2775,6 +2821,11 @@ END-CONFIGURE
     verbose_msg    # output a newline
     eval "$configure_cmd"
 
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        error_msg "configure failed!"
+        exit 1
+    fi
+
     # Print the configuration we wound up with
     verbose_msg    # output a newline
     verbose_msg "./config.status --config ..."
@@ -2813,6 +2864,11 @@ else
 
     verbose_msg "$make_clean_cmd"
     eval "$make_clean_cmd"
+
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        error_msg "Make clean failed!"
+        exit 1
+    fi
 fi
 
 verbose_msg "-----------------------------------------------------------------
@@ -2830,6 +2886,7 @@ else
 
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
         error_msg "Make failed!"
+        exit 1
     fi
 fi
 
@@ -2902,13 +2959,19 @@ else
         eval "$make_install_cmd"
     fi
 
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        error_msg "Make install failed!"
+        exit 1
+    fi
+
     verbose_msg "-----------------------------------------------------------------
     "
 
     if [[ $version_id == freebsd* ]]; then
         verbose_msg "Skipping step: setcap operations on FreeBSD."
-    elif [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
-        verbose_msg "Skipping step: setcap operations on Apple M1 ARM."
+  # elif [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
+    elif [[ $version_id == darwin* ]]; then
+        verbose_msg "Skipping step: setcap operations on Apple macOS."
     elif (! $dostep_setcap); then
         verbose_msg "Skipping step: setcap (--no-setcap)"
     else
