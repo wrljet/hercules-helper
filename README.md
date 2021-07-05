@@ -80,7 +80,7 @@ $ mkdir herctest && cd herctest
 $ ~/hercules-helper/hyperion-buildall.sh --auto
 ```
 
-Or for finer control:
+Or for your first run, for finer control:
 ```
 $ ~/hercules-helper/hyperion-buildall.sh --verbose --prompts
 ```
