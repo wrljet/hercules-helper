@@ -77,6 +77,7 @@ The full process is:
 $ cd ~
 $ git clone https://github.com/wrljet/hercules-helper.git
 $ mkdir herctest && cd herctest
+$
 $ ~/hercules-helper/hyperion-buildall.sh --auto
 ```
 
@@ -94,14 +95,14 @@ Hercules will be "installed" (unless you include the ---no-install option), defa
 into ~/herctest/herc4x
 
 To set the required environment variables after installation, a script will be added
-to /etc/profile.d.  It will be "sourced" from ~/.bashrc.
+to ~/herctest/herc4x/hyperion-init-bash.sh.  This will be "sourced" from ~/.bashrc.
 (currently this is for Bash only)
 
 To make the newly created Hercules available immediately in the current shell
 or terminal session, simply source this script with the '.' command:
 
 ```
-. /etc/profile.d/hyperion.sh
+. ~/herctest/herc4x/hyperion-init-bash.sh
 ```
 
 If anything seems to go wrong, please stop and ask questions at that point.
