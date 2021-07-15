@@ -1,5 +1,5 @@
---- /home/bill/tools/Regina-REXX-3.6/configure	2011-12-31 03:50:28.000000000 -0500
-+++ configure	2021-06-18 12:22:45.796632567 -0400
+--- configure	2011-12-31 03:50:28.000000000 -0500
++++ /home/pi/regina-3.6-configure-wrl	2021-07-15 17:31:14.305143568 -0400
 @@ -3445,7 +3445,7 @@
        ;;
     *linux*|*kfreebsd*-gnu*)
@@ -9,3 +9,15 @@
           bitflag="64"
           osis64bit=yes
        fi
+@@ -3568,8 +3568,9 @@
+       CFLAGS="${CFLAGS} -m32"
+       LDFLAGS="${LDFLAGS} -m32"
+    elif test "$bitflag" = "64"; then
+-      CFLAGS="${CFLAGS} -m64"
+-      LDFLAGS="${LDFLAGS} -m64"
++      echo "Skipping -m64 on Raspberry Pi"
++# WRL CFLAGS="${CFLAGS} -m64"
++# WRL LDFLAGS="${LDFLAGS} -m64"
+    else
+       bitflag="32"
+    fi

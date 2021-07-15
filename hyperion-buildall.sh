@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 04 JUL 2021
+# Updated: 15 JUL 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 15 JUL 2021
+# - correct patch for Regina REXX 3.6 on Raspberry Pi 64-bit OS Beta
 #
 # Updated: 04 JUL 2021
 # - add 'libtool' to required packages for openSUSE
