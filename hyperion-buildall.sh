@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 15 JUL 2021
+# Updated: 16 JUL 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 16 JUL 2021
+# - skip setcap operations on Raspberry Pi with single CPU core
 #
 # Updated: 15 JUL 2021
 # - correct patch for Regina REXX 3.6 on Raspberry Pi 64-bit OS Beta
@@ -710,7 +713,10 @@ function get_pi_version()
     fi
 
     RPI_REVCODE=$(awk '/Revision/ {print $3}' /proc/cpuinfo)
-    verbose_msg "Raspberry Pi revision: $RPI_REVCODE"
+    verbose_msg "Raspberry Pi rev : $RPI_REVCODE"
+
+    RPI_CPUS=$(awk '/^processor/{n+=1}END{print n}' /proc/cpuinfo)
+    verbose_msg "CPU count        : $RPI_CPUS"
 }
 
 function check_pi_version()
@@ -1017,6 +1023,7 @@ detect_system()
             fi
         fi
 
+        RPI_CPUS=0
         if [[ "$machine" != "x86_64" ]]; then
             # Check for real Raspberry Pi hardware
             detect_pi
@@ -2972,9 +2979,14 @@ else
 
     if [[ $version_id == freebsd* ]]; then
         verbose_msg "Skipping step: setcap operations on FreeBSD."
+
   # elif [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
     elif [[ $version_id == darwin* ]]; then
         verbose_msg "Skipping step: setcap operations on Apple macOS."
+
+    elif [[ ! -z "$RPI_MODEL" && "$RPI_MODEL" =~ "Raspberry" && $RPI_CPUS = 1 ]]; then
+        verbose_msg "Skipping step: setcap operations on Raspberry Pi with single CPU core."
+
     elif (! $dostep_setcap); then
         verbose_msg "Skipping step: setcap (--no-setcap)"
     else
