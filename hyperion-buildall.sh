@@ -1591,17 +1591,17 @@ if [ $opt_override_do_autogen == true ] && [ $opt_override_no_autogen == true ];
   error_msg "--autogen and --no-autogen are mutually exclusive"
   exit 1
 fi
-if [ $opt_override_do_autogen  == true ]; then opt_no_autogen=false; fi
-if [ $opt_override_no_autogen  == true ]; then opt_no_autogen=true; fi
+if [ $opt_override_do_autogen   == true ]; then opt_no_autogen=false; fi
+if [ $opt_override_no_autogen   == true ]; then opt_no_autogen=true; fi
 
 if [ $opt_override_no_configure == true ]; then opt_no_configure=true; fi
-if [ $opt_override_no_clean    == true ]; then opt_no_clean=true; fi
-if [ $opt_override_no_make     == true ]; then opt_no_make=true; fi
-if [ $opt_override_no_tests    == true ]; then opt_no_tests=true; fi
-if [ $opt_override_no_install  == true ]; then opt_no_install=true; fi
-if [ $opt_override_no_setcap   == true ]; then opt_no_setcap=true; fi
+if [ $opt_override_no_clean     == true ]; then opt_no_clean=true; fi
+if [ $opt_override_no_make      == true ]; then opt_no_make=true; fi
+if [ $opt_override_no_tests     == true ]; then opt_no_tests=true; fi
+if [ $opt_override_no_install   == true ]; then opt_no_install=true; fi
+if [ $opt_override_no_setcap    == true ]; then opt_no_setcap=true; fi
 if [ $opt_override_no_envscript == true ]; then opt_no_envscript=true; fi
-if [ $opt_override_no_bashrc   == true ]; then opt_no_bashrc=true; fi
+if [ $opt_override_no_bashrc    == true ]; then opt_no_bashrc=true; fi
 
 if [[ $TRACE == true ]]; then
     set -x # For debugging, show all commands as they are being run
@@ -1719,7 +1719,6 @@ prepare_packages()
 
     return
   fi
-
 
 #-----------------------------------------------------------------------------
   # Fedora
@@ -2146,8 +2145,10 @@ if ($opt_no_clean     ); then dostep_clean=false;     fi
 if ($opt_no_make      ); then dostep_make=false;      fi
 if ($opt_no_tests     ); then dostep_tests=false;     fi
 if ($opt_no_install   ); then dostep_install=false;   fi
+
 if ($opt_no_setcap    ); then dostep_setcap=false;    fi
 if [[ $version_id == freebsd* ]]; then dostep_setcap=false; fi
+
 if ($opt_no_envscript ); then dostep_envscript=false; fi
 if ($opt_no_bashrc    ); then dostep_bashrc=false;    fi
 
