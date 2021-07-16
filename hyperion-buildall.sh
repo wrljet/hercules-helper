@@ -50,6 +50,7 @@
 # Changelog:
 #
 # Updated: 16 JUL 2021
+# - add support for AlmaLinux 8.4
 # - skip setcap operations on Raspberry Pi with single CPU core
 #
 # Updated: 15 JUL 2021
@@ -919,6 +920,29 @@ detect_system()
             echo "$(cat /boot/issue.txt | head -1)"
         fi
 
+        # Look for AlmaLinux
+        if [[ $version_id == almalinux* ]]; then
+            verbose_msg "We have an AlmaLinux system"
+
+            # AlmaLinux 8.4
+            # $ rpm --query centos-release
+            # package centos-release is not installed
+            # $ cat /etc/redhat-release 
+            # AlmaLinux release 8.4 (Electric Cheetah)
+
+          # almalinux_vers=$(rpm --query centos-release) || true
+            almalinux_vers=$(cat /etc/redhat-release) || true
+            almalinux_vers="${almalinux_vers#*release }"
+            almalinux_vers="${almalinux_vers/ */}"
+
+            version_distro="almalinux"
+            version_major=$(echo $almalinux_vers | cut -f1 -d.)
+            version_minor=$(echo "$almalinux_vers.0" | cut -f2 -d.)
+
+            verbose_msg "VERSION_MAJOR    : $version_major"
+            verbose_msg "VERSION_MINOR    : $version_minor"
+        fi
+
         # Look for CentOS
         if [[ $version_id == centos* ]]; then
             verbose_msg "We have a CentOS system"
@@ -1759,6 +1783,45 @@ prepare_packages()
   fi
 
 #-----------------------------------------------------------------------------
+  # AlmaLinux
+
+  if [[ $version_id == almalinux* ]]; then
+      if [[ $version_major -ge 8 ]]; then
+          os_is_supported=true
+
+          echo "AlmaLinux version 8 or later found"
+
+          declare -a almalinux_packages=( \
+              "git" "wget" \
+              "gcc" "make" "flex" "gawk" "m4" \
+              "autoconf" "automake" "libtool-ltdl-devel" \
+              "cmake"
+              "bzip2-devel" "zlib-devel"
+              )
+
+          for package in "${almalinux_packages[@]}"; do
+              echo "-----------------------------------------------------------------"
+
+              #yum list installed bzip2-devel  > /dev/null 2>&1 ; echo $?
+              yum list installed $package
+              status=$?
+
+              # install if missing
+              if [ $status -eq 0 ]; then
+                  echo "package $package is already installed"
+              else
+                  echo "installing package: $package"
+                  sudo yum -y install $package
+              fi
+          done
+      else
+          error_msg "AlmaLinux version 7 or earlier found, and not supported"
+          exit 1
+      fi
+    return
+  fi
+
+#-----------------------------------------------------------------------------
   # CentOS 7
 
   if [[ $version_id == centos* ]]; then
@@ -2444,6 +2507,10 @@ else
         regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib"
     fi
 
+    if [[ "$version_distro" == "almalinux" ]]; then
+        regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib64"
+    fi
+
     if (cc --version | grep -Fiqe "clang"); then
 #   if [[ $version_id == darwin* &&
 #         "$(uname -m)" =~ (^arm64|^aarch64) ]];
@@ -2500,6 +2567,7 @@ else
 
     if [[ "$version_distro" == "debian" ||
           "$version_distro" == "openSUSE" ||
+          "$version_distro" == "almalinux" ||
           "$version_distro" == "fedora" ]];
     then
         verbose_msg "sudo ldconfig (for libregina.so)"
