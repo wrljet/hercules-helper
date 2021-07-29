@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 16 JUL 2021
+# Updated: 29 JUL 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 29 JUL 2021
+# - corrections to Raspberry Pi detection
+# - don't display a bunch of errors if /etc/os-release is missing
 #
 # Updated: 16 JUL 2021
 # - add support for AlmaLinux 8.4
@@ -853,18 +857,25 @@ detect_system()
     verbose_msg "Machine Arch     : $machine"
 
     if [ "$os_name" = "Linux" ]; then
-        # awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release
-        version_id=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-        # echo "VERSION_ID is $version_id"
+        version_id="??? unknown ???"
+        version_id_like="??? unknown ???"
+        version_pretty_name="??? unknown ???"
+        version_str="??? unknown ???"
 
-        version_id_like=$(awk -F= '$1=="ID_LIKE" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-        # echo "VERSION_ID_LIKE is $version_id_like"
+        if [ -f /etc/os-release ]; then
+            # awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release
+            version_id=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+            # echo "VERSION_ID is $version_id"
 
-        version_pretty_name=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-        # echo "VERSION_STR is $version_str"
+            version_id_like=$(awk -F= '$1=="ID_LIKE" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+            # echo "VERSION_ID_LIKE is $version_id_like"
 
-        version_str=$(awk -F= '$1=="VERSION_ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-        # echo "VERSION_STR is $version_str"
+            version_pretty_name=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+            # echo "VERSION_STR is $version_str"
+
+            version_str=$(awk -F= '$1=="VERSION_ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+            # echo "VERSION_STR is $version_str"
+        fi
 
         verbose_msg "Memory Total (MB): $(free -m | awk '/^Mem:/{print $2}')"
         verbose_msg "Memory Free  (MB): $(free -m | awk '/^Mem:/{print $4}')"
@@ -1037,6 +1048,7 @@ detect_system()
         # Generated using pi-gen, https://github.com/RPi-Distro/pi-gen, f3b8a04dc10054b328a56fa7570afe6c6d1b856e, stage5
 
         version_rpidesktop=0
+        RPI_CPUS=0
 
         if [ -f /etc/rpi-issue ]; then
             if [[ "$(< /etc/rpi-issue)" == *@(Raspberry Pi reference)* &&
@@ -1044,13 +1056,12 @@ detect_system()
             then
                 verbose_msg "Running on Raspberry Pi Desktop (for PC)"
                 version_rpidesktop=1
+            else
+                if [[ "$machine" != "x86_64" ]]; then
+                    # Check for real Raspberry Pi hardware
+                    detect_pi
+                fi
             fi
-        fi
-
-        RPI_CPUS=0
-        if [[ "$machine" != "x86_64" ]]; then
-            # Check for real Raspberry Pi hardware
-            detect_pi
         fi
 
 #------------------------------------------------------------------------------
