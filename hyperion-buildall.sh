@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 29 JUL 2021
+# Updated: 01 AUG 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 01 AUG 2021
+# - bug out earlier if the system is known to not be supported
+# - add support for Zorin Linux
 #
 # Updated: 29 JUL 2021
 # - corrections to Raspberry Pi detection
@@ -896,6 +900,7 @@ detect_system()
             verbose_msg "OS               : $version_distro variant"
             verbose_msg "OS Version       : $version_major"
 
+            os_is_supported=false
             error_msg "Alpine Linux is not yet supported!"
         fi
 
@@ -910,21 +915,22 @@ detect_system()
 
             verbose_msg "OS               : $version_distro variant"
             verbose_msg "OS Version       : $version_major"
+            os_is_supported=true
         fi
 
         # Look for Debian/Ubuntu/Mint
 
-        if [[ $version_id == debian*  || $version_id == ubuntu*    || \
-              $version_id == neon*    || $version_id == linuxmint* || \
-              $version_id == raspbian*                             ]];
+        if [[ $version_id == debian*   || $version_id == ubuntu*    || \
+              $version_id == neon*     || $version_id == linuxmint* || \
+              $version_id == raspbian* || $version_id == zorin*     ]];
         then
-            # if [[ $(lsb_release -rs) == "18.04" ]]; then
             version_distro="debian"
             version_major=$(echo $version_str | cut -f1 -d.)
             version_minor=$(echo $version_str | cut -f2 -d.)
 
             verbose_msg "OS               : $version_distro variant"
             verbose_msg "OS Version       : $version_major"
+            os_is_supported=true
         fi
 
         if [[ $version_id == raspbian* ]]; then
@@ -952,6 +958,7 @@ detect_system()
 
             verbose_msg "VERSION_MAJOR    : $version_major"
             verbose_msg "VERSION_MINOR    : $version_minor"
+            os_is_supported=true
         fi
 
         # Look for CentOS
@@ -980,6 +987,10 @@ detect_system()
 
             verbose_msg "VERSION_MAJOR    : $version_major"
             verbose_msg "VERSION_MINOR    : $version_minor"
+
+            if [[ $version_major -ge 7 ]]; then
+              os_is_supported=true
+            fi
         fi
 
         # Look for Fedora
@@ -1002,6 +1013,10 @@ detect_system()
             version_distro="redhat"
             version_major=$(echo $fedora_vers | cut -f1 -d' ')
             verbose_msg "VERSION_MAJOR    : $version_major"
+
+            if [[ $version_major -ge 34 ]]; then
+              os_is_supported=true
+            fi
         fi
 #######################################################
 
@@ -1014,6 +1029,7 @@ detect_system()
 
             verbose_msg "OS               : $version_distro variant"
             verbose_msg "OS Version       : $version_major"
+            os_is_supported=true
         fi
 
         # show the default language
@@ -1060,6 +1076,7 @@ detect_system()
                 if [[ "$machine" != "x86_64" ]]; then
                     # Check for real Raspberry Pi hardware
                     detect_pi
+                    os_is_supported=true
                 fi
             fi
         fi
@@ -1161,6 +1178,10 @@ detect_system()
         # i.e. LANG=en_US.UTF-8
         verbose_msg "Language         : <unknown>"
 
+        if [[ $version_major -ge 12 ]]; then
+          os_is_supported=true
+        fi
+
 #------------------------------------------------------------------------------
     elif [ "$os_name" = "Darwin" ]; then
 
@@ -1179,7 +1200,6 @@ detect_system()
 # uname -a        : Darwin Sunils-Air 20.2.0 Darwin Kernel Version 20.2.0: Wed Dec  2 20:40:21 PST 2020; root:xnu-7195.60.75~1/RELEASE_ARM64_T8101 x86_64
 
 # 18.0.0 = macOS v10.14 (Mojave)
-
 
         version_id="darwin"
         version_str=$(sw_vers -productVersion)
@@ -1653,10 +1673,6 @@ prepare_packages()
   # Look for Debian/Ubuntu/Mint
 
   if [ "$version_distro" == "debian"  ]; then
-      # if [[ $(lsb_release -rs) == "18.04" ]]; then
-
-      os_is_supported=true
-
       declare -a debian_packages=( \
           "git" "wget" "time" "ncat" \
           "build-essential" "cmake" \
@@ -1710,8 +1726,6 @@ prepare_packages()
   # Look for Arch/Manjaro
 
   if [ "$version_distro" == "arch"  ]; then
-      os_is_supported=true
-
       declare -a arch_packages=( \
           "git" "wget" \
           "base-devel" "make" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
@@ -1760,8 +1774,6 @@ prepare_packages()
 
   if [[ $version_id == fedora* ]]; then
       if [[ $version_major -ge 34 ]]; then
-          os_is_supported=true
-
           echo "Fedora version 34 or later found"
 
           declare -a fedora_packages=( \
@@ -1798,8 +1810,6 @@ prepare_packages()
 
   if [[ $version_id == almalinux* ]]; then
       if [[ $version_major -ge 8 ]]; then
-          os_is_supported=true
-
           echo "AlmaLinux version 8 or later found"
 
           declare -a almalinux_packages=( \
@@ -1837,8 +1847,6 @@ prepare_packages()
 
   if [[ $version_id == centos* ]]; then
       if [[ $version_major -ge 7 ]]; then
-          os_is_supported=true
-
           echo "CentOS version 7 or later found"
 
           if [[ $version_major -eq 7 ]]; then
@@ -1941,7 +1949,6 @@ prepare_packages()
   # openSUSE (15.1)
 
   if [[ $version_id == opensuse* ]]; then
-      os_is_supported=true
 
 # devel_basis is a "pattern"
 # libcap-progs is not, and won't install it -t pattern
@@ -2033,45 +2040,43 @@ prepare_packages()
   # Apple Darwin (macOS)
 
   if [[ $version_id == darwin* ]]; then
-      if ( $os_is_supported ); then
-          declare -a darwin_packages=( \
-              "wget"    \
-              "autoconf" "automake" \
-              "cmake"   \
-              "gsed"
-            # "libtool" \
-            # "flex" "gawk" "m4" \
-            # "bzip2" "zlib"
-          )
+      declare -a darwin_packages=( \
+          "wget"    \
+          "autoconf" "automake" \
+          "cmake"   \
+          "gsed"
+        # "libtool" \
+        # "flex" "gawk" "m4" \
+        # "bzip2" "zlib"
+      )
 
-          echo "Required packages: "
-          echo "${darwin_packages[*]}"
-          echo    # print a newline
+      echo "Required packages: "
+      echo "${darwin_packages[*]}"
+      echo    # print a newline
 
-          for package in "${darwin_packages[@]}"; do
-              verbose_msg "-----------------------------------------------------------------"
-              verbose_msg "Checking for package: $package"
+      for package in "${darwin_packages[@]}"; do
+          verbose_msg "-----------------------------------------------------------------"
+          verbose_msg "Checking for package: $package"
 
-              is_installed=$(brew info $package)
-              status=$?
+          is_installed=$(brew info $package)
+          status=$?
 
-              # install if missing
-              if [[ $status -eq 1 || $is_installed == *"Not installed"* ]] ; then
-                  verbose_msg "installing package: $package"
-                  brew install $package
+          # install if missing
+          if [[ $status -eq 1 || $is_installed == *"Not installed"* ]] ; then
+              verbose_msg "installing package: $package"
+              brew install $package
 
-                  if [ ${PIPESTATUS[0]} -ne 0 ]; then
-                    echo    # print a newline
-                    error_msg "brew install failed!"
-                    echo    # print a newline
-                  fi
-              else
-                  verbose_msg "package: $package is already installed"
+              if [ ${PIPESTATUS[0]} -ne 0 ]; then
+                echo    # print a newline
+                error_msg "brew install failed!"
+                echo    # print a newline
               fi
-          done
-      fi
+          else
+              verbose_msg "package: $package is already installed"
+          fi
+      done
 
-    return
+      return
   fi
 
 #-----------------------------------------------------------------------------
@@ -2108,8 +2113,6 @@ prepare_packages()
 
   if [[ $version_id == freebsd* ]]; then
       if [[ $version_major -ge 12 ]]; then
-          os_is_supported=true
-
           echo "FreeBSD version 12 or later found"
 
           declare -a freebsd_packages=( \
@@ -2144,6 +2147,10 @@ prepare_packages()
     return
   fi
 
+  if [ $os_is_supported != true ]; then
+    error_msg "Your system ( $version_pretty ) is not (yet) supported!"
+    exit 1
+  fi
 }
 
 detect_darwin
@@ -2187,6 +2194,11 @@ verbose_msg    # print a newline
 # Detect type of system we're running on and display info
 detect_system
 verbose_msg    # print a newline
+
+if [ $os_is_supported != true ]; then
+    error_msg "Your system ($version_pretty_name) is not (yet) supported!"
+    exit 1
+fi
 
 verbose_msg "Build tools versions:"
 verbose_msg "  autoconf       : $(autoconf --version 2>&1 | head -n 1)"
