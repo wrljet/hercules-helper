@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 01 AUG 2021
+# Updated: 03 AUG 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 03 AUG 2021
+# - fix bug causing --autogen option to not work
 #
 # Updated: 01 AUG 2021
 # - bug out earlier if the system is known to not be supported
@@ -2225,7 +2228,7 @@ if ($opt_no_rexx      ); then dostep_rexx=false;      fi
 if ($opt_no_gitclone  ); then dostep_gitclone=false;  fi
 if ($opt_no_bldlvlck  ); then dostep_bldlvlck=false;  fi
 if ($opt_no_extpkgs   ); then dostep_extpkgs=false;   fi
-if ($opt_no_autogen   ); then dostep_autogen=false;   fi
+if ($opt_no_autogen   ); then dostep_autogen=false; else dostep_autogen=true; fi
 if ($opt_no_configure ); then dostep_configure=false; fi
 if ($opt_no_clean     ); then dostep_clean=false;     fi
 if ($opt_no_make      ); then dostep_make=false;      fi
