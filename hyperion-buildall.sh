@@ -2266,23 +2266,6 @@ verbose_msg "  uname -p        : $(uname -p)"
 verbose_msg "  uname -s        : $(uname -s)"
 verbose_msg    # print a newline
 
-if [ "$version_distro" == "darwin" ]; then
-    if [[ $opt_use_homebrew == true ]]; then
-        if [[ $darwin_have_homebrew == false ]] ; then
-            error_msg "--homebrew is specified, but Homebrew is not installed!"
-            exit 1
-        fi
-    elif [[ $opt_use_macports == true ]]; then
-        if [[ $darwin_have_macports == false ]] ; then
-            error_msg "--macports is specified, but MacPorts is not installed!"
-            exit 1
-        fi
-    else
-        error_msg "On MacOS, either --homebrew or --macports must be specified!"
-        exit 1
-    fi
-fi
-
 # Detect type of system we're running on and display info
 detect_system
 verbose_msg    # print a newline
@@ -2377,6 +2360,23 @@ fi
 
 if ($opt_detect_only); then
     return 0
+fi
+
+if [ "$version_distro" == "darwin" ]; then
+    if [[ $opt_use_homebrew == true ]]; then
+        if [[ $darwin_have_homebrew == false ]] ; then
+            error_msg "--homebrew is specified, but Homebrew is not installed!"
+            exit 1
+        fi
+    elif [[ $opt_use_macports == true ]]; then
+        if [[ $darwin_have_macports == false ]] ; then
+            error_msg "--macports is specified, but MacPorts is not installed!"
+            exit 1
+        fi
+    else
+        error_msg "On MacOS, either --homebrew or --macports must be specified!"
+        exit 1
+    fi
 fi
 
 #-----------------------------------------------------------------------------
@@ -2983,6 +2983,8 @@ else
     # For Apple Mac, we use the system libltdl rather than compiling our own
     # We dig out where to find this in the brew cellar/MacPorts and set
     # our environment vars.
+
+    without_included_ltdl_option=""
 
     if [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
         without_included_ltdl_option="--without-included-ltdl"
