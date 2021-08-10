@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 03 AUG 2021
+# Updated: 10 AUG 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 10 AUG 2021
+# - support MacPorts package manager on MacOS
+# - use either '--homebrew' or '--macports' required to specify
 #
 # Updated: 03 AUG 2021
 # - fix bug causing --autogen option to not work
@@ -513,6 +517,9 @@ uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
 
 # Check for Apple macOS and prerequisites
 
+darwin_have_homebrew=false
+darwin_have_macports=false
+
 if [ "$uname_system" == "Darwin" ]; then
     darwin_need_prereqs=false
 
@@ -527,9 +534,21 @@ if [ "$uname_system" == "Darwin" ]; then
   # echo "Checking for Homebrew package manager ..."
     which -s brew
     if [[ $? != 0 ]] ; then
-        darwin_need_prereqs=true
-  # else
-  #     echo "    Homebrew is already installed"
+        echo "    Homebrew is not installed"
+    else
+        darwin_need_prereqs=false
+        darwin_have_homebrew=true
+        echo "    Homebrew is already installed"
+    fi
+
+  # echo "Checking for MacPorts package manager ..."
+    which -s port
+    if [[ $? != 0 ]] ; then
+        echo "    MacPorts is not installed"
+    else
+        darwin_need_prereqs=false
+        darwin_have_macports=true
+        echo "    MacPorts is already installed"
     fi
 
     if ( $darwin_need_prereqs == true ) ; then
@@ -570,6 +589,8 @@ Options:
   -s,  --sudo         use \'sudo\' for installing
   -a,  --auto         run everything, with --verbose (but not --prompts),
                       and create a full log file
+       --homebrew     assume Homebrew package manager on MacOS
+       --macports     assume MacPorts package manager on MacOS
 
 Sub-functions (in order of operation):
        --detect-only  run detection only and exit
@@ -1446,6 +1467,9 @@ opt_override_no_setcap=false      # setcap executables
 opt_override_no_envscript=false   # Create script to set environment variables
 opt_override_no_bashrc=false      # Add "source" to set environment variables from .bashrc
 
+opt_use_homebrew=false            # User Homebrew package manager on MacOS
+opt_use_macports=false            # User MacPorts package manager on MacOS
+
 POSITIONAL=()
 while [[ $# -gt 0 ]]
 do
@@ -1573,6 +1597,16 @@ case $key in
 
   --no-bashrc) # skip modifying .bashrc to set environment variables
     opt_override_no_bashrc=true
+    shift # past argument
+    ;;
+
+  --homebrew)
+    opt_use_homebrew=true
+    shift # past argument
+    ;;
+
+  --macports)
+    opt_use_macports=true
     shift # past argument
     ;;
 
@@ -2057,27 +2091,58 @@ prepare_packages()
       echo "${darwin_packages[*]}"
       echo    # print a newline
 
-      for package in "${darwin_packages[@]}"; do
-          verbose_msg "-----------------------------------------------------------------"
-          verbose_msg "Checking for package: $package"
+      # split cases between Homebrew and MacPorts
+      if ( $darwin_have_macports == true ) ; then
 
-          is_installed=$(brew info $package)
-          status=$?
+          for package in "${darwin_packages[@]}"; do
+              verbose_msg "-----------------------------------------------------------------"
+              verbose_msg "Checking for package: $package"
 
-          # install if missing
-          if [[ $status -eq 1 || $is_installed == *"Not installed"* ]] ; then
-              verbose_msg "installing package: $package"
-              brew install $package
+              is_installed=$(port installed | grep -Fiqe "$package")
+              status=$?
 
-              if [ ${PIPESTATUS[0]} -ne 0 ]; then
-                echo    # print a newline
-                error_msg "brew install failed!"
-                echo    # print a newline
+              # install if missing
+              if [[ $status -eq 1 || $is_installed == *"Not installed"* ]] ; then
+                  verbose_msg "installing package: $package"
+                  sudo port install $package
+
+                  if [ ${PIPESTATUS[0]} -ne 0 ]; then
+                    echo    # print a newline
+                    error_msg "brew install failed!"
+                    echo    # print a newline
+                  fi
+              else
+                  verbose_msg "package: $package is already installed"
               fi
-          else
-              verbose_msg "package: $package is already installed"
-          fi
-      done
+          done
+
+      elif ( $darwin_have_homebrew == true ) ; then
+
+          for package in "${darwin_packages[@]}"; do
+              verbose_msg "-----------------------------------------------------------------"
+              verbose_msg "Checking for package: $package"
+
+              is_installed=$(brew info $package)
+              status=$?
+
+              # install if missing
+              if [[ $status -eq 1 || $is_installed == *"Not installed"* ]] ; then
+                  verbose_msg "installing package: $package"
+                  brew install $package
+
+                  if [ ${PIPESTATUS[0]} -ne 0 ]; then
+                    echo    # print a newline
+                    error_msg "brew install failed!"
+                    echo    # print a newline
+                  fi
+              else
+                  verbose_msg "package: $package is already installed"
+              fi
+          done
+      else
+          error_msg "MacOS and neither Homebrew or MacPorts is installed!"
+          exit 1
+      fi
 
       return
   fi
@@ -2169,6 +2234,13 @@ verbose_msg "  --verbose       : $opt_verbose"
 verbose_msg "  --prompts       : $opt_prompts"
 verbose_msg "  --sudo          : $opt_usesudo"
 
+if ( $opt_use_homebrew ) ; then
+    verbose_msg "  --homebrew      : $opt_use_homebrew"
+fi
+if ( $opt_use_macports ) ; then
+    verbose_msg "  --macports      : $opt_use_macports"
+fi
+
 verbose_msg "  --detect-only   : $opt_detect_only"
 verbose_msg "  --no-packages   : $opt_no_packages"
 verbose_msg "  --no-rexx       : $opt_no_rexx"
@@ -2193,6 +2265,23 @@ verbose_msg "  uname -m        : $(uname -m)"
 verbose_msg "  uname -p        : $(uname -p)"
 verbose_msg "  uname -s        : $(uname -s)"
 verbose_msg    # print a newline
+
+if [ "$version_distro" == "darwin" ]; then
+    if [[ $opt_use_homebrew == true ]]; then
+        if [[ $darwin_have_homebrew == false ]] ; then
+            error_msg "--homebrew is specified, but Homebrew is not installed!"
+            exit 1
+        fi
+    elif [[ $opt_use_macports == true ]]; then
+        if [[ $darwin_have_macports == false ]] ; then
+            error_msg "--macports is specified, but MacPorts is not installed!"
+            exit 1
+        fi
+    else
+        error_msg "On MacOS, either --homebrew or --macports must be specified!"
+        exit 1
+    fi
+fi
 
 # Detect type of system we're running on and display info
 detect_system
@@ -2891,14 +2980,24 @@ else
         frecord_gcc_switches_option="CFLAGS=-frecord-gcc-switches"
     fi
 
-    # For Apple Mac M1, we use the system libltdl rather than compiling our own
-    # We dig out where to find this in the brew cellar and set environment vars
+    # For Apple Mac, we use the system libltdl rather than compiling our own
+    # We dig out where to find this in the brew cellar/MacPorts and set
+    # our environment vars.
 
     if [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
         without_included_ltdl_option="--without-included-ltdl"
 
         export CFLAGS="$CFLAGS -I$(find $(brew --cellar libtool) -type d -name "include" | sort -n | tail -n 1)"
         export LDFLAGS="$LDFLAGS -L$(find $(brew --cellar libtool) -type d -name "lib" | sort -n | tail -n 1)"
+    elif [[ $version_id == darwin* && "$(uname -m)" =~ ^x86_64 ]]; then
+
+        # split cases between Homebrew and MacPorts
+        if ( $opt_use_macports == true ) ; then
+            without_included_ltdl_option="--without-included-ltdl"
+
+            export CFLAGS="$CFLAGS -I$(dirname $(port contents libtool | grep "ltdl.h" | head -n 1))"
+            export LDFLAGS="$LDFLAGS -L$(dirname $(port contents libtool | grep "libltdl.a" | head -n 1))"
+        fi
     else
         without_included_ltdl_option=""
     fi
