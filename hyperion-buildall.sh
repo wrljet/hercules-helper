@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 10 AUG 2021
+# Updated: 12 AUG 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 12 AUG 2021
+# - remove DEBUG mode when building extpkgs
 #
 # Updated: 10 AUG 2021
 # - support MacPorts package manager on MacOS
@@ -2837,8 +2840,8 @@ else
 
     cd $opt_build_dir/extpkgs
 
-    DEBUG=1 ./extpkgs.sh  c d s t
-    # ./extpkgs.sh c d s t
+    # DEBUG=1 ./extpkgs.sh  c d s t
+    ./extpkgs.sh c d s t
 fi
 
 verbose_msg "-----------------------------------------------------------------
