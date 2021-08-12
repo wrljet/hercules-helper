@@ -2169,7 +2169,7 @@ prepare_packages()
 
                   if [ ${PIPESTATUS[0]} -ne 0 ]; then
                     echo    # print a newline
-                    error_msg "brew install failed!"
+                    error_msg "MacPorts install failed!"
                     echo    # print a newline
                   fi
               else
