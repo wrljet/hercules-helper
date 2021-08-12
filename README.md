@@ -47,6 +47,8 @@ Options:
   -s,  --sudo         use \'sudo\' for installing
   -a,  --auto         run everything, with --verbose and --prompts,
                       and creating a full log file
+       --homebrew     assume Homebrew package manager on MacOS
+       --macports     assume MacPorts package manager on MacOS
 
 Sub-functions (in order of operation):
        --detect-only  run detection only and exit
@@ -85,6 +87,9 @@ Or for your first run, for finer control:
 ```
 $ ~/hercules-helper/hyperion-buildall.sh --verbose --prompts
 ```
+
+On MacOS, either Homebrew or MacPorts may be used.
+Supply either the --homebrew or --macports option accordingly.
 
 If packages need to be installed you may be asked to supply your sudo password.
 
