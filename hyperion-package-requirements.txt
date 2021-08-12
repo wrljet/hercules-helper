@@ -67,6 +67,9 @@ opensuse_packages=
     sudo port install wget gsed
     sudo port install cmake autoconf automake libtool
 
+    # so configure/make will find ltdl.h and libltdl
+    export CFLAGS=-I/opt/local/include LDFLAGS=-L/opt/local/lib
+
 #-----------------------------------------------------------------------------
 # FreeBSD
 
