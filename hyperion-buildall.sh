@@ -52,6 +52,10 @@
 # Updated: 12 AUG 2021
 # - remove DEBUG mode when building extpkgs
 #
+# Updated: 11 AUG 2021
+# - create reusable script of commands to rebuild
+# - don't run util/bldlvlck on MacOS
+#
 # Updated: 10 AUG 2021
 # - support MacPorts package manager on MacOS
 # - use either '--homebrew' or '--macports' required to specify
@@ -368,6 +372,8 @@ shopt -s extglob # Required for MacOS
 
 require(){ hash "$@" || exit 127; }
 
+current_time=$(date "+%Y-%m-%d")
+
 #
 # Default Configuration Parameters:
 #
@@ -663,6 +669,14 @@ verbose_msg()
     if ($opt_verbose); then
         echo "$@"
     fi
+}
+
+#------------------------------------------------------------------------------
+#                               add_build_entry
+#------------------------------------------------------------------------------
+add_build_entry()
+{
+    echo "$@" >>"$cmdsfile"
 }
 
 #------------------------------------------------------------------------------
@@ -1638,7 +1652,30 @@ fi
 #------------------------------------------------------------------------------
 function the_works {  # Put everthing in an I/O redirection
 
-echo "Using logfile $logfile.log"
+echo "Using logfile: $logfile.log"
+
+# Create filename for our log of executed commands
+cmdsfile="build-commands"
+cmdsfile="${cmdsfile%.*}-$current_time"
+
+if [[ -e $cmdsfile.log || -L $cmdsfile.log ]] ; then
+    i=1
+    while [[ -e $cmdsfile-$i.log || -L $cmdsfile-$i.log ]] ; do
+        let i++
+    done
+    cmdsfile=$cmdsfile-$i
+fi
+
+cmdsfile="$(pwd)/$cmdsfile.log"
+echo "Using cmds file: $cmdsfile"
+
+add_build_entry "#!/usr/bin/env bash"
+add_build_entry # newline
+
+add_build_entry "if [[ $TRACE == true ]]; then"
+add_build_entry "    set -x # For debugging, show all commands as they are being run"
+add_build_entry "fi"
+add_build_entry # newline
 
 pushd "$(dirname "$0")" >/dev/null;
     which_git=$(which git 2>/dev/null) || true
@@ -1648,13 +1685,30 @@ pushd "$(dirname "$0")" >/dev/null;
         echo "git is not installed"
         hercules_helper_version="unknown"
     else
-        echo "script version: $0: $(git describe --long --tags --dirty --always 2>/dev/null)"
+        add_build_entry "# Created by Hercules-Helper version: "
+        add_build_entry "# $0: $(git describe --long --tags --dirty --always 2>/dev/null)"
+        echo "Script version: $0: $(git describe --long --tags --dirty --always 2>/dev/null)"
 
         # add hercules-helper version to the build description
         hercules_helper_version="$(git describe --long --tags --dirty --always 2>/dev/null)"
     fi
 popd > /dev/null;
 echo    # print a newline
+
+add_build_entry # newline
+add_build_entry "opt_build_dir=\"$opt_build_dir/hyperion\""
+add_build_entry "opt_install_dir=\"$opt_install_dir\""
+add_build_entry "opt_regina_dir=\"$opt_regina_dir\""
+add_build_entry "opt_regina_tarfile=\"$opt_regina_tarfile\""
+add_build_entry "opt_regina_url=\"$opt_regina_url\""
+
+add_build_entry "git_repo_hyperion=\"$git_repo_hyperion\""
+add_build_entry "git_branch_hyperion=\"$git_branch_hyperion\""
+add_build_entry "git_commit_hyperion=\"$git_commit_hyperion\""
+add_build_entry "git_repo_gists=\"$git_repo_gists\""
+add_build_entry "git_branch_gists=\"$git_branch_gists\""
+add_build_entry "git_repo_extpkgs=\"$git_repo_extpkgs\""
+add_build_entry "git_branch_extpkgs=\"$git_branch_extpkgs\""
 
 # Find and read in the configuration
 
@@ -2094,8 +2148,12 @@ prepare_packages()
       echo "${darwin_packages[*]}"
       echo    # print a newline
 
+      add_build_entry # newline
+      add_build_entry "# Install required packages: "
+
       # split cases between Homebrew and MacPorts
       if ( $darwin_have_macports == true ) ; then
+          add_build_entry "sudo port install ${darwin_packages[*]}"
 
           for package in "${darwin_packages[@]}"; do
               verbose_msg "-----------------------------------------------------------------"
@@ -2120,6 +2178,7 @@ prepare_packages()
           done
 
       elif ( $darwin_have_homebrew == true ) ; then
+          add_build_entry "brew install ${darwin_packages[*]}"
 
           for package in "${darwin_packages[@]}"; do
               verbose_msg "-----------------------------------------------------------------"
@@ -2225,10 +2284,6 @@ prepare_packages()
 }
 
 detect_darwin
-# if [ "$version_distro" == "darwin" ]; then
-#     verbose_msg "Not yet fully supported under MacOS"
-#     verbose_msg    # print a newline
-# fi
 
 #-----------------------------------------------------------------------------
 verbose_msg "General Options:"
@@ -2276,6 +2331,11 @@ verbose_msg    # print a newline
 if [ $os_is_supported != true ]; then
     error_msg "Your system ($version_pretty_name) is not (yet) supported!"
     exit 1
+fi
+
+# Skip bldlvlck on MacOS
+if [[ $version_id == darwin* ]]; then
+    opt_no_bldlvlck=true
 fi
 
 verbose_msg "Build tools versions:"
@@ -2586,21 +2646,28 @@ else
     status_prompter "Step: Build Regina Rexx [used for test scripts]:"
 
     # Remove any existing Regina, download and untar
+    add_build_entry # newline
+    add_build_entry "# Build Regina-REXX"
+    add_build_entry "rm -f \$opt_regina_tarfile"
+    add_build_entry "rm -rf \$opt_regina_dir"
     rm -f "$opt_regina_tarfile"
     rm -rf "$opt_regina_dir"
 
+    add_build_entry "wget \$opt_regina_url"
     wget "$opt_regina_url"
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
         error_msg "wget $opt_regina_url failed!"
         exit 1
     fi
 
+    add_build_entry "tar xfz \$opt_regina_tarfile"
     tar xfz "$opt_regina_tarfile"
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
         error_msg "tar failed!"
         exit 1
     fi
 
+    add_build_entry "cd \$opt_regina_dir"
     cd "$opt_regina_dir"
 
     if [[ "$(uname -m)" =~ ^i686 ]]; then
@@ -2670,6 +2737,8 @@ else
 
     verbose_msg $regina_configure_cmd
     verbose_msg    # output a newline
+    add_build_entry # newline
+    add_build_entry "$regina_configure_cmd"
     eval "$regina_configure_cmd"
 
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
@@ -2677,10 +2746,12 @@ else
         exit 1
     fi
 
+    add_build_entry "time make"
     time make
 
     note_msg "sudo required to install Regina REXX in the default system directories"
     verbose_msg    # output a newline
+    add_build_entry "sudo time make install"
     sudo time make install
 
     if [[ "$version_distro" == "debian" ||
@@ -2689,6 +2760,8 @@ else
           "$version_distro" == "fedora" ]];
     then
         verbose_msg "sudo ldconfig (for libregina.so)"
+        add_build_entry "# ldconfig (for libregina.so)"
+        add_build_entry "sudo ldconfig"
         sudo ldconfig
     fi
 
@@ -2716,10 +2789,15 @@ if (! $dostep_gitclone); then
 else
     status_prompter "Step: git clone all required repos:"
 
+    add_build_entry # newline
+    add_build_entry "# git clone required repos"
+    add_build_entry "cd \$opt_build_dir"
     cd $opt_build_dir
+    add_build_entry "mkdir -p \$opt_install_dir"
     mkdir -p $opt_install_dir
 
     # Grab unmodified SDL-Hercules Hyperion repo
+    add_build_entry "rm -rf hyperion"
     rm -rf hyperion
 
     if [ -z "$git_repo_hyperion" ] ; then
@@ -2729,25 +2807,38 @@ else
 
     if [ -z "$git_branch_hyperion" ] ; then
         verbose_msg "git clone $git_repo_hyperion"
+        add_build_entry "git clone \$git_repo_hyperion"
         git clone $git_repo_hyperion
     else
         verbose_msg "git clone -b $git_branch_hyperion $git_repo_hyperion"
+        add_build_entry "git clone -b \$git_branch_hyperion \$git_repo_hyperion"
         git clone -b "$git_branch_hyperion" "$git_repo_hyperion"
     fi
 
     if [ ! -z "$git_commit_hyperion" ] ; then
         verbose_msg "git checkout $git_commit_hyperion"
+
+        add_build_entry "pushd hyperion"
         pushd hyperion
+
+        add_build_entry "git checkout \$git_commit_hyperion"
         git checkout "$git_commit_hyperion"
+
+        add_build_entry "popd"
         popd
     fi
 
     #-------
 
     verbose_msg    # output a newline
+    add_build_entry # newline
+    add_build_entry "cd \$opt_build_dir"
     cd $opt_build_dir
+    add_build_entry "rm -rf extpkgs"
     rm -rf extpkgs
+    add_build_entry "mkdir extpkgs"
     mkdir extpkgs
+    add_build_entry "cd extpkgs/"
     cd extpkgs/
 
     if [ -z "$git_repo_gists" ] ; then
@@ -2758,16 +2849,21 @@ else
     verbose_msg "Cloning gists / extpkgs from $git_repo_gists"
     if [ -z "$git_branch_gists" ] ; then
         verbose_msg "git clone $git_repo_gists"
+        add_build_entry "git clone \$git_repo_gists"
         git clone "$git_repo_gists"
     else
         verbose_msg "git clone -b $git_branch_gists $git_repo_gists"
+        add_build_entry "git clone -b \$git_branch_gists \$git_repo_gists"
         git clone -b "$git_branch_gists" "$git_repo_gists"
     fi
 
     #-------
 
     verbose_msg    # output a newline
+    add_build_entry # newline
+    add_build_entry "mkdir repos && cd repos"
     mkdir repos && cd repos
+    add_build_entry "rm -rf *"
     rm -rf *
 
     if [ -z "$git_repo_extpkgs" ] ; then
@@ -2782,9 +2878,11 @@ else
     "
         if [ -z "$git_branch_extpkgs" ] ; then
             verbose_msg "git clone $git_repo_extpkgs/$pgm $pgm-0"
+            add_build_entry "git clone \$git_repo_extpkgs/$pgm $pgm-0"
             git clone "$git_repo_extpkgs/$pgm.git" "$pgm-0"
         else
             verbose_msg "git clone -b $git_branch_extpkgs $git_repo_extpkgs/$pgm $pgm-0"
+            add_build_entry "git clone -b \$git_branch_extpkgs \$git_repo_extpkgs/$pgm $pgm-0"
             git clone -b "$git_branch_extpkgs" "$git_repo_extpkgs/$pgm.git" "$pgm-0"
         fi
     done
@@ -2793,11 +2891,13 @@ fi
 
 verbose_msg "-----------------------------------------------------------------
 "
+
 if (! $dostep_bldlvlck); then
     verbose_msg "Skipping step: util/bldlvlck (--no-bldlvlck)"
 else
     status_prompter "Step: util/bldlvlck:"
 
+    add_build_entry "cd \$opt_build_dir/hyperion"
     cd $opt_build_dir/hyperion
 
     # Check for required packages and minimum versions.
@@ -2807,7 +2907,10 @@ else
     # On Raspberry Pi Desktop (Buster), the following are often missing:
     # autoconf, automake, cmake, flex, gawk, m4
 
-    util/bldlvlck 
+    add_build_entry # newline
+    add_build_entry "# Check program versions"
+    add_build_entry "util/bldlvlck"
+    util/bldlvlck
 fi
 
 verbose_msg "-----------------------------------------------------------------
@@ -2818,35 +2921,55 @@ if (! $dostep_extpkgs); then
 else
     status_prompter "Step: Prepare and build extpkgs:"
 
+    add_build_entry # newline
+    add_build_entry "# Prepare and build extpkgs"
+    add_build_entry "cd \$opt_build_dir/extpkgs"
+    add_build_entry "cp gists/extpkgs.sh ."
+    add_build_entry "cp gists/extpkgs.sh.ini ."
+
     cd $opt_build_dir/extpkgs
     cp gists/extpkgs.sh .
     cp gists/extpkgs.sh.ini .
 
     # Edit extpkgs.sh.ini
     # Change 'x86' to 'aarch64' for 64-bit, or 'arm' for 32-bit, etc.
+    add_build_entry "# Change 'x86' to 'aarch64' for 64-bit, or 'arm' for 32-bit, etc."
 
     if   [[ "$(uname -m)" == x86* || "$(uname -m)" == amd64* ]]; then
         verbose_msg "Defaulting to x86 machine type in extpkgs.sh.ini"
+        add_build_entry "# Defaulting to x86 machine type in extpkgs.sh.ini"
     elif [[ "$(uname -m)" =~ (armv6l|armv7l) ]]; then
+        add_build_entry "mv extpkgs.sh.ini extpkgs.sh.ini-orig"
+        add_build_entry "sed \"s/x86/arm/\" extpkgs.sh.ini-orig > extpkgs.sh.ini"
         mv extpkgs.sh.ini extpkgs.sh.ini-orig
         sed "s/x86/arm/" extpkgs.sh.ini-orig > extpkgs.sh.ini
     elif [[ "$(uname -m)" =~ (arm64) ]]; then
+        add_build_entry "mv extpkgs.sh.ini extpkgs.sh.ini-orig"
+        add_build_entry "sed \"s/x86/aarch64/\" extpkgs.sh.ini-orig > extpkgs.sh.ini"
         mv extpkgs.sh.ini extpkgs.sh.ini-orig
         sed "s/x86/aarch64/" extpkgs.sh.ini-orig > extpkgs.sh.ini
     else
+        add_build_entry "mv extpkgs.sh.ini extpkgs.sh.ini-orig"
+        add_build_entry "sed \"s/x86/$(uname -m)/\" extpkgs.sh.ini-orig > extpkgs.sh.ini"
         mv extpkgs.sh.ini extpkgs.sh.ini-orig
         sed "s/x86/$(uname -m)/" extpkgs.sh.ini-orig > extpkgs.sh.ini
     fi
 
+    add_build_entry # newline
+    add_build_entry "cd \$opt_build_dir/extpkgs"
     cd $opt_build_dir/extpkgs
 
+    add_build_entry "./extpkgs.sh  c d s t"
+    ./extpkgs.sh  c d s t
     # DEBUG=1 ./extpkgs.sh  c d s t
-    ./extpkgs.sh c d s t
+    # ./extpkgs.sh c d s t
 fi
 
 verbose_msg "-----------------------------------------------------------------
 "
 
+add_build_entry # newline
+add_build_entry "cd \$opt_build_dir/hyperion"
 cd $opt_build_dir/hyperion
 
 # FIXME filter out FreeBSD and Apple Darwin here also
@@ -2871,6 +2994,7 @@ if [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
     # fi
 
     verbose_msg "Running autogen.sh"
+    add_build_entry "./autogen.sh"
     ./autogen.sh
 else
     if (! $dostep_autogen); then
@@ -2889,8 +3013,12 @@ else
           *)       ECHO_N= ECHO_C='\c' ECHO_T= ;;
         esac
 
+        add_build_entry # newline
+        add_build_entry "autoreconf --force --install >./autoreconf.log 2>&1"
         echo $ECHO_N "autoreconf... $ECHO_C" && autoreconf --force --install >./autoreconf.log 2>&1 && echo "OK."
         verbose_msg    # output a newline
+        add_build_entry # newline
+        add_build_entry "./autogen.sh"
         ./autogen.sh
     fi
 fi
@@ -3007,6 +3135,12 @@ else
         without_included_ltdl_option=""
     fi
 
+    add_build_entry # newline
+    add_build_entry "# Do an out-of-source build"
+    add_build_entry "pushd \$opt_build_dir/hyperion"
+    add_build_entry "mkdir -p build"
+    add_build_entry "cd build"
+
     # Do an out-of-source build
     pushd $opt_build_dir/hyperion
     mkdir -p build
@@ -3025,6 +3159,19 @@ $frecord_gcc_switches_option ../configure \
 END-CONFIGURE
 )
 
+# Spit the command to our build log
+add_build_entry # newline
+add_build_entry "# Configure and build Hercules"
+add_build_entry "$frecord_gcc_switches_option ../configure \\"
+add_build_entry "    $config_opt_optimization \\"
+add_build_entry "    --enable-extpkgs=\$opt_build_dir/extpkgs \\"
+add_build_entry "    --prefix=\$opt_install_dir \\"
+add_build_entry "    --enable-custom=\"Built using Hercules-Helper (version: $hercules_helper_version)\" \\"
+add_build_entry "    $enable_rexx_option \\"
+add_build_entry "    $enable_ipv6_option \\"
+add_build_entry "    $enable_getoptwrapper_option \\"
+add_build_entry "    $without_included_ltdl_option"
+
     # Actually do the configure
     verbose_msg $configure_cmd
     verbose_msg    # output a newline
@@ -3040,6 +3187,7 @@ END-CONFIGURE
     verbose_msg "./config.status --config ..."
     ./config.status --config
 
+    add_build_entry "popd >/dev/null;"
     popd >/dev/null;
 fi
 
@@ -3047,6 +3195,7 @@ fi
 verbose_msg "-----------------------------------------------------------------
 "
 
+add_build_entry "cd build"
 cd build
 
 if [[ $version_id == freebsd* || $version_id == netbsd* || $version_id == darwin* ]]; then
@@ -3072,6 +3221,7 @@ else
     status_prompter "Step: make clean:"
 
     verbose_msg "$make_clean_cmd"
+    add_build_entry "$make_clean_cmd"
     eval "$make_clean_cmd"
 
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
@@ -3091,6 +3241,7 @@ else
     verbose_msg    # output a newline
     # verbose_msg "time make -j $nprocs 2>&1"
     verbose_msg "$make_cmd"
+    add_build_entry "$make_cmd"
     eval "$make_cmd"
 
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
@@ -3126,6 +3277,7 @@ else
         make_check_cmd="make check"
     fi
 
+    add_build_entry "time $make_check_cmd"
     eval "time $make_check_cmd"
 
     # time ./tests/runtest ./tests
@@ -3162,9 +3314,11 @@ else
 
     if ($opt_usesudo); then
         status_prompter "Step: install [with sudo]:"
+        add_build_entry "sudo $make_install_cmd"
         sudo eval "$make_install_cmd"
     else
         status_prompter "Step: install [without sudo]:"
+        add_build_entry "$make_install_cmd"
         eval "$make_install_cmd"
     fi
 
@@ -3347,7 +3501,6 @@ verbose_msg "Done!"
 } # End of I/O redirection function
 #-----------------------------------------------------------------------------
 
-current_time=$(date "+%Y-%m-%d")
 logfile="$(basename "$0")"
 logfile="${logfile%.*}-$current_time"
 
