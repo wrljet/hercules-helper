@@ -1,0 +1,77 @@
+#------------------------------------------------------------------------------
+# SDL-Hercules-390 Hyperion 4.x required packages
+# Updated: 12 AUG 2021
+
+#------------------------------------------------------------------------------
+# Debian/Ubuntu/Mint/etc
+
+    sudo apt-get -y install git wget time
+    sudo apt-get -y install build-essential cmake flex gawk m4 autoconf automake libtool libltdl-dev
+    sudo apt-get -y install libbz2-dev zlib1g-dev
+    sudo apt-get -y install libcap2-bin
+
+For Regina REXX:
+    sudo apt-get -y install libregina3-dev
+
+#-----------------------------------------------------------------------------
+# Arch/Manjaro
+
+    sudo apt-get -y install git wget
+    sudo apt-get -y install base-devel make cmake flex gawk m4 autoconf automake
+    sudo apt-get -y install bzip2 zlib
+
+#-----------------------------------------------------------------------------
+# Fedora
+
+    sudo apt-get -y install git wget
+    sudo apt-get -y install gcc make cmake flex gawk m4 autoconf automake libtool-ltdl-devel
+    sudo apt-get -y install bzip2-devel zlib-devel
+
+#-----------------------------------------------------------------------------
+# AlmaLinux / CentOS 8
+    sudo yum -y install git wget
+    sudo yum -y install gcc make cmake flex gawk m4 autoconf automake libtool-ltdl-devel
+    sudo yum -y install bzip2-devel zlib-devel
+
+# CentOS 7
+    sudo yum -y install git wget
+    sudo yum -y install gcc make flex gawk m4 autoconf automake libtool-ltdl-devel
+    sudo yum -y install bzip2-devel zlib-devel
+
+    Note: On CentOS 7, there is no package for CMAKE 3.x, Must be built from source.
+
+#-----------------------------------------------------------------------------
+# openSUSE (15.1)
+
+# devel_basis is a pattern
+# libcap-progs is not
+
+opensuse_patterns=
+    sudo apt-get -y install devel_basis autoconf automake cmake flex gawk m4 libtool
+    sudo apt-get -y install bzip2 libz1 zlib-devel
+
+opensuse_packages=
+    sudo apt-get -y install git
+    sudo apt-get -y install libcap-progs
+
+#-----------------------------------------------------------------------------
+# Apple Darwin (macOS)
+
+## Homebrew
+    brew install wget gsed
+    brew install cmake autoconf automake libtool
+    # flex gawk m4
+    # bzip2 zlib
+
+## MacPorts
+    sudo port install wget gsed
+    sudo port install cmake autoconf automake libtool
+
+#-----------------------------------------------------------------------------
+# FreeBSD
+
+    sudo apt-get -y install git wget
+    sudo apt-get -y install gmake autoconf automake cmake flex gawk m4
+    sudo apt-get -y install bzip2
+
+#-----------------------------------------------------------------------------
