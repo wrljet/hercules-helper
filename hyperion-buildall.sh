@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 12 AUG 2021
+# Updated: 15 AUG 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 15 AUG 2021
+# - add Debian package installation to reusable build script
+# - warn when Debian apt gets an error for a missing CD-ROM
 #
 # Updated: 12 AUG 2021
 # - remove DEBUG mode when building extpkgs
@@ -1775,6 +1779,51 @@ prepare_packages()
           "libbz2-dev" "zlib1g-dev"
       )
 
+      add_build_entry # newline
+      add_build_entry "# Install required packages: "
+      add_build_entry "sudo apt install ${debian_packages[*]}"
+
+      # First let's see if apt is expecting to find a CD-ROM
+      # This happened to me on a fresh out-of-the box install
+      # of Debian 11, the day after it was released.
+      #
+      # This detection isn't foolproof, but it's somewhat useful
+
+      # sudo apt update 2>&1
+      #
+      # Ign:1 cdrom://[Debian GNU/Linux 11.0.0 _Bullseye_ - Official amd64 DVD Binary-1 20210814-10:04] bullseye InRelease
+      # Err:2 cdrom://[Debian GNU/Linux 11.0.0 _Bullseye_ - Official amd64 DVD Binary-1 20210814-10:04] bullseye Release
+      #   Please use apt-cdrom to make this CD-ROM recognized by APT. apt-get update cannot be used to add new CD-ROMs
+      # Hit:3 http://deb.debian.org/debian bullseye InRelease
+      # Hit:4 http://security.debian.org/debian-security bullseye-security InRelease
+      # Hit:5 http://deb.debian.org/debian bullseye-updates InRelease
+      # Reading package lists...
+      # E: The repository 'cdrom://[Debian GNU/Linux 11.0.0 _Bullseye_ - Official amd64 DVD Binary-1 20210814-10:04] bullseye Release' does not have a Release file.
+
+      output=$(grep -iqe "^deb cdrom:" /etc/apt/sources.list)
+      found_cdrom_in_sources=$?
+      if [ $found_cdrom_in_sources -eq 0 ]; then
+          note_msg "/etc/apt/sources.list contains a CD-ROM reference!"
+      fi
+
+      output=$(sudo apt update 2>&1)
+      found_apt_cdrom_error=$?
+
+      echo "$output" | grep -iqe "Err:. cdrom:"
+      found_apt_cdrom_error=$?
+
+      if [ $found_apt_cdrom_error -eq 0 ]; then
+          error_msg "\'apt update\' returned a CD-ROM error!"
+          verbose_msg "
+It appears you have installed from a CD/DVD that is still required to
+supply information about packages.  Please see this URL for information
+about how to correct apt errors:
+
+https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-change-please-insert-the-disc-labeled--on-your-Linux-VPS.html
+"
+          exit 1
+      fi
+
       for package in "${debian_packages[@]}"; do
           echo -n "Checking for package: $package ... "
 
@@ -1790,7 +1839,7 @@ prepare_packages()
               echo "is already installed"
           else
               echo "is missing, installing"
-              sudo apt-get -y install $package
+              sudo apt -y install $package 2>&1
               echo "-----------------------------------------------------------------"
           fi
       done
