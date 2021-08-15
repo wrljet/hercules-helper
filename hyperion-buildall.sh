@@ -1671,7 +1671,7 @@ if [[ -e $cmdsfile.log || -L $cmdsfile.log ]] ; then
 fi
 
 cmdsfile="$(pwd)/$cmdsfile.log"
-echo "Using cmds file: $cmdsfile"
+echo "Creating build cmds file: $cmdsfile"
 
 add_build_entry "#!/usr/bin/env bash"
 add_build_entry # newline
