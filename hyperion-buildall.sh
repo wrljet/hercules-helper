@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 15 AUG 2021
+# Updated: 16 AUG 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 16 AUG 2021
+# - corrections to reusable build script (for MacPorts)
 #
 # Updated: 15 AUG 2021
 # - add Debian package installation to reusable build script
@@ -1676,7 +1679,7 @@ echo "Creating build cmds file: $cmdsfile"
 add_build_entry "#!/usr/bin/env bash"
 add_build_entry # newline
 
-add_build_entry "if [[ $TRACE == true ]]; then"
+add_build_entry "if [[ \$TRACE == true ]]; then"
 add_build_entry "    set -x # For debugging, show all commands as they are being run"
 add_build_entry "fi"
 add_build_entry # newline
@@ -3177,6 +3180,8 @@ else
         if ( $opt_use_macports == true ) ; then
             without_included_ltdl_option="--without-included-ltdl"
 
+            add_build_entry "export CFLAGS=\"\$CFLAGS -I\$(dirname \$(port contents libtool | grep \"ltdl.h\" | head -n 1))\""
+            add_build_entry "export LDFLAGS=\"\$LDFLAGS -L\$(dirname \$(port contents libtool | grep \"libltdl.a\" | head -n 1))\""
             export CFLAGS="$CFLAGS -I$(dirname $(port contents libtool | grep "ltdl.h" | head -n 1))"
             export LDFLAGS="$LDFLAGS -L$(dirname $(port contents libtool | grep "libltdl.a" | head -n 1))"
         fi
