@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 16 AUG 2021
+# Updated: 20 AUG 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 20 AUG 2021
+# - fix Raspberry Pi detection on non-rpios such as Ubuntu
 #
 # Updated: 16 AUG 2021
 # - corrections to reusable build script (for MacPorts)
@@ -765,6 +768,7 @@ function get_pi_version()
     # echo "$RPI_MODEL"
     if [[ $RPI_MODEL =~ "Raspberry" ]]; then
         verbose_msg "found"
+        os_is_supported=true
     else
         verbose_msg "nope"
     fi
@@ -821,6 +825,13 @@ function detect_pi()
 # Raspberry Pi 4B,   Ubuntu 20 64-bit,  uname -m == aarch64
 # Raspberry Pi 4B,   RPiOS     32-bit,  uname -m == armv7l
 # Raspberry Pi Zero, RPiOS     32-bit,  uname -m == armv6l
+
+    grep -iqe  "Raspberry Pi" /proc/cpuinfo 2>&1
+    status=$?
+    if [ $status -eq 0 ]; then
+        # Raspberry Pi CPU
+        verbose_msg "Running on Raspberry Pi hardware"
+    fi
 
     get_pi_version
     check_pi_version
@@ -1122,12 +1133,13 @@ detect_system()
                 version_rpidesktop=1
             else
                 if [[ "$machine" != "x86_64" ]]; then
-                    # Check for real Raspberry Pi hardware
-                    detect_pi
                     os_is_supported=true
                 fi
             fi
         fi
+
+        # Check for real Raspberry Pi hardware
+        detect_pi
 
 #------------------------------------------------------------------------------
     elif [ "$os_name" = "NetBSD" ]; then
