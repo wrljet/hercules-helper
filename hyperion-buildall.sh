@@ -51,6 +51,8 @@
 #
 # Updated: 20 AUG 2021
 # - fix Raspberry Pi detection on non-rpios such as Ubuntu
+# - display search path with system info
+# - add 'libtool' to packages for MacOS
 #
 # Updated: 16 AUG 2021
 # - corrections to reusable build script (for MacPorts)
@@ -2200,10 +2202,9 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
   if [[ $version_id == darwin* ]]; then
       declare -a darwin_packages=( \
           "wget"    \
-          "autoconf" "automake" \
+          "autoconf" "automake" "libtool" \
           "cmake"   \
           "gsed"
-        # "libtool" \
         # "flex" "gawk" "m4" \
         # "bzip2" "zlib"
       )
@@ -2401,6 +2402,9 @@ fi
 if [[ $version_id == darwin* ]]; then
     opt_no_bldlvlck=true
 fi
+
+verbose_msg "Search Path      : ${PATH}"
+verbose_msg    # print a newline
 
 verbose_msg "Build tools versions:"
 verbose_msg "  autoconf       : $(autoconf --version 2>&1 | head -n 1)"
