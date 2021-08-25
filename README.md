@@ -91,6 +91,11 @@ $ ~/hercules-helper/hyperion-buildall.sh --verbose --prompts
 On MacOS, either Homebrew or MacPorts may be used.
 Supply either the --homebrew or --macports option accordingly.
 
+For MacOS and Homebrew, be sure /opt/homebrew/bin appears at the front of your
+search PATH, so newer packages from Brew override older defaults from MacOS or
+the Xcode command line tools. (this may only be a requirement for Apple M1
+silicon -- to be determined)
+
 If packages need to be installed you may be asked to supply your sudo password.
 
 You will be prompted a number of times between the major steps, to give you a chance
