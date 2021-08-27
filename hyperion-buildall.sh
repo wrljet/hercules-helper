@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 20 AUG 2021
+# Updated: 27 AUG 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 27 AUG 2021
+# - fix bug created by recent Raspberry Pi detection fix
 #
 # Updated: 20 AUG 2021
 # - fix Raspberry Pi detection on non-rpios such as Ubuntu
@@ -771,15 +774,15 @@ function get_pi_version()
     if [[ $RPI_MODEL =~ "Raspberry" ]]; then
         verbose_msg "found"
         os_is_supported=true
+
+        RPI_REVCODE=$(awk '/Revision/ {print $3}' /proc/cpuinfo)
+        verbose_msg "Raspberry Pi rev : $RPI_REVCODE"
+
+        RPI_CPUS=$(awk '/^processor/{n+=1}END{print n}' /proc/cpuinfo)
+        verbose_msg "CPU count        : $RPI_CPUS"
     else
         verbose_msg "nope"
     fi
-
-    RPI_REVCODE=$(awk '/Revision/ {print $3}' /proc/cpuinfo)
-    verbose_msg "Raspberry Pi rev : $RPI_REVCODE"
-
-    RPI_CPUS=$(awk '/^processor/{n+=1}END{print n}' /proc/cpuinfo)
-    verbose_msg "CPU count        : $RPI_CPUS"
 }
 
 function check_pi_version()
@@ -833,10 +836,10 @@ function detect_pi()
     if [ $status -eq 0 ]; then
         # Raspberry Pi CPU
         verbose_msg "Running on Raspberry Pi hardware"
-    fi
 
-    get_pi_version
-    check_pi_version
+        get_pi_version
+        check_pi_version
+    fi
 }
 
 #------------------------------------------------------------------------------
