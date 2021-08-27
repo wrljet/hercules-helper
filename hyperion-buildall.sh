@@ -50,6 +50,7 @@
 # Changelog:
 #
 # Updated: 27 AUG 2021
+# - add required 'time' package for Manjaro
 # - fix bug created by recent Raspberry Pi detection fix
 #
 # Updated: 20 AUG 2021
@@ -1890,7 +1891,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
   if [ "$version_distro" == "arch"  ]; then
       declare -a arch_packages=( \
-          "git" "wget" \
+          "git" "wget" "time" \
           "base-devel" "make" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
           "bzip2" "zlib"
       )
