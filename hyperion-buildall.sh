@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 27 AUG 2021
+# Updated: 28 AUG 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 28 AUG 2021
+# - try to detect a defective MacOS Xcode command line tools installation
 #
 # Updated: 27 AUG 2021
 # - add required 'time' package for Manjaro
@@ -552,8 +555,15 @@ if [ "$uname_system" == "Darwin" ]; then
     xcode-select -p 1>/dev/null 2>/dev/null
     if [[ $? == 2 ]] ; then
         darwin_need_prereqs=true
-  # else
+    else
   #     echo "    Command line tools are already installed"
+        echo "Xcode command line tools appear to be installed"
+
+        if (cc --version 2>&1 | head -n 1 | grep -Fiqe "xcrun: error: invalid active developer path"); then
+            error_msg "But the C compiler does not work"
+            echo "$(cc --version 2>&1)"
+            exit 1
+        fi
     fi
 
   # echo "Checking for Homebrew package manager ..."

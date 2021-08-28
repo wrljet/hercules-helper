@@ -65,7 +65,18 @@ if [[ $? == 2 ]] ; then
 
     xcode-select --install
 else
-    echo "Command line tools are installed"
+    echo "Command line tools appear to be installed"
+
+    if (cc --version 2>&1 | head -n 1 | grep -Fiqe "xcrun: error: invalid active developer path"); then
+        echo "But the C compiler does not work"
+        echo "$(cc --version 2>&1)"
+
+        echo    # print a newline
+        echo "Attempting xcode-select --install"
+        xcode-select --install
+    else
+        echo "compiler: $(cc --version 2>&1 | head -n 1)"
+    fi
 fi
 echo    # print a newline
 
