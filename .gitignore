@@ -1,0 +1,10 @@
+# By extension
+*.DS_Store
+*.log
+*.tar.gz
+*~
+
+# Specific paths and/or names
+extpkgs/
+hyperion/
+Regina-*/
