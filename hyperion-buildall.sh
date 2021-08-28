@@ -52,6 +52,8 @@
 # Updated: 28 AUG 2021
 # - try to detect a defective MacOS Xcode command line tools installation
 # - add System76 Pop!_OS as a Debian alternative (thanks to Jay Maynard!)
+# - when 'sudo' is needed for the install dir, use it for everything there
+#   (thanks to Jay Maynard!)
 #
 # Updated: 27 AUG 2021
 # - add required 'time' package for Manjaro
@@ -3401,7 +3403,7 @@ else
     if ($opt_usesudo); then
         status_prompter "Step: install [with sudo]:"
         add_build_entry "sudo $make_install_cmd"
-        sudo eval "$make_install_cmd"
+        eval "sudo $make_install_cmd"
     else
         status_prompter "Step: install [without sudo]:"
         add_build_entry "$make_install_cmd"
@@ -3445,7 +3447,11 @@ else
     if (cc --version | grep -Fiqe "clang"); then
         verbose_msg "Clang: skipping readelf"
     else
-        readelf -p .GCC.command.line "$opt_install_dir/bin/hercules" > "$opt_install_dir/gcc-options.txt"
+        if ($opt_usesudo); then
+            sudo readelf -p .GCC.command.line "$opt_install_dir/bin/hercules" | sudo tee "$opt_install_dir/hercules-gcc-options.txt" > /dev/null
+        else
+            readelf -p .GCC.command.line "$opt_install_dir/bin/hercules" > "$opt_install_dir/hercules-gcc-options.txt"
+        fi
     fi
 fi
 
@@ -3472,7 +3478,7 @@ else
     status_prompter "Step: create script to set environment variables [may require sudo]:"
 
     shell=$(/usr/bin/basename $(/bin/ps -p $$ -ocomm=))
-    cat <<FOE >"$opt_install_dir/hyperion-init-$shell.sh"
+    cat <<FOE >"TEMP-hyperion-init-$shell.sh"
 #!/usr/bin/env bash
 #
 # Set up environment variables for Hercules
@@ -3523,7 +3529,13 @@ FOE
 # end of inline "here" file
 #fi
 
-    chmod +x "$opt_install_dir/hyperion-init-$shell.sh"
+    chmod +x "TEMP-hyperion-init-$shell.sh"
+    if ($opt_usesudo); then
+        sudo mv "TEMP-hyperion-init-$shell.sh" "$opt_install_dir/hyperion-init-$shell.sh"
+    else
+        mv "TEMP-hyperion-init-$shell.sh" "$opt_install_dir/hyperion-init-$shell.sh"
+    fi
+
     source "$opt_install_dir/hyperion-init-$shell.sh"
     verbose_msg "Created: $opt_install_dir/hyperion-init-$shell.sh"
 
