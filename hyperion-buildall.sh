@@ -51,6 +51,7 @@
 #
 # Updated: 28 AUG 2021
 # - try to detect a defective MacOS Xcode command line tools installation
+# - add System76 Pop!_OS as a Debian alternative (thanks to Jay Maynard!)
 #
 # Updated: 27 AUG 2021
 # - add required 'time' package for Manjaro
@@ -997,7 +998,8 @@ detect_system()
 
         if [[ $version_id == debian*   || $version_id == ubuntu*    || \
               $version_id == neon*     || $version_id == linuxmint* || \
-              $version_id == raspbian* || $version_id == zorin*     ]];
+              $version_id == raspbian* || $version_id == zorin*     || \
+              $version_id == pop*      ]];
         then
             version_distro="debian"
             version_major=$(echo $version_str | cut -f1 -d.)
