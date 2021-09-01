@@ -51,6 +51,7 @@
 #
 # Updated: 01 SEP 2021
 # - attempted corrections to CentOS 7 cc1 and cc1plus detection
+# - fix bug preventing running from our own directory
 #
 # Updated: 28 AUG 2021
 # - try to detect a defective MacOS Xcode command line tools installation
@@ -604,6 +605,8 @@ fi
 
 #-----------------------------------------------------------------------------
 
+SCRIPT_PATH=$(dirname $(realpath -s $0))
+
 pushd "$(dirname "$0")" >/dev/null;
     which_git=$(which git 2>/dev/null) || true
     which_status=$?
@@ -612,7 +615,7 @@ pushd "$(dirname "$0")" >/dev/null;
         # verbose_msg "git is not installed"
         version_info=""
     else
-        version_info="$0: $(git describe --long --tags --dirty --always 2>/dev/null)"
+        version_info="$SCRIPT_PATH/$(basename $0): $(git describe --long --tags --dirty --always 2>/dev/null)"
     fi
 popd > /dev/null;
 
@@ -1728,8 +1731,8 @@ pushd "$(dirname "$0")" >/dev/null;
         hercules_helper_version="unknown"
     else
         add_build_entry "# Created by Hercules-Helper version: "
-        add_build_entry "# $0: $(git describe --long --tags --dirty --always 2>/dev/null)"
-        echo "Script version: $0: $(git describe --long --tags --dirty --always 2>/dev/null)"
+        add_build_entry "# $SCRIPT_PATH/$(basename $0): $(git describe --long --tags --dirty --always 2>/dev/null)"
+        echo "Script version: $SCRIPT_PATH/$(basename $0): $(git describe --long --tags --dirty --always 2>/dev/null)"
 
         # add hercules-helper version to the build description
         hercules_helper_version="$(git describe --long --tags --dirty --always 2>/dev/null)"
@@ -2810,14 +2813,14 @@ else
 
         if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
           verbose_msg "Patching Regina 3.9.3 source for Raspberry Pi 64-bit"
-          patch -u configure -i "$(dirname "$0")/patches/regina-rexx-3.9.3.patch"
+          patch -u configure -i "$SCRIPT_PATH/patches/regina-rexx-3.9.3.patch"
           verbose_msg    # output a newline
         elif [[ "$opt_regina_dir" =~ "3.6" ]]; then
           verbose_msg "Patching Regina 3.6 source for Raspberry Pi 64-bit"
-          patch -u configure -i "$(dirname "$0")/patches/regina-rexx-3.6.patch"
+          patch -u configure -i "$SCRIPT_PATH/patches/regina-rexx-3.6.patch"
           verbose_msg "Replacing config.{guess,sub}"
-          cp "$(dirname "$0")/patches/config.guess" ./common/
-          cp "$(dirname "$0")/patches/config.sub" ./common/
+          cp "$SCRIPT_PATH/patches/config.guess" ./common/
+          cp "$SCRIPT_PATH/patches/config.sub" ./common/
           verbose_msg    # output a newline
         else
           error_msg "Don't know how to build your Regina on the Pi!"
@@ -3080,7 +3083,7 @@ if [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
     # if [ ! -f Makefile.am.orig ]; then
     #     verbose_msg "Patching Makefile.am"
     #     cp Makefile.am Makefile.am.orig
-    #     patch -u Makefile.am -i "$(dirname "$0")/patches/Makefile.am.M1.patch"
+    #     patch -u Makefile.am -i "$SCRIPT_PATH/patches/Makefile.am.M1.patch"
     #     verbose_msg    # output a newline
     # fi
 
