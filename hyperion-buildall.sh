@@ -52,6 +52,7 @@
 # Updated: 01 SEP 2021
 # - attempted corrections to CentOS 7 cc1 and cc1plus detection
 # - fix bug preventing running from our own directory
+# - add support for 'opt_configure_optimization' config file option
 #
 # Updated: 28 AUG 2021
 # - try to detect a defective MacOS Xcode command line tools installation
@@ -445,6 +446,8 @@ git_branch_extpkgs=${git_extpkgs_extpkgs:-""}
 opt_regina_dir=${opt_regina_dir:-"Regina-REXX-3.6"}
 opt_regina_tarfile=${opt_regina_tarfile:-"Regina-REXX-3.6.tar.gz"}
 opt_regina_url=${opt_regina_url:-"http://www.wrljet.com/ibm360/Regina-REXX-3.6.tar.gz"}
+
+opt_configure_optimization=${opt_configure_optimization:-""}
 
 # Print verbose progress information
 opt_verbose=${opt_verbose:-false}
@@ -2500,6 +2503,10 @@ else
     verbose_msg "GIT_REPO_EXTPKGS     : $git_repo_extpkgs} [checkout $git_branch_extpkgs]"
 fi
 
+if [ ! -z "$opt_configure_optimization" ] ; then
+    verbose_msg "OPT_CONFIGURE_OPTIMIZATION : $opt_configure_optimization"
+fi
+
 #-----------------------------------------------------------------------------
 
 if [[ $version_rpidesktop -eq 1 ]]; then
@@ -3186,6 +3193,12 @@ else
         config_opt_optimization="--enable-optimization=\"-O2\""
     else
         config_opt_optimization="--enable-optimization=\"-O2 -march=native\""
+    fi
+
+    # Our config file can override all this, for example on Raspberry Pi 4B:
+    # opt_configure_optimization="-mtune=cortex-a72 -march=armv8-a+crc -O3"
+    if [ ! -z "$opt_configure_optimization" ] ; then
+        config_opt_optimization="--enable-optimization=\"$opt_configure_optimization\""
     fi
 
     # For Apple Darwin, avoid fork bomb
