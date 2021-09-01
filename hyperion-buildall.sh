@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 28 AUG 2021
+# Updated: 01 SEP 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 01 SEP 2021
+# - attempted corrections to CentOS 7 cc1 and cc1plus detection
 #
 # Updated: 28 AUG 2021
 # - try to detect a defective MacOS Xcode command line tools installation
@@ -2098,21 +2101,23 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           # run on all CentOS, after CMAKE
           echo "-----------------------------------------------------------------"
 
-          which_cc1=$(find / -name cc1 -print 2>&1 | grep cc1)
-          verbose_msg "cc1 presence:       $which_cc1"
+          find_cc1=$(find / -name cc1 -print 2>&1 | grep "cc1")
+          verbose_msg "cc1 presence:       $find_cc1"
 
-          which_cc1plus=$(find / -name cc1plus -print 2>&1 | grep cc1plus)
-          which_status=$?
-          verbose_msg "cc1plus presence:   $which_cc1plus"
+          find_cc1plus=$(find / -name cc1plus -print 2>&1 | grep "cc1plus")
+          verbose_msg "cc1plus presence:   $find_cc1plus"
 
-          if [ -z $which_cc1plus ]; then
-              echo "On CentOS and there is no cc1plus"
+          if (find / -name cc1plus -print 2>&1 | grep -Fqe "cc1plus"); then
+              warning_msg "On CentOS and there is no cc1plus"
+              warning_msg "Please report this"
 
-              if [ ! -z $which_cc1 ]; then
-                  verbose_msg "We do have cc1; linking cc1plus to cc1"
-                  sudo ln -s "$which_cc1" /usr/bin/cc1plus
-              else
+              if (find / -name cc1 -print 2>&1 | grep -Fqe "cc1"); then
                   error_msg "We do not have cc1 either; full gcc-c++ package is required"
+                  exit 1
+              else
+                  error_msg "We do have cc1; must link cc1plus to cc1"
+                  exit 1
+                # sudo ln -s "$which_cc1" /usr/bin/cc1plus
               fi
           fi
           echo    # print a newline
