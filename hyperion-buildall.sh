@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 01 SEP 2021
+# Updated: 12 SEP 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,11 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 12 SEP 2021
+# - fix bug writing config options to the build steps log
+# - fix bug so opt_no_envscript=true and opt_no_bashrc=true config file
+#   options work together correctly
 #
 # Updated: 01 SEP 2021
 # - attempted corrections to CentOS 7 cc1 and cc1plus detection
@@ -1743,21 +1748,6 @@ pushd "$(dirname "$0")" >/dev/null;
 popd > /dev/null;
 echo    # print a newline
 
-add_build_entry # newline
-add_build_entry "opt_build_dir=\"$opt_build_dir/hyperion\""
-add_build_entry "opt_install_dir=\"$opt_install_dir\""
-add_build_entry "opt_regina_dir=\"$opt_regina_dir\""
-add_build_entry "opt_regina_tarfile=\"$opt_regina_tarfile\""
-add_build_entry "opt_regina_url=\"$opt_regina_url\""
-
-add_build_entry "git_repo_hyperion=\"$git_repo_hyperion\""
-add_build_entry "git_branch_hyperion=\"$git_branch_hyperion\""
-add_build_entry "git_commit_hyperion=\"$git_commit_hyperion\""
-add_build_entry "git_repo_gists=\"$git_repo_gists\""
-add_build_entry "git_branch_gists=\"$git_branch_gists\""
-add_build_entry "git_repo_extpkgs=\"$git_repo_extpkgs\""
-add_build_entry "git_branch_extpkgs=\"$git_branch_extpkgs\""
-
 # Find and read in the configuration
 
 config_dir="$(dirname "$0")"
@@ -1803,6 +1793,21 @@ if [ $opt_override_no_bashrc    == true ]; then opt_no_bashrc=true; fi
 if [[ $TRACE == true ]]; then
     set -x # For debugging, show all commands as they are being run
 fi
+
+add_build_entry # newline
+add_build_entry "opt_build_dir=\"$opt_build_dir/hyperion\""
+add_build_entry "opt_install_dir=\"$opt_install_dir\""
+add_build_entry "opt_regina_dir=\"$opt_regina_dir\""
+add_build_entry "opt_regina_tarfile=\"$opt_regina_tarfile\""
+add_build_entry "opt_regina_url=\"$opt_regina_url\""
+
+add_build_entry "git_repo_hyperion=\"$git_repo_hyperion\""
+add_build_entry "git_branch_hyperion=\"$git_branch_hyperion\""
+add_build_entry "git_commit_hyperion=\"$git_commit_hyperion\""
+add_build_entry "git_repo_gists=\"$git_repo_gists\""
+add_build_entry "git_branch_gists=\"$git_branch_gists\""
+add_build_entry "git_repo_extpkgs=\"$git_repo_extpkgs\""
+add_build_entry "git_branch_extpkgs=\"$git_branch_extpkgs\""
 
 #------------------------------------------------------------------------------
 #                              prepare_packages
@@ -3603,7 +3608,7 @@ fi # if (! $dostep_bashrc)
      
 #-----------------------------------------------------------------------------
 
-if (! $opt_no_install); then
+if (! $opt_no_install && ! $opt_no_bashrc); then
     if [ -f ~/.bashrc ]; then # Check for .bashrc existing first!
       if [ -f $opt_install_dir/hyperion-init-$shell.sh ]; then
         echo   # output a newline
