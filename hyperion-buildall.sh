@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 12 SEP 2021
+# Updated: 19 SEP 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 19 SEP 2021
+# - add error detection to 'git clone' and 'git checkout' commands
+# - better detect and skip tests for Rexx installations missing dev files
 #
 # Updated: 12 SEP 2021
 # - fix bug writing config options to the build steps log
@@ -1463,10 +1467,12 @@ detect_rexx()
             verbose_msg "cc_status = $cc_status"
             verbose_msg "rexxsaa.h is found in $CC search path"
             trace_msg "$cc_find_h"
+            rexxsaa_h_present=true
         else
             verbose_msg "cc_status = $cc_status"
             error_msg "rexxsaa.h is not found in $CC search path"
             trace_msg "$cc_find_h"
+            rexxsaa_h_present=false
         fi
     fi
 
@@ -2914,11 +2920,21 @@ else
     if [ -z "$git_branch_hyperion" ] ; then
         verbose_msg "git clone $git_repo_hyperion"
         add_build_entry "git clone \$git_repo_hyperion"
+
         git clone $git_repo_hyperion
+        if [[ $? != 0 ]] ; then
+            error_msg "git clone failed!"
+            exit 1
+        fi
     else
         verbose_msg "git clone -b $git_branch_hyperion $git_repo_hyperion"
         add_build_entry "git clone -b \$git_branch_hyperion \$git_repo_hyperion"
+
         git clone -b "$git_branch_hyperion" "$git_repo_hyperion"
+        if [[ $? != 0 ]] ; then
+            error_msg "git clone failed!"
+            exit 1
+        fi
     fi
 
     if [ ! -z "$git_commit_hyperion" ] ; then
@@ -2928,7 +2944,12 @@ else
         pushd hyperion
 
         add_build_entry "git checkout \$git_commit_hyperion"
+
         git checkout "$git_commit_hyperion"
+        if [[ $? != 0 ]] ; then
+            error_msg "git checkout failed!"
+            exit 1
+        fi
 
         add_build_entry "popd"
         popd
@@ -2956,11 +2977,21 @@ else
     if [ -z "$git_branch_gists" ] ; then
         verbose_msg "git clone $git_repo_gists"
         add_build_entry "git clone \$git_repo_gists"
+
         git clone "$git_repo_gists"
+        if [[ $? != 0 ]] ; then
+            error_msg "git clone failed!"
+            exit 1
+        fi
     else
         verbose_msg "git clone -b $git_branch_gists $git_repo_gists"
         add_build_entry "git clone -b \$git_branch_gists \$git_repo_gists"
+
         git clone -b "$git_branch_gists" "$git_repo_gists"
+        if [[ $? != 0 ]] ; then
+            error_msg "git clone failed!"
+            exit 1
+        fi
     fi
 
     #-------
@@ -2985,11 +3016,21 @@ else
         if [ -z "$git_branch_extpkgs" ] ; then
             verbose_msg "git clone $git_repo_extpkgs/$pgm $pgm-0"
             add_build_entry "git clone \$git_repo_extpkgs/$pgm $pgm-0"
+
             git clone "$git_repo_extpkgs/$pgm.git" "$pgm-0"
+            if [[ $? != 0 ]] ; then
+                error_msg "git clone failed!"
+                exit 1
+            fi
         else
             verbose_msg "git clone -b $git_branch_extpkgs $git_repo_extpkgs/$pgm $pgm-0"
             add_build_entry "git clone -b \$git_branch_extpkgs \$git_repo_extpkgs/$pgm $pgm-0"
+
             git clone -b "$git_branch_extpkgs" "$git_repo_extpkgs/$pgm.git" "$pgm-0"
+            if [[ $? != 0 ]] ; then
+                error_msg "git clone failed!"
+                exit 1
+            fi
         fi
     done
 
@@ -3138,8 +3179,26 @@ else
 
     # Check for REXX and set up its configure option
     if   [[ $version_regina -ge 3 ]]; then
-        verbose_msg "Regina REXX is present. Using configure option: --enable-regina-rexx"
-        enable_rexx_option="--enable-regina-rexx" # enable regina rexx support
+        if [ $rexxsaa_h_present == true ]; then
+            verbose_msg "Regina REXX is present. Using configure option: --enable-regina-rexx"
+            enable_rexx_option="--enable-regina-rexx" # enable regina rexx support
+        else
+            error_msg "Regina REXX is present, but rexxsaa.h is not found.
+Regina REXX support will not be built into Hercules.  Tests will not be run.
+
+Installing the Regina development package may fix this.
+for example, in Debian: sudo apt install libregina3-dev
+"
+
+            if confirm "Continue anyway? [y/N]" ; then
+                echo "OK"
+            else
+                exit 1
+            fi
+
+            enable_rexx_option=""
+            dostep_tests=false
+        fi
     elif [[ $version_oorexx -ge 4 ]]; then
         verbose_msg "ooRexx is present. Using configure option: --enable-object-rexx"
         enable_rexx_option="--enable-object-rexx" # enable OORexx support
@@ -3148,6 +3207,7 @@ else
     else
         error_msg "No REXX support.  Tests will not be run"
         enable_rexx_option=""
+        dostep_tests=false
     fi
 
     # Set up IPv6 configure option
