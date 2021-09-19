@@ -32,6 +32,16 @@ This script will perform a complete build of Hercules and its external
 packages, plus Regina REXX (if no existing REXX is found), run all the
 automated tests, and optionally install.
 
+If you already have REXX installed, you will need to have the development
+package installed as well, so the build process will have access to the
+header files and link libraries.
+
+For example, if you installed Regina REXX, on Debian/Ubuntu/etc
+you will also need:
+
+```
+sudo apt install libregina3-dev
+
 ```
 Hercules-Helper /home/bill/hercules-helper/hyperion-buildall.sh: v0.9.0-11-g333e854-dirty
 Usage: hyperion-buildall.sh [OPTIONS]
@@ -72,6 +82,11 @@ Email bug reports, questions, etc. to <bill@wrljet.com>
 
 To use, create a build directory and cd to it, then run this script.
 First timers, it is recommended to use the --auto option.
+
+In these examples below, it assumes you cloned the repo into your
+home directory, i.e. ~/hercules-helper.  And that you are using
+~/herctest as the build directory.  Please adjust the directories
+below to suit your actual setup.
 
 The full process is:
 
