@@ -45,7 +45,7 @@ sudo apt install libregina3-dev
 
 ```
 
-Hercules-Helper /home/bill/hercules-helper/hyperion-buildall.sh: v0.9.0-11-g333e854-dirty
+```
 Usage: hyperion-buildall.sh [OPTIONS]
 
 Perform a full build, test, and installation of SDL-Hercules-390 Hyperion from GitHub sources
