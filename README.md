@@ -85,10 +85,10 @@ Email bug reports, questions, etc. to <bill@wrljet.com>
 To use, create a build directory and cd to it, then run this script.
 First timers, it is recommended to use the --auto option.
 
-In these examples below, it assumes you cloned the repo into your
-home directory, i.e. ~/hercules-helper.  And that you are using
+_In these examples below, it assumes you cloned the repo into your
+home directory, i.e. ~/hercules-helper.  And, that you are using
 ~/herctest as the build directory.  Please adjust the directories
-below to suit your actual setup.
+below to suit your actual setup._
 
 The full process is:
 
