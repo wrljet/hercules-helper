@@ -51,6 +51,7 @@
 #
 # Updated: 30 SEP 2021
 # - corrections for 'realpath' which doesn't exist on MacOS or BSDs
+# - add environment variables to the rebuild log
 #
 # Updated: 19 SEP 2021
 # - add error detection to 'git clone' and 'git checkout' commands
@@ -1807,6 +1808,25 @@ if [ $opt_override_no_bashrc    == true ]; then opt_no_bashrc=true; fi
 if [[ $TRACE == true ]]; then
     set -x # For debugging, show all commands as they are being run
 fi
+# Add environment variables to the rebuild log
+# e.g.
+# CC               : clang
+# CFLAGS           :
+# CPPFLAGS         : -I/usr/local/opt/llvm@11/include -I/usr/local/include
+# LDFLAGS          : -L/usr/local/opt/llvm@11/lib
+# clang              : Homebrew clang version 11.1.0
+
+add_build_entry # newline
+add_build_entry "# $(uname -a)"
+add_build_entry # newline
+add_build_entry "# C compiler: $($CC --version | head -1)"
+add_build_entry # newline
+add_build_entry "# Environment variables used:"
+add_build_entry "# PATH=\"$PATH\""
+add_build_entry "# CC=\"$CC\""
+add_build_entry "# CFLAGS=\"$CFLAGS\""
+add_build_entry "# CPPFLAGS=\"$CPPFLAGS\""
+add_build_entry "# LDFLAGS=\"$LDFLAGS\""
 
 add_build_entry # newline
 add_build_entry "opt_build_dir=\"$opt_build_dir/hyperion\""
