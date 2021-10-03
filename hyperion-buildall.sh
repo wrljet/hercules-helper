@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 19 SEP 2021
+# Updated: 30 SEP 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 30 SEP 2021
+# - corrections for 'realpath' which doesn't exist on MacOS or BSDs
 #
 # Updated: 19 SEP 2021
 # - add error detection to 'git clone' and 'git checkout' commands
@@ -410,6 +413,7 @@ require(){ hash "$@" || exit 127; }
 
 current_time=$(date "+%Y-%m-%d")
 
+#------------------------------------------------------------------------------
 #
 # Default Configuration Parameters:
 #
@@ -617,7 +621,11 @@ fi
 
 #-----------------------------------------------------------------------------
 
-SCRIPT_PATH=$(dirname $(realpath -s $0))
+# 'realpath' doesn't exist on MacOS or BSDs
+# SCRIPT_PATH=$(dirname $(realpath -s $0))
+
+# FIXME: this doesn't work if this script is running off a symlink
+SCRIPT_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")
 
 pushd "$(dirname "$0")" >/dev/null;
     which_git=$(which git 2>/dev/null) || true
