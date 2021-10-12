@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 30 SEP 2021
+# Updated: 12 OCT 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 12 OCT 2021
+# - use 1.5 times as many processes as CPUs during build
 #
 # Updated: 30 SEP 2021
 # - corrections for 'realpath' which doesn't exist on MacOS or BSDs
@@ -3400,10 +3403,13 @@ verbose_msg "-----------------------------------------------------------------
 add_build_entry "cd build"
 cd build
 
+# Use 1.5 times as many processes as CPUs
 if [[ $version_id == freebsd* || $version_id == netbsd* || $version_id == darwin* ]]; then
     nprocs="$(sysctl -n hw.ncpu 2>/dev/null || echo 1)"
+    nprocs=$(( $nprocs * 3 / 2))
 else
     nprocs="$(nproc 2>/dev/null || echo 1)"
+    nprocs=$(( $nprocs * 3 / 2))
 fi
 
 # For FreeBSD, BSD make acts up, so we'll use gmake.
@@ -3585,7 +3591,6 @@ if ((BASH_VERSINFO[0] >= 4)); then
 fi
 verbose_msg    # output a newline
 
-# FIXME
 if (! $dostep_install || ! $dostep_envscript); then
     verbose_msg "Skipping step: create environment variables script (--no-envscript)"
 else
