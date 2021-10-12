@@ -51,6 +51,8 @@
 #
 # Updated: 12 OCT 2021
 # - use 1.5 times as many processes as CPUs during build
+# - for FreeBSD 12.2, Clang doesn't seem to know about /usr/local
+# - for FreeBSD, add 'libltdl' package
 #
 # Updated: 30 SEP 2021
 # - corrections for 'realpath' which doesn't exist on MacOS or BSDs
@@ -2385,7 +2387,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               "git" "wget" \
               "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
               "bzip2" \
-              "gmake"
+              "gmake" "libltdl"
           )
 
           echo "Required packages: "
@@ -3312,6 +3314,12 @@ for example, in Debian: sudo apt install libregina3-dev
         frecord_gcc_switches_option=""
     else
         frecord_gcc_switches_option="CFLAGS=-frecord-gcc-switches"
+    fi
+
+    # For FreeBSD, Clang doesn't seem to know about /usr/local
+    if [[ $version_id == freebsd* ]]; then
+        export CFLAGS="$CFLAGS -I/usr/local/include"
+        export LDFLAGS="$LDFLAGS -L/usr/local/include"
     fi
 
     # For Apple Mac, we use the system libltdl rather than compiling our own
