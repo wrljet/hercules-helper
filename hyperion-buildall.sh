@@ -3319,7 +3319,7 @@ for example, in Debian: sudo apt install libregina3-dev
     # For FreeBSD, Clang doesn't seem to know about /usr/local
     if [[ $version_id == freebsd* ]]; then
         export CFLAGS="$CFLAGS -I/usr/local/include"
-        export LDFLAGS="$LDFLAGS -L/usr/local/include"
+        export LDFLAGS="$LDFLAGS -L/usr/local/lib"
     fi
 
     # For Apple Mac, we use the system libltdl rather than compiling our own
