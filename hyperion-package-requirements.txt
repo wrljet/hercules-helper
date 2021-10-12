@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
 # SDL-Hercules-390 Hyperion 4.x required packages
-# Updated: 12 AUG 2021
+# Updated: 12 OCT 2021
 
 #------------------------------------------------------------------------------
 # Debian/Ubuntu/Mint/etc
@@ -73,8 +73,8 @@ opensuse_packages=
 #-----------------------------------------------------------------------------
 # FreeBSD
 
-    sudo apt-get -y install git wget
-    sudo apt-get -y install gmake autoconf automake cmake flex gawk m4
+    sudo apt-get -y install bash git wget
+    sudo apt-get -y install gmake autoconf automake cmake flex gawk m4 libltdl
     sudo apt-get -y install bzip2
 
 #-----------------------------------------------------------------------------
