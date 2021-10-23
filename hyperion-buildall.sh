@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 12 OCT 2021
+# Updated: 16 OCT 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 16 OCT 2021
+# - for Debian, replaced 'libtool' with 'libltdl-dev'
 #
 # Updated: 12 OCT 2021
 # - use 1.5 times as many processes as CPUs during build
@@ -1862,7 +1865,7 @@ prepare_packages()
       declare -a debian_packages=( \
           "git" "wget" "time" "ncat" \
           "build-essential" "cmake" \
-          "autoconf" "automake" "flex" "gawk" "m4" "libtool" \
+          "autoconf" "automake" "flex" "gawk" "m4" "libltdl-dev" \
           "libcap2-bin" \
           "libbz2-dev" "zlib1g-dev"
       )
