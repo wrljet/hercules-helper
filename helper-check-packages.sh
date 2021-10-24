@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # helper-check-packages.sh
-# Updated: 13 OCT 2021
+# Updated: 24 OCT 2021
 
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -552,6 +552,7 @@ check_packages()
 
   if [ "$version_distro" == "debian"  ]; then
       declare -a packages=( \
+          "git" "wget" "time" \
           "build-essential" "cmake" \
           "autoconf" "automake" "flex" "gawk" "m4" "libltdl-dev" \
           "libcap2-bin" \
