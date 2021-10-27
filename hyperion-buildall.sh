@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 16 OCT 2021
+# Updated: 27 OCT 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,11 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 27 OCT 2021
+# - check for failure of Regina 'sudo make install' and exit
+# - fix bug allowing Raspberry Pi 3B+ FreeBSD to run 'mainsize' test
+#   introduced when I moved the build process out of the source dir
 #
 # Updated: 16 OCT 2021
 # - for Debian, replaced 'libtool' with 'libltdl-dev'
@@ -2902,6 +2907,12 @@ else
     add_build_entry "sudo time make install"
     sudo time make install
 
+    # Check to see if the above 'sudo' or the 'make install' failed
+    if [[ $? != 0 ]] ; then
+        error_msg "Regina installation failed!"
+        exit 1
+    fi
+
     if [[ "$version_distro" == "debian" ||
           "$version_distro" == "openSUSE" ||
           "$version_distro" == "almalinux" ||
@@ -3487,9 +3498,10 @@ else
         if [ $version_freebsd_memory -lt 2000 ]; then
             verbose_msg "FreeBSD with low memory"
 
-            if [ -f ./tests/mainsize.tst ]; then
+            if [ -f ../tests/mainsize.tst ]; then
                 verbose_msg "Skipping 'mainsize.tst'"
-                mv ./tests/mainsize.tst ./tests/mainsize.tst.skipped
+                verbose_msg    # output a newline
+                mv ../tests/mainsize.tst ../tests/mainsize.tst.skipped
             fi
         fi
     else
@@ -3502,7 +3514,8 @@ else
     # time ./tests/runtest ./tests
 
     # "mainsize" test fails on Raspberry Pi 3B with FreeBSD 12.2
-    # and FreeBSD kills the entire prodess since the system it out of memory.
+    # and FreeBSD kills the entire prodess since the system is out of memory.
+    # And sometimes wedges up the entire system requiring the big red switch!
 
     # Failed test "mainsize" on openSUSE 15.1 with 4GB RAM
     # HHC01603I mainsize 3g
