@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 27 OCT 2021
+# Updated: 01 NOV 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 01 NOV 2021
+# - don't exit if grep returns unexpected failure when 'cc1' found
+# - use $CC instead of 'cc' when checking Clang for 'frecord_gcc_switches'
 #
 # Updated: 27 OCT 2021
 # - check for failure of Regina 'sudo make install' and exit
@@ -700,6 +704,14 @@ trace_msg()
      [ -n $DEBUG ]; then
     echo  "++ $1"
   fi
+}
+
+#------------------------------------------------------------------------------
+#                               finish
+#------------------------------------------------------------------------------
+finish()
+{
+  echo "finish() called, exit status = $?"
 }
 
 #------------------------------------------------------------------------------
@@ -2766,8 +2778,8 @@ elif [[ $version_id == darwin* ]]; then
     which_cc1="skipped on macOS"
     which_cc1plus="skipped on macOS"
 else
-    which_cc1=$(find / -mount -name cc1 -print 2>&1 | grep cc1 | head -5)
-    which_cc1plus=$(find / -mount -name cc1plus -print 2>&1 | grep cc1plus | head -5)
+    which_cc1="$(find / -mount -name cc1 -print 2>&1 | grep cc1 | head -5)" || true
+    which_cc1plus="$(find / -mount -name cc1plus -print 2>&1 | grep cc1plus | head -5)" || true
 fi
 
 verbose_msg "cc1 presence     : $which_cc1"
@@ -3324,7 +3336,7 @@ for example, in Debian: sudo apt install libregina3-dev
 
     # Unless this is Clang (e.g. Apple Darwin), record the gcc switches in the binaries
 
-    if (cc --version | grep -Fiqe "clang"); then
+    if ($CC --version | grep -Fiqe "clang"); then
         frecord_gcc_switches_option=""
     else
         frecord_gcc_switches_option="CFLAGS=-frecord-gcc-switches"
@@ -3756,6 +3768,7 @@ fi
 # Call all of the above as a function so we can grab and
 # tee the output to the log file.
 
+trap finish EXIT
 the_works 2>&1 | tee "$logfile.log"
 
 # ---- end of script ----
