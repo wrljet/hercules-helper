@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 01 NOV 2021
+# Updated: 06 NOV 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 06 NOV 2021
+# - add detection for a bunch of newer Raspberry Pi PCB revisions
+# - add support for new Raspberry Pi Zero 2 W
 #
 # Updated: 01 NOV 2021
 # - don't exit if grep returns unexpected failure when 'cc1' found
@@ -569,7 +573,8 @@ version_rpidesktop=0
 version_wsl=0
 version_freebsd_cpu=""
 version_freebsd_model=""
-version_freebsd_memory=""
+version_memory_size=""
+version_multicore_with_low_memory=false
 version_regina=0
 
 uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
@@ -860,6 +865,7 @@ function check_pi_version()
     [900093]="Zero      1.3     512MB   Sony UK"
     [9000c1]="Zero W    1.1     512MB   Sony UK"
     [9020e0]="3A+       1.0     512MB   Sony UK"
+    [902120]="Zero 2 W  1.0     512MB   Sony UK"
     [920092]="Zero      1.2     512MB   Embest"
     [920093]="Zero      1.3     512MB   Embest"
     [900061]="CM        1.1     512MB   Sony UK"
@@ -880,13 +886,19 @@ function check_pi_version()
     [a03111]="4B        1.1     1GB     Sony UK"
     [b03111]="4B        1.1     2GB     Sony UK"
     [b03112]="4B        1.2     2GB     Sony UK"
+    [b03114]="4B        1.4     2GB     Sony UK"
     [c03111]="4B        1.1     4GB     Sony UK"
     [c03112]="4B        1.2     4GB     Sony UK"
+    [c03114]="4B        1.4     4GB     Sony UK"
     [d03114]="4B        1.4     8GB     Sony UK"
     [c03130]="Pi 4004   1.0     4GB     Sony UK"
+    [a03140]="CM4       1.0     1GB     Sony UK"
+    [b03140]="CM4       1.0     2GB     Sony UK"
+    [c03140]="CM4       1.0     4GB     Sony UK"
+    [d03140]="CM4       1.0     8GB     Sony UK"
   )
 
-    verbose_msg "Raspberry Pi ${RPI_REVISIONS[$RPI_REVCODE]} ($RPI_REVCODE)"
+    verbose_msg "Raspberry Pi     : ${RPI_REVISIONS[$RPI_REVCODE]} ($RPI_REVCODE)"
 }
 
 function detect_pi()
@@ -905,6 +917,16 @@ function detect_pi()
 
         get_pi_version
         check_pi_version
+
+        # Try to detect a Raspberry Pi Zero 2 W.
+        # This has the same multi-core CPU as a Pi 3B, but with only 512MB RAM.
+        # Running parallel 'make' jobs on this will cause the Linux
+        # Out-Of-Memory killer to kick in.
+
+        if [[ $RPI_CPUS -gt 1 && $version_memory_size -lt 1000 ]]; then
+            verbose_msg "                 : Multi-core Raspberry Pi with low memory"
+            version_multicore_with_low_memory=true
+        fi
     fi
 }
 
@@ -1011,7 +1033,8 @@ detect_system()
             # echo "VERSION_STR is $version_str"
         fi
 
-        verbose_msg "Memory Total (MB): $(free -m | awk '/^Mem:/{print $2}')"
+        version_memory_size="$(free -m | awk '/^Mem:/{print $2}')"
+        verbose_msg "Memory Total (MB): $version_memory_size"
         verbose_msg "Memory Free  (MB): $(free -m | awk '/^Mem:/{print $4}')"
 
         verbose_msg "VERSION_ID       : $version_id"
@@ -1271,7 +1294,7 @@ detect_system()
         version_id="freebsd"
 
         # FREEBSD_MEMINFO="$(sysctl hw | grep hw.phys)"
-        version_freebsd_memory="$(sysctl hw.physmem | awk '/^hw.physmem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
+        version_memory_size="$(sysctl hw.physmem | awk '/^hw.physmem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
         verbose_msg "Memory Total (MB): $(sysctl hw.physmem | awk '/^hw.physmem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
 
         # sysctl hw.model
@@ -1288,7 +1311,7 @@ detect_system()
             verbose_msg "                 : $version_freebsd_cpu"
             verbose_msg "                 : assuming Raspberry Pi"
 
-            if [ $version_freebsd_memory -lt 2000 ]; then
+            if [ $version_memory_size -lt 2000 ]; then
                 verbose_msg "                 : FreeBSD Raspberry Pi with low memory"
             fi
         fi
@@ -1914,6 +1937,7 @@ prepare_packages()
           note_msg "/etc/apt/sources.list contains a CD-ROM reference!"
       fi
 
+      verbose_msg "sudo apt update ... may take a while ..."
       output=$(sudo apt update 2>&1)
       found_apt_cdrom_error=$?
 
@@ -3437,8 +3461,11 @@ verbose_msg "-----------------------------------------------------------------
 add_build_entry "cd build"
 cd build
 
-# Use 1.5 times as many processes as CPUs
-if [[ $version_id == freebsd* || $version_id == netbsd* || $version_id == darwin* ]]; then
+# Use 1.5 times as many processes as CPUs unless there's low memory
+
+if [[ $version_multicore_with_low_memory == true ]]; then
+    nprocs="1"
+elif [[ $version_id == freebsd* || $version_id == netbsd* || $version_id == darwin* ]]; then
     nprocs="$(sysctl -n hw.ncpu 2>/dev/null || echo 1)"
     nprocs=$(( $nprocs * 3 / 2))
 else
@@ -3507,8 +3534,8 @@ else
 
         # Also for FreeBSD we will try to detect low memory conditions
         # such as on a Raspberry Pi 3B, and skip the 'mainsize' test.
-        if [ $version_freebsd_memory -lt 2000 ]; then
-            verbose_msg "FreeBSD with low memory"
+        if [ $version_memory_size -lt 2000 ]; then
+            verbose_msg "System with low memory"
 
             if [ -f ../tests/mainsize.tst ]; then
                 verbose_msg "Skipping 'mainsize.tst'"
