@@ -50,6 +50,7 @@
 # Changelog:
 #
 # Updated: 08 NOV 2021
+# - add support for Intel Clear Linux
 # - add '-g -g3 -ggdb3' compiler switches to core dumps contain symbolic info
 #
 # Updated: 06 NOV 2021
@@ -1177,6 +1178,33 @@ detect_system()
         fi
 #######################################################
 
+        # Look for Intel Clear Linux
+# NAME="Clear Linux OS"
+# VERSION=1
+# ID=clear-linux-os
+# ID_LIKE=clear-linux-os
+# VERSION_ID=35130
+# PRETTY_NAME="Clear Linux OS"
+# ANSI_COLOR="1;35"
+# HOME_URL="https://clearlinux.org"
+# SUPPORT_URL="https://clearlinux.org"
+# BUG_REPORT_URL="mailto:dev@lists.clearlinux.org"
+# PRIVACY_POLICY_URL="http://www.intel.com/privacy"
+# BUILD_ID=35130
+
+        if [[ $version_id == clear-linux-os* ]]; then
+            verbose_msg "We have a Intel Clear Linux system"
+
+            version_distro="clear-linux"
+            version_major=$(echo $version_str | cut -f1 -d.)
+            version_minor=$(echo $version_str | cut -f2 -d.)
+
+            verbose_msg "OS               : $version_distro variant"
+            verbose_msg "OS Version       : $version_major"
+            os_is_supported=true
+        fi
+#######################################################
+
         # Look for openSUSE
         if [[ $version_id == opensuse* ]];
         then
@@ -2280,6 +2308,34 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
       done
 
     return
+  fi
+
+#-----------------------------------------------------------------------------
+  # Intel Clear Linux (supported from 35130 onward)
+  if [[ $version_id == clear-linux-os* ]]; then
+      declare -a clear_packages=( \
+          "git" "wget" \
+          "dev-utils" "perl-basic" \
+          "c-basic" "flex" "os-core" \
+          "devpkg-bzip2" "libbz2" \
+          "zlib" "zlib-dev"
+      )
+
+      for package in "${clear_packages[@]}"; do
+          echo -n "Checking for package: $package ... "
+
+          is_installed=$(sudo swupd bundle-list | grep -Fie "$package" 2>&1)
+          status=$?
+
+          # install if missing
+          if [ $status -eq 0 ]; then
+              echo "is already installed"
+          else
+              echo "is missing, installing"
+              sudo swupd bundle-add $package 2>&1
+          fi
+          echo "-----------------------------------------------------------------"
+      done
   fi
 
 #-----------------------------------------------------------------------------
