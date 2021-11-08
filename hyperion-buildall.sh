@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 06 NOV 2021
+# Updated: 08 NOV 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 08 NOV 2021
+# - add '-g -g3 -ggdb3' compiler switches to core dumps contain symbolic info
 #
 # Updated: 06 NOV 2021
 # - add detection for a bunch of newer Raspberry Pi PCB revisions
@@ -3332,15 +3335,15 @@ for example, in Debian: sudo apt install libregina3-dev
 
     # For FreeBSD, Clang doesn't accept -march=native
     if [[ $version_id == freebsd* ]]; then
-        config_opt_optimization="--enable-optimization=\"-O2\""
+        config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 -O2\""
     elif [[ $version_id == alpine* ]]; then
-        config_opt_optimization="--enable-optimization=\"-O2 -march=native -D__gnu_linux__=1 -D__ALPINE_LINUX__=1\""
+        config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 -O2 -march=native -D__gnu_linux__=1 -D__ALPINE_LINUX__=1\""
     elif [[ $version_id == darwin* &&
             "$(uname -m)" =~ (^arm64|^aarch64) ]];
     then
-        config_opt_optimization="--enable-optimization=\"-O2\""
+        config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 -O2\""
     else
-        config_opt_optimization="--enable-optimization=\"-O2 -march=native\""
+        config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 -O2 -march=native\""
     fi
 
     # Our config file can override all this, for example on Raspberry Pi 4B:
