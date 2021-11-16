@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # helper-check-packages.sh
-# Updated: 24 OCT 2021
+# Updated: 16 NOV 2021
 
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -554,7 +554,7 @@ check_packages()
       declare -a packages=( \
           "git" "wget" "time" \
           "build-essential" "cmake" \
-          "autoconf" "automake" "flex" "gawk" "m4" "libltdl-dev" \
+          "autoconf" "automake" "flex" "gawk" "m4" "libltdl-dev" "libtool-bin" \
           "libcap2-bin" \
           "libbz2-dev" "zlib1g-dev"
       )
@@ -625,7 +625,7 @@ check_packages()
 
           declare -a packages=( \
               "gcc" "make" "flex" "gawk" "m4" \
-              "autoconf" "automake" "libtool-ltdl-devel" \
+              "autoconf" "automake" "libtool-ltdl-devel" "libtool" \
               "cmake"
               "bzip2-devel" "zlib-devel"
               )
@@ -663,7 +663,7 @@ check_packages()
 
           declare -a packages=( \
               "gcc" "make" "flex" "gawk" "m4" \
-              "autoconf" "automake" "libtool-ltdl-devel" \
+              "autoconf" "automake" "libtool-ltdl-devel" "libtool" \
               "cmake"
               "bzip2-devel" "zlib-devel"
               )
@@ -936,7 +936,7 @@ check_packages()
           declare -a packages=( \
               "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
               "bzip2" \
-              "gmake" "libltdl"
+              "gmake" "libltdl" "libtool"
           )
 
           echo    # print a newline

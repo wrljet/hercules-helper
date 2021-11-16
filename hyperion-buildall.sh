@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 08 NOV 2021
+# Updated: 16 NOV 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 16 NOV 2021
+# - add 'libtool' to required packages (Alma, Debian, Fedora, FreeBSD)
 #
 # Updated: 08 NOV 2021
 # - add support for Intel Clear Linux
@@ -1936,7 +1939,7 @@ prepare_packages()
       declare -a debian_packages=( \
           "git" "wget" "time" "ncat" \
           "build-essential" "cmake" \
-          "autoconf" "automake" "flex" "gawk" "m4" "libltdl-dev" \
+          "autoconf" "automake" "flex" "gawk" "m4" "libltdl-dev" "libtool-bin" \
           "libcap2-bin" \
           "libbz2-dev" "zlib1g-dev"
       )
@@ -2085,7 +2088,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           declare -a fedora_packages=( \
               "git" "wget" \
               "gcc" "make" "flex" "gawk" "m4" \
-              "autoconf" "automake" "libtool-ltdl-devel" \
+              "autoconf" "automake" "libtool-ltdl-devel" "libtool" \
               "cmake"
               "bzip2-devel" "zlib-devel"
               )
@@ -2121,7 +2124,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           declare -a almalinux_packages=( \
               "git" "wget" \
               "gcc" "make" "flex" "gawk" "m4" \
-              "autoconf" "automake" "libtool-ltdl-devel" \
+              "autoconf" "automake" "libtool-ltdl-devel" "libtool" \
               "cmake"
               "bzip2-devel" "zlib-devel"
               )
@@ -2490,7 +2493,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               "git" "wget" \
               "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
               "bzip2" \
-              "gmake" "libltdl"
+              "gmake" "libltdl" "libtool"
           )
 
           echo "Required packages: "
