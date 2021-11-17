@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 16 NOV 2021
+# Updated: 17 NOV 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 17 NOV 2021
+# - add 'devpkg-zlib' to required packages for Intel Clear Linux
 #
 # Updated: 16 NOV 2021
 # - add 'libtool' to required packages (Alma, Debian, Fedora, FreeBSD)
@@ -2320,8 +2323,8 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           "git" "wget" \
           "dev-utils" "perl-basic" \
           "c-basic" "flex" "os-core" \
-          "devpkg-bzip2" "libbz2" \
-          "zlib" "zlib-dev"
+          "devpkg-bzip2" \
+          "devpkg-zlib" "zlib"
       )
 
       for package in "${clear_packages[@]}"; do

@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
 # SDL-Hercules-390 Hyperion 4.x required packages
-# Updated: 16 NOV 2021
+# Updated: 17 NOV 2021
 
 #------------------------------------------------------------------------------
 # Debian/Ubuntu/Mint/etc
@@ -53,6 +53,13 @@ opensuse_patterns=
 opensuse_packages=
     sudo apt-get -y install git
     sudo apt-get -y install libcap-progs
+
+#-----------------------------------------------------------------------------
+# Intel Clear Linux
+
+    sudo swupd bundle-add git wget dev-utils perl-basic
+    sudo swupd bundle-add c-basic flex os-core
+    sudo swupd bundle-add devpkg-bzip2 devpkg-zlib zlib
 
 #-----------------------------------------------------------------------------
 # Apple Darwin (macOS)

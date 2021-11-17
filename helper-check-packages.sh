@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # helper-check-packages.sh
-# Updated: 16 NOV 2021
+# Updated: 17 NOV 2021
 
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -370,6 +370,17 @@ detect_system()
             if [[ $version_major -ge 34 ]]; then
               os_is_supported=true
             fi
+        fi
+
+        if [[ $version_id == clear-linux-os* ]]; then
+            echo "We have a Intel Clear Linux system"
+
+            version_distro="clear-linux"
+            version_major=$(echo $version_str | cut -f1 -d.)
+            version_minor=$(echo $version_str | cut -f2 -d.)
+
+            echo "OS Version       : $version_major"
+            os_is_supported=true
         fi
 
         # Look for openSUSE
@@ -814,6 +825,35 @@ check_packages()
       done
 
     return
+  fi
+
+#-----------------------------------------------------------------------------
+  # Intel Clear Linux (supported from 35130 onward)
+
+  if [[ $version_id == clear-linux-os* ]]; then
+      declare -a packages=( \
+          "git" "wget" \
+          "dev-utils" "perl-basic" \
+          "c-basic" "flex" "os-core" \
+          "devpkg-bzip2" \
+          "devpkg-zlib" "zlib"
+      )
+
+      for package in "${packages[@]}"; do
+          echo -n "Checking for package: $package ... "
+
+          is_installed=$(sudo swupd bundle-list | grep -Fie "$package" 2>&1)
+          status=$?
+
+          # install if missing
+          if [ $status -eq 0 ]; then
+              echo "is already installed"
+          else
+              echo "is missing, installing"
+              sudo swupd bundle-add $package 2>&1
+          fi
+          echo "-----------------------------------------------------------------"
+      done
   fi
 
 #-----------------------------------------------------------------------------
