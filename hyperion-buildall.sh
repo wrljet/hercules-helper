@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 17 NOV 2021
+# Updated: 19 NOV 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -31,7 +31,7 @@
 # dostep_detect      Detect system and configuration
 # dostep_packages    Check for required system packages
 #                    Check for REXX and compiler settings (needed to run Hercules tests)
-# dostep_rexx        Build Regina REXX
+# dostep_regina_rexx Build Regina REXX
 # dostep_gitclone    Git clone Hercules and external packages
 # dostep_bldlvlck    Run bldlvlck
 # dostep_extpkgs     Build Hercules external packages
@@ -48,6 +48,12 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 19 NOV 2021
+# - respect --no-rexx to mean don't build any version of Rexx
+#   and don't enable support in Hercules for any existing Rexx
+# - fix bug related to script path
+# - minor improvements to rebuild script generation
 #
 # Updated: 17 NOV 2021
 # - add 'devpkg-zlib' to required packages for Intel Clear Linux
@@ -556,20 +562,20 @@ opt_no_bashrc=${opt_no_bashrc:-false}
 
 # Optional steps we perform
 #
-dostep_packages=${dostep_packages:-true}      # Check for required system packages
-dostep_rexx=${dostep_rexx:-true}              # Build Regina REXX
-dostep_gitclone=${dostep_gitclone:-true}      # Git clone Hercules and external packages
-dostep_bldlvlck=${dostep_bldlvlck:-true}      # Run bldlvlck
-dostep_extpkgs=${dostep_extpkgs:-true}        # Build Hercules external packages
-dostep_autogen=${dostep_autogen:-false}       # Run autoreconf / autogen
-dostep_configure=${dostep_configure:-true}    # Run configure
-dostep_clean=${dostep_clean:-true}            # Run make clean
-dostep_make=${dostep_make:-true}              # Run make (compile and link)
-dostep_tests=${dostep_tests:-true}            # Run make check
-dostep_install=${dostep_install:-true}        # Run make install
-dostep_setcap=${dostep_setcap:-true}          # setcap executables
-dostep_envscript=${dostep_envscript:-true}    # Create script to set environment variables
-dostep_bashrc=${dostep_bashrc:-true}          # Add "source" to set environment variables from .bashrc
+dostep_packages=${dostep_packages:-true}       # Check for required system packages
+dostep_regina_rexx=${dostep_regina_rexx:-true} # Build Regina REXX
+dostep_gitclone=${dostep_gitclone:-true}       # Git clone Hercules and external packages
+dostep_bldlvlck=${dostep_bldlvlck:-true}       # Run bldlvlck
+dostep_extpkgs=${dostep_extpkgs:-true}         # Build Hercules external packages
+dostep_autogen=${dostep_autogen:-false}        # Run autoreconf / autogen
+dostep_configure=${dostep_configure:-true}     # Run configure
+dostep_clean=${dostep_clean:-true}             # Run make clean
+dostep_make=${dostep_make:-true}               # Run make (compile and link)
+dostep_tests=${dostep_tests:-true}             # Run make check
+dostep_install=${dostep_install:-true}         # Run make install
+dostep_setcap=${dostep_setcap:-true}           # setcap executables
+dostep_envscript=${dostep_envscript:-true}     # Create script to set environment variables
+dostep_bashrc=${dostep_bashrc:-true}           # Add "source" to set environment variables from .bashrc
 
 #-----------------------------------------------------------------------------
 # Set up default empty values for our variables
@@ -659,6 +665,7 @@ fi
 
 # FIXME: this doesn't work if this script is running off a symlink
 SCRIPT_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")
+SCRIPT_DIR="$(dirname $SCRIPT_PATH)"
 
 pushd "$(dirname "$0")" >/dev/null;
     which_git=$(which git 2>/dev/null) || true
@@ -668,7 +675,7 @@ pushd "$(dirname "$0")" >/dev/null;
         # verbose_msg "git is not installed"
         version_info=""
     else
-        version_info="$SCRIPT_PATH/$(basename $0): $(git describe --long --tags --dirty --always 2>/dev/null)"
+        version_info="$SCRIPT_DIR/$(basename $0): $(git describe --long --tags --dirty --always 2>/dev/null)"
     fi
 popd > /dev/null;
 
@@ -692,7 +699,7 @@ Options:
 Sub-functions (in order of operation):
        --detect-only  run detection only and exit
        --no-packages  skip installing required packages
-       --no-rexx      skip building Regina REXX
+       --no-rexx      skip building Regina REXX, no REXX support in Hercules
        --no-gitclone  skip \'git clone\' steps
        --no-bldlvlck  skip \'util/bldlvlck\' steps
        --no-extpkgs   skip building Hercules external packages
@@ -1622,7 +1629,7 @@ opt_override_auto=false
 
 opt_override_detect_only=false    # Run detection only and exit
 opt_override_no_packages=false    # Check for required system packages
-opt_override_no_rexx=false        # Build Regina REXX
+opt_override_no_rexx=false        # Build Regina REXX, include Hercules REXX support
 opt_override_no_gitclone=false    # Git clone Hercules and external packages
 opt_override_no_bldlvlck=false    # Run bldlvlck
 opt_override_no_extpkgs=false     # Build Hercules external packages
@@ -1695,7 +1702,7 @@ case $key in
     shift # past argument
     ;;
 
-  --no-rexx) # skip building Regina REXX
+  --no-rexx) # skip building Regina REXX, or adding support to Hercules
     opt_override_no_rexx=true
     shift # past argument
     ;;
@@ -1825,9 +1832,7 @@ echo "Creating build cmds file: $cmdsfile"
 add_build_entry "#!/usr/bin/env bash"
 add_build_entry # newline
 
-add_build_entry "if [[ \$TRACE == true ]]; then"
-add_build_entry "    set -x # For debugging, show all commands as they are being run"
-add_build_entry "fi"
+add_build_entry "set -x # Show all commands as they are being run"
 add_build_entry # newline
 
 pushd "$(dirname "$0")" >/dev/null;
@@ -1839,8 +1844,8 @@ pushd "$(dirname "$0")" >/dev/null;
         hercules_helper_version="unknown"
     else
         add_build_entry "# Created by Hercules-Helper version: "
-        add_build_entry "# $SCRIPT_PATH/$(basename $0): $(git describe --long --tags --dirty --always 2>/dev/null)"
-        echo "Script version: $SCRIPT_PATH/$(basename $0): $(git describe --long --tags --dirty --always 2>/dev/null)"
+        add_build_entry "# $SCRIPT_DIR/$(basename $0): $(git describe --long --tags --dirty --always 2>/dev/null)"
+        echo "Script version: $SCRIPT_DIR/$(basename $0): $(git describe --long --tags --dirty --always 2>/dev/null)"
 
         # add hercules-helper version to the build description
         hercules_helper_version="$(git describe --long --tags --dirty --always 2>/dev/null)"
@@ -1927,6 +1932,8 @@ add_build_entry "git_repo_gists=\"$git_repo_gists\""
 add_build_entry "git_branch_gists=\"$git_branch_gists\""
 add_build_entry "git_repo_extpkgs=\"$git_repo_extpkgs\""
 add_build_entry "git_branch_extpkgs=\"$git_branch_extpkgs\""
+
+add_build_entry "opwd=\"$(pwd)\""
 
 #------------------------------------------------------------------------------
 #                              prepare_packages
@@ -2239,8 +2246,8 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           verbose_msg "cc1plus presence:   $find_cc1plus"
 
           if (find / -name cc1plus -print 2>&1 | grep -Fqe "cc1plus"); then
-              warning_msg "On CentOS and there is no cc1plus"
-              warning_msg "Please report this"
+              note_msg "On CentOS and there is no cc1plus"
+              note_msg "Please report this"
 
               if (find / -name cc1 -print 2>&1 | grep -Fqe "cc1"); then
                   error_msg "We do not have cc1 either; full gcc-c++ package is required"
@@ -2400,7 +2407,8 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
       # split cases between Homebrew and MacPorts
       if ( $darwin_have_macports == true ) ; then
-          add_build_entry "sudo port install ${darwin_packages[*]}"
+          add_build_entry "# sudo port install ${darwin_packages[*]}"
+          add_build_entry "$SCRIPT_DIR/helper-check-packages.sh"
 
           for package in "${darwin_packages[@]}"; do
               verbose_msg "-----------------------------------------------------------------"
@@ -2425,7 +2433,8 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           done
 
       elif ( $darwin_have_homebrew == true ) ; then
-          add_build_entry "brew install ${darwin_packages[*]}"
+          add_build_entry "# brew install ${darwin_packages[*]}"
+          add_build_entry "$SCRIPT_DIR/helper-check-packages.sh"
 
           for package in "${darwin_packages[@]}"; do
               verbose_msg "-----------------------------------------------------------------"
@@ -2608,23 +2617,23 @@ verbose_msg "  compiler       : $($CC --version 2>&1 | head -n 1)"
 verbose_msg "  linker         : $($LD --version 2>&1 | head -n 1)"
 verbose_msg    # print a newline
 
-if ($opt_no_packages  ); then dostep_packages=false;  fi
-if ($opt_no_rexx      ); then dostep_rexx=false;      fi
-if ($opt_no_gitclone  ); then dostep_gitclone=false;  fi
-if ($opt_no_bldlvlck  ); then dostep_bldlvlck=false;  fi
-if ($opt_no_extpkgs   ); then dostep_extpkgs=false;   fi
+if ($opt_no_packages  ); then dostep_packages=false;    fi
+if ($opt_no_rexx      ); then dostep_regina_rexx=false; fi
+if ($opt_no_gitclone  ); then dostep_gitclone=false;    fi
+if ($opt_no_bldlvlck  ); then dostep_bldlvlck=false;    fi
+if ($opt_no_extpkgs   ); then dostep_extpkgs=false;     fi
 if ($opt_no_autogen   ); then dostep_autogen=false; else dostep_autogen=true; fi
-if ($opt_no_configure ); then dostep_configure=false; fi
-if ($opt_no_clean     ); then dostep_clean=false;     fi
-if ($opt_no_make      ); then dostep_make=false;      fi
-if ($opt_no_tests     ); then dostep_tests=false;     fi
-if ($opt_no_install   ); then dostep_install=false;   fi
+if ($opt_no_configure ); then dostep_configure=false;   fi
+if ($opt_no_clean     ); then dostep_clean=false;       fi
+if ($opt_no_make      ); then dostep_make=false;        fi
+if ($opt_no_tests     ); then dostep_tests=false;       fi
+if ($opt_no_install   ); then dostep_install=false;     fi
 
-if ($opt_no_setcap    ); then dostep_setcap=false;    fi
+if ($opt_no_setcap    ); then dostep_setcap=false;      fi
 if [[ $version_id == freebsd* ]]; then dostep_setcap=false; fi
 
-if ($opt_no_envscript ); then dostep_envscript=false; fi
-if ($opt_no_bashrc    ); then dostep_bashrc=false;    fi
+if ($opt_no_envscript ); then dostep_envscript=false;   fi
+if ($opt_no_bashrc    ); then dostep_bashrc=false;      fi
 
 verbose_msg "Configuration:"
 verbose_msg "OPT_BUILD_DIR        : $opt_build_dir"
@@ -2700,20 +2709,20 @@ fi
 
 verbose_msg    # print a newline
 verbose_msg "Performing Steps:"
-set_run_or_skip $dostep_packages;   verbose_msg "$run_or_skip : Check for required system packages"
-set_run_or_skip $dostep_rexx;       verbose_msg "$run_or_skip : Build Regina REXX"
-set_run_or_skip $dostep_gitclone;   verbose_msg "$run_or_skip : Git clone Hercules and external packages"
-set_run_or_skip $dostep_bldlvlck;   verbose_msg "$run_or_skip : Run bldlvlck"
-set_run_or_skip $dostep_extpkgs;    verbose_msg "$run_or_skip : Build Hercules external packages"
-set_run_or_skip $dostep_autogen;    verbose_msg "$run_or_skip : Run autogen"
-set_run_or_skip $dostep_configure;  verbose_msg "$run_or_skip : Run configure"
-set_run_or_skip $dostep_clean;      verbose_msg "$run_or_skip : Run make clean"
-set_run_or_skip $dostep_make;       verbose_msg "$run_or_skip : Run make (compile and link)"
-set_run_or_skip $dostep_tests;      verbose_msg "$run_or_skip : Run make check"
-set_run_or_skip $dostep_install;    verbose_msg "$run_or_skip : Run make install"
-set_run_or_skip $dostep_setcap;     verbose_msg "$run_or_skip : setcap executables"
-set_run_or_skip $dostep_envscript;  verbose_msg "$run_or_skip : Create script to set environment variables"
-set_run_or_skip $dostep_bashrc;     verbose_msg "$run_or_skip : Add setting environment variables from .bashrc"
+set_run_or_skip $dostep_packages;    verbose_msg "$run_or_skip : Check for required system packages"
+set_run_or_skip $dostep_regina_rexx; verbose_msg "$run_or_skip : Include REXX support, build Regina REXX if needed"
+set_run_or_skip $dostep_gitclone;    verbose_msg "$run_or_skip : Git clone Hercules and external packages"
+set_run_or_skip $dostep_bldlvlck;    verbose_msg "$run_or_skip : Run bldlvlck"
+set_run_or_skip $dostep_extpkgs;     verbose_msg "$run_or_skip : Build Hercules external packages"
+set_run_or_skip $dostep_autogen;     verbose_msg "$run_or_skip : Run autogen"
+set_run_or_skip $dostep_configure;   verbose_msg "$run_or_skip : Run configure"
+set_run_or_skip $dostep_clean;       verbose_msg "$run_or_skip : Run make clean"
+set_run_or_skip $dostep_make;        verbose_msg "$run_or_skip : Run make (compile and link)"
+set_run_or_skip $dostep_tests;       verbose_msg "$run_or_skip : Run make check"
+set_run_or_skip $dostep_install;     verbose_msg "$run_or_skip : Run make install"
+set_run_or_skip $dostep_setcap;      verbose_msg "$run_or_skip : setcap executables"
+set_run_or_skip $dostep_envscript;   verbose_msg "$run_or_skip : Create script to set environment variables"
+set_run_or_skip $dostep_bashrc;      verbose_msg "$run_or_skip : Add setting environment variables from .bashrc"
 
 #-----------------------------------------------------------------------------
 verbose_msg # output a newline
@@ -2890,10 +2899,10 @@ verbose_msg "-----------------------------------------------------------------
 built_regina_from_source=0
 
 if [[  $version_regina -ge 3 ]]; then
-    verbose_msg "Regina REXX is present.  Skipping build from source."
+    verbose_msg "Regina REXX is present.  Skipping build Regina from source."
 elif [[  $version_oorexx -ge 4 ]]; then
-    verbose_msg "ooRexx is present.  Skipping build Regina-REXX from source."
-elif (! $dostep_rexx); then
+    verbose_msg "ooRexx is present.  Skipping build ooRexx from source."
+elif (! $dostep_regina_rexx); then
     verbose_msg "Skipping step: build Regina-REXX from source (--no-rexx)."
 else
 
@@ -2973,14 +2982,14 @@ else
 
         if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
           verbose_msg "Patching Regina 3.9.3 source for Raspberry Pi 64-bit"
-          patch -u configure -i "$SCRIPT_PATH/patches/regina-rexx-3.9.3.patch"
+          patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.9.3.patch"
           verbose_msg    # output a newline
         elif [[ "$opt_regina_dir" =~ "3.6" ]]; then
           verbose_msg "Patching Regina 3.6 source for Raspberry Pi 64-bit"
-          patch -u configure -i "$SCRIPT_PATH/patches/regina-rexx-3.6.patch"
+          patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.6.patch"
           verbose_msg "Replacing config.{guess,sub}"
-          cp "$SCRIPT_PATH/patches/config.guess" ./common/
-          cp "$SCRIPT_PATH/patches/config.sub" ./common/
+          cp "$SCRIPT_DIR/patches/config.guess" ./common/
+          cp "$SCRIPT_DIR/patches/config.sub" ./common/
           verbose_msg    # output a newline
         else
           error_msg "Don't know how to build your Regina on the Pi!"
@@ -3284,7 +3293,7 @@ if [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
     # if [ ! -f Makefile.am.orig ]; then
     #     verbose_msg "Patching Makefile.am"
     #     cp Makefile.am Makefile.am.orig
-    #     patch -u Makefile.am -i "$SCRIPT_PATH/patches/Makefile.am.M1.patch"
+    #     patch -u Makefile.am -i "$SCRIPT_DIR/patches/Makefile.am.M1.patch"
     #     verbose_msg    # output a newline
     # fi
 
@@ -3326,7 +3335,11 @@ else
     status_prompter "Step: configure:"
 
     # Check for REXX and set up its configure option
-    if   [[ $version_regina -ge 3 ]]; then
+    if ( $opt_no_rexx ); then
+        note_msg "REXX support declined.  Tests will not be run"
+        enable_rexx_option="--disable-object-rexx --disable-regina-rexx"
+        dostep_tests=false
+    elif [[ $version_regina -ge 3 ]]; then
         if [ $rexxsaa_h_present == true ]; then
             verbose_msg "Regina REXX is present. Using configure option: --enable-regina-rexx"
             enable_rexx_option="--enable-regina-rexx" # enable regina rexx support
@@ -3353,7 +3366,7 @@ for example, in Debian: sudo apt install libregina3-dev
     elif [[ $built_regina_from_source -eq 1 ]]; then
         enable_rexx_option="--enable-regina-rexx" # enable regina rexx support
     else
-        error_msg "No REXX support.  Tests will not be run"
+        note_msg "No REXX support.  Tests will not be run"
         enable_rexx_option=""
         dostep_tests=false
     fi
@@ -3443,9 +3456,12 @@ for example, in Debian: sudo apt install libregina3-dev
 
     without_included_ltdl_option=""
 
-    if [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
+#   if [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
+    if [[ $version_id == darwin* && $opt_use_homebrew == true ]]; then
         without_included_ltdl_option="--without-included-ltdl"
 
+        add_build_entry "export CFLAGS=\"\$CFLAGS -I\$(find \$(brew --cellar libtool) -type d -name \"include\" | sort -n | tail -n 1)\""
+        add_build_entry "export LDFLAGS=\"\$LDFLAGS -L\$(find \$(brew --cellar libtool) -type d -name \"lib\" | sort -n | tail -n 1)\""
         export CFLAGS="$CFLAGS -I$(find $(brew --cellar libtool) -type d -name "include" | sort -n | tail -n 1)"
         export LDFLAGS="$LDFLAGS -L$(find $(brew --cellar libtool) -type d -name "lib" | sort -n | tail -n 1)"
     elif [[ $version_id == darwin* && "$(uname -m)" =~ ^x86_64 ]]; then
@@ -3511,6 +3527,9 @@ add_build_entry "    $without_included_ltdl_option"
     fi
 
     # Print the configuration we wound up with
+    add_build_entry # newline
+    add_build_entry "./config.status --config"
+
     verbose_msg    # output a newline
     verbose_msg "./config.status --config ..."
     ./config.status --config
@@ -3842,6 +3861,8 @@ if (! $opt_no_install && ! $opt_no_bashrc); then
 fi
 
 verbose_msg "Done!"
+
+add_build_entry "cd \$opwd"
 
 } # End of I/O redirection function
 #-----------------------------------------------------------------------------
