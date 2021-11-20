@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 19 NOV 2021
+# Updated: 20 NOV 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 20 NOV 2021
+# - correct 'configure' 'libdir' for Regina on RedHat/CentOS/etc
 #
 # Updated: 19 NOV 2021
 # - respect --no-rexx to mean don't build any version of Rexx
@@ -2955,7 +2958,8 @@ else
         regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib"
     fi
 
-    if [[ "$version_distro" == "almalinux" ]]; then
+    if [[ "$version_distro" == "almalinux" ||
+          "$version_distro" == "redhat"  ]]; then
         regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib64"
     fi
 
