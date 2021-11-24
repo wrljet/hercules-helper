@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 20 NOV 2021
+# Updated: 24 NOV 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 24 NOV 2021
+# - add TRACEability to rebuild script
+# - add detection for MacOS 12 Monterey
 #
 # Updated: 20 NOV 2021
 # - correct 'configure' 'libdir' for Regina on RedHat/CentOS/etc
@@ -1843,7 +1847,9 @@ echo "Creating build cmds file: $cmdsfile"
 add_build_entry "#!/usr/bin/env bash"
 add_build_entry # newline
 
-add_build_entry "set -x # Show all commands as they are being run"
+add_build_entry "if [[ \$TRACE == true ]]; then"
+add_build_entry "    set -x # For debugging, show all commands as they are being run"
+add_build_entry "fi"
 add_build_entry # newline
 
 pushd "$(dirname "$0")" >/dev/null;
