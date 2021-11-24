@@ -1433,6 +1433,14 @@ detect_system()
             else
                 echo "Apple macOS version $version_str (Big Sur) found"
             fi
+        elif [[ $version_major -eq 12 ]]; then
+            os_is_supported=true
+
+            if [[ "$(uname -m)" =~ ^arm64 ]]; then
+                echo "Apple macOS version $version_str (Monterey) on ARM CPU found"
+            else
+                echo "Apple macOS version $version_str (Monterey) found"
+            fi
         else
             os_is_supported=false
             echo "Apple macOS version $version_major.$version_minor found, is currently unsupported"
