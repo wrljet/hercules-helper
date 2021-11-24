@@ -52,6 +52,7 @@
 # Updated: 24 NOV 2021
 # - add TRACEability to rebuild script
 # - add detection for MacOS 12 Monterey
+# - allow for skipping 'autogen' on MacOS
 #
 # Updated: 20 NOV 2021
 # - correct 'configure' 'libdir' for Regina on RedHat/CentOS/etc
@@ -3299,25 +3300,29 @@ cd $opt_build_dir/hyperion
 # If we're on an Apple Mac M1 ARM CPU, run autogen, but skip autoreconf
 
 if [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
-    status_prompter "Step: forcing autogen.sh on Apple Mac M1:"
+    if (! $dostep_autogen); then
+        verbose_msg "Skipping step: autogen.sh (--no-autogen)"
+    else
+        status_prompter "Step: forcing autogen.sh on Apple Mac M1:"
 
-    # save away original ltdl.[ch] source files
-    # verbose_msg "Saving original ltdl.[ch] source files"
-    # if [ -f ltdl.c ]; then mv ltdl.c ltdl.c.orig; fi
-    # if [ -f ltdl.h ]; then mv ltdl.h ltdl.h.orig; fi
-    # verbose_msg    # output a newline
+        # save away original ltdl.[ch] source files
+        # verbose_msg "Saving original ltdl.[ch] source files"
+        # if [ -f ltdl.c ]; then mv ltdl.c ltdl.c.orig; fi
+        # if [ -f ltdl.h ]; then mv ltdl.h ltdl.h.orig; fi
+        # verbose_msg    # output a newline
 
-    # save original Makefile.am and apply our patch
-    # if [ ! -f Makefile.am.orig ]; then
-    #     verbose_msg "Patching Makefile.am"
-    #     cp Makefile.am Makefile.am.orig
-    #     patch -u Makefile.am -i "$SCRIPT_DIR/patches/Makefile.am.M1.patch"
-    #     verbose_msg    # output a newline
-    # fi
+        # save original Makefile.am and apply our patch
+        # if [ ! -f Makefile.am.orig ]; then
+        #     verbose_msg "Patching Makefile.am"
+        #     cp Makefile.am Makefile.am.orig
+        #     patch -u Makefile.am -i "$SCRIPT_PATH/patches/Makefile.am.M1.patch"
+        #     verbose_msg    # output a newline
+        # fi
 
-    verbose_msg "Running autogen.sh"
-    add_build_entry "./autogen.sh"
-    ./autogen.sh
+        verbose_msg "Running autogen.sh"
+        add_build_entry "./autogen.sh"
+        ./autogen.sh
+    fi
 else
     if (! $dostep_autogen); then
         verbose_msg "Skipping step: autogen.sh (--no-autogen)"
