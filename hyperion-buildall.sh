@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 24 NOV 2021
+# Updated: 26 NOV 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 26 NOV 2021
+# - add 'libbz2-devel' package for OpenSUSE
 #
 # Updated: 24 NOV 2021
 # - add TRACEability to rebuild script
@@ -2318,6 +2321,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
       declare -a opensuse_packages=( \
           "git" \
+          "libbz2-devel" \
           "libcap-progs"
       )
 

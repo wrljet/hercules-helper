@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # helper-check-packages.sh
-# Updated: 17 NOV 2021
+# Updated: 26 NOV 2021
 
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -786,6 +786,7 @@ check_packages()
       )
 
       declare -a packages=( \
+          "git" "libbz2-devel" \
           "libcap-progs"
       )
 
