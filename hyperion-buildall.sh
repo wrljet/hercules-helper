@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 26 NOV 2021
+# Updated: 06 DEC 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,13 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 06 DEC 2021
+# - test the C compiler to see if '-march=native' works before using it
+# - add '--force-pi' option, for Raspberry Pi OSes that hide the CPU ID
+# - add 'time' package to requirements for openSUSE
+# - add detection of Raspberry Pi with openSUSE
+# - skip 'mainsize' test on low memory openSUSE (Pi 3B)
 #
 # Updated: 26 NOV 2021
 # - add 'libbz2-devel' package for OpenSUSE
@@ -571,6 +578,9 @@ opt_no_envscript=${opt_no_envscript:-false}
 # --no-bashrc    skip modifying .bashrc to set environment variables
 opt_no_bashrc=${opt_no_bashrc:-false}
 
+# --force-pi     force use of Raspberry Pi code (for systems that may conceal the CPU type)
+opt_force_pi=${opt_force_pi:-false}
+
 # Optional steps we perform
 #
 dostep_packages=${dostep_packages:-true}       # Check for required system packages
@@ -706,6 +716,7 @@ Options:
                       and create a full log file
        --homebrew     assume Homebrew package manager on MacOS
        --macports     assume MacPorts package manager on MacOS
+       --force-pi     process for a Raspberry Pi
 
 Sub-functions (in order of operation):
        --detect-only  run detection only and exit
@@ -1239,6 +1250,17 @@ detect_system()
             verbose_msg "OS               : $version_distro variant"
             verbose_msg "OS Version       : $version_major"
             os_is_supported=true
+
+            version_opensuse_model="$(dmesg | grep -i "Machine model" | cut -f2 -d: | awk '{$1=$1};1')"
+            verbose_msg "System           : $version_opensuse_model"
+
+            if [[ "$version_opensuse_model" =~ "Raspberry Pi" ]]; then
+                opt_force_pi=true
+
+                if [ $version_memory_size -lt 2000 ]; then
+                    verbose_msg "                 : openSUSE Raspberry Pi with low memory"
+                fi
+            fi
         fi
 
         # show the default language
@@ -1803,6 +1825,11 @@ case $key in
 
   --macports)
     opt_use_macports=true
+    shift # past argument
+    ;;
+
+  --force-pi)
+    opt_force_pi=true
     shift # past argument
     ;;
 
@@ -3001,7 +3028,8 @@ else
     #     and supply a more modern config.{guess,sub}
 
     if [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
-      if [[ ! -z "$RPI_MODEL" && "$RPI_MODEL" =~ "Raspberry" ]]; then
+      if [[ ( ! -z "$RPI_MODEL" && "$RPI_MODEL" =~ "Raspberry" ) ||
+            ( $opt_force_pi == true ) ]]; then
 
         if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
           verbose_msg "Patching Regina 3.9.3 source for Raspberry Pi 64-bit"
@@ -3435,17 +3463,29 @@ for example, in Debian: sudo apt install libregina3-dev
     # For Address Sanitizer:
     # config_opt_optimization="--enable-optimization=\"-O1 -g -fsanitize=address -fsanitize-recover=address -fno-omit-frame-pointer\""
 
-    # For FreeBSD, Clang doesn't accept -march=native
+    config_cc_optimizer_level="-O2"
+
+    # For FreeBSD, Clang, and older gcc on Aarch64 don't accept -march=native
     if [[ $version_id == freebsd* ]]; then
-        config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 -O2\""
+        config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 $config_cc_optimizer_level\""
     elif [[ $version_id == alpine* ]]; then
-        config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 -O2 -march=native -D__gnu_linux__=1 -D__ALPINE_LINUX__=1\""
+        config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 $config_cc_optimizer_level -march=native -D__gnu_linux__=1 -D__ALPINE_LINUX__=1\""
     elif [[ $version_id == darwin* &&
             "$(uname -m)" =~ (^arm64|^aarch64) ]];
     then
-        config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 -O2\""
+        config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 $config_cc_optimizer_level\""
     else
-        config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 -O2 -march=native\""
+        # Try to compile a do-nothing program with -march=native
+        cc_accepts_march_native=$(echo "#include \"stdio.h\"" | $CC $CPPFLAGS $CFLAGS -march=native -dI -E -x c - 2>&1)
+        cc_status=$?
+
+        if [[ $cc_status -eq 0 ]]; then
+            verbose_msg "C compiler accepts -march=native"
+            config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 $config_cc_optimizer_level -march=native\""
+        else
+            verbose_msg "C compiler does not accept -march=native"
+            config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 $config_cc_optimizer_level\""
+        fi
     fi
 
     # Our config file can override all this, for example on Raspberry Pi 4B:
@@ -3643,19 +3683,20 @@ else
     if [[ $version_id == freebsd* ]]; then
         make_check_cmd="gmake check"
 
-        # Also for FreeBSD we will try to detect low memory conditions
-        # such as on a Raspberry Pi 3B, and skip the 'mainsize' test.
-        if [ $version_memory_size -lt 2000 ]; then
-            verbose_msg "System with low memory"
-
-            if [ -f ../tests/mainsize.tst ]; then
-                verbose_msg "Skipping 'mainsize.tst'"
-                verbose_msg    # output a newline
-                mv ../tests/mainsize.tst ../tests/mainsize.tst.skipped
-            fi
-        fi
     else
         make_check_cmd="make check"
+    fi
+
+    # Also for FreeBSD, openSUSE, etc. we will try to detect low memory
+    # conditions such as on a Raspberry Pi 3B, and skip the 'mainsize' test.
+    if [ $version_memory_size -lt 2000 ]; then
+        verbose_msg "System with low memory"
+        verbose_msg "Skipping 'mainsize.tst'"
+        verbose_msg    # output a newline
+
+        if [ -f ../tests/mainsize.tst ]; then
+            mv ../tests/mainsize.tst ../tests/mainsize.tst.skipped
+        fi
     fi
 
     add_build_entry "time $make_check_cmd"
