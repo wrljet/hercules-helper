@@ -50,6 +50,7 @@
 # Changelog:
 #
 # Updated: 11 DEC 2021
+# - change 'cmake' from an openSUSE pattern, to a package
 # - correct detection of Raspberry Pi under openSUSE 42.2
 #
 # Updated: 06 DEC 2021
@@ -2332,7 +2333,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 # libcap-progs is not, and won't install it -t pattern
 
       declare -a opensuse_patterns=( \
-          "devel_basis" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
+          "devel_basis" "autoconf" "automake" "flex" "gawk" "m4" \
           "libtool" \
           "bzip2" \
           "libz1" "zlib-devel"
@@ -2356,7 +2357,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
       done
 
       declare -a opensuse_packages=( \
-          "git" \
+          "git" "cmake" \
           "libbz2-devel" \
           "libcap-progs"
       )
