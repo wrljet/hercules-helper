@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 06 DEC 2021
+# Updated: 11 DEC 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -49,11 +49,14 @@
 
 # Changelog:
 #
+# Updated: 11 DEC 2021
+# - correct detection of Raspberry Pi under openSUSE 42.2
+#
 # Updated: 06 DEC 2021
 # - test the C compiler to see if '-march=native' works before using it
 # - add '--force-pi' option, for Raspberry Pi OSes that hide the CPU ID
 # - add 'time' package to requirements for openSUSE
-# - add detection of Raspberry Pi with openSUSE
+# - add detection of Raspberry Pi with openSUSE 15
 # - skip 'mainsize' test on low memory openSUSE (Pi 3B)
 #
 # Updated: 26 NOV 2021
@@ -1252,14 +1255,20 @@ detect_system()
             os_is_supported=true
 
             version_opensuse_model="$(dmesg | grep -i "Machine model" | cut -f2 -d: | awk '{$1=$1};1')"
-            verbose_msg "System           : $version_opensuse_model"
 
             if [[ "$version_opensuse_model" =~ "Raspberry Pi" ]]; then
+                verbose_msg "System           : $version_opensuse_model"
                 opt_force_pi=true
+            fi
 
-                if [ $version_memory_size -lt 2000 ]; then
-                    verbose_msg "                 : openSUSE Raspberry Pi with low memory"
-                fi
+            if (dmesg | grep -i "raspberrypi-firmware" >/dev/null); then
+                verbose_msg "System           : Raspberry Pi"
+                opt_force_pi=true
+            fi
+
+            if [[ $opt_force_pi && $version_memory_size -lt 2000 ]]; then
+                verbose_msg "                 : openSUSE Raspberry Pi with low memory"
+                version_multicore_with_low_memory=true
             fi
         fi
 
