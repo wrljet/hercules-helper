@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 11 DEC 2021
+# Updated: 18 DEC 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 18 DEC 2021
+# - change compiler optimization level to '-O3' by default
 #
 # Updated: 11 DEC 2021
 # - change 'cmake' from an openSUSE pattern, to a package
@@ -3473,7 +3476,7 @@ for example, in Debian: sudo apt install libregina3-dev
     # For Address Sanitizer:
     # config_opt_optimization="--enable-optimization=\"-O1 -g -fsanitize=address -fsanitize-recover=address -fno-omit-frame-pointer\""
 
-    config_cc_optimizer_level="-O2"
+    config_cc_optimizer_level="-O3"
 
     # For FreeBSD, Clang, and older gcc on Aarch64 don't accept -march=native
     if [[ $version_id == freebsd* ]]; then
