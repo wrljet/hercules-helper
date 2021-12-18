@@ -50,6 +50,7 @@
 # Changelog:
 #
 # Updated: 18 DEC 2021
+# - move various utility functions to helper-fns.sh
 # - change compiler optimization level to '-O3' by default
 #
 # Updated: 11 DEC 2021
@@ -475,6 +476,18 @@ shopt -s extglob # Required for MacOS
 require(){ hash "$@" || exit 127; }
 
 current_time=$(date "+%Y-%m-%d")
+
+# Find and read in the helper functions
+
+fns_dir="$(dirname "$0")"
+fns_file="$fns_dir/helper-fns.sh"
+
+if test -f "$fns_file" ; then
+    source "$fns_file"
+else
+    echo "Helper functions script file not found!"
+    exit 1
+fi
 
 #------------------------------------------------------------------------------
 #
