@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 18 DEC 2021
+# Updated: 19 DEC 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 19 DEC 2021
+# - add support for Mageia v8
 #
 # Updated: 18 DEC 2021
 # - move various utility functions to helper-fns.sh
@@ -1143,6 +1146,24 @@ detect_system()
               os_is_supported=true
             fi
         fi
+
+        # Look for Mageia
+# VERSION_ID       : mageia
+# VERSION_ID_LIKE  : mandriva fedora
+# VERSION_PRETTY   : Mageia 8
+# VERSION_STR      : 8
+
+        if [[ $version_id == mageia* ]]; then
+            verbose_msg "We have a Mageia system"
+
+            version_distro="redhat"
+            version_major=$(echo $version_str | cut -f1 -d' ')
+            verbose_msg "VERSION_MAJOR    : $version_major"
+
+            if [[ $version_major -ge 8 ]]; then
+              os_is_supported=true
+            fi
+        fi
 #######################################################
 
         # Look for Intel Clear Linux
@@ -2142,6 +2163,44 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           done
       else
           error_msg "AlmaLinux version 7 or earlier found, and not supported"
+          exit 1
+      fi
+    return
+  fi
+
+#-----------------------------------------------------------------------------
+  # Mageia v8
+
+  if [[ $version_id == mageia* ]]; then
+      if [[ $version_major -ge 8 ]]; then
+          echo "Mageia version 8 or later found"
+
+          declare -a mageia_packages=( \
+              "git" "wget" \
+              "gcc" "make" "flex" "gawk" "m4" \
+              "autoconf" "automake" "lib64ltdl-devel" "libtool" \
+              "cmake"
+              "bzip2" "lib64bz2-devel" "lib64bz2-1" "lib64zlib-devel" \
+              "libcap-utils"
+              )
+
+          for package in "${mageia_packages[@]}"; do
+              echo "-----------------------------------------------------------------"
+
+              #yum list installed bzip2-devel  > /dev/null 2>&1 ; echo $?
+              yum list installed $package
+              status=$?
+
+              # install if missing
+              if [ $status -eq 0 ]; then
+                  echo "package $package is already installed"
+              else
+                  echo "installing package: $package"
+                  sudo yum -y install $package
+              fi
+          done
+      else
+          error_msg "Mageia version 7 or earlier found, and not supported"
           exit 1
       fi
     return
