@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 19 DEC 2021
+# Updated: 20 DEC 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 20 DEC 2021
+# - add memory detction for MacOS
 #
 # Updated: 19 DEC 2021
 # - add support for Mageia v8
@@ -1404,6 +1407,9 @@ detect_system()
         echo "VERSION_MINOR    : $version_minor"
         version_build=$(echo $version_str | cut -f3 -d.)
         echo "VERSION_BUILD    : $version_build"
+
+        version_memory_size="$(sysctl hw.physmem | awk '/^hw.physmem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
+        verbose_msg "Memory Total (MB): $version_memory_size"
 
         if [[ $version_major -eq 10 && $version_minor -eq 13 ]]; then
             os_is_supported=true
@@ -3686,6 +3692,12 @@ else
 
     # Also for FreeBSD, openSUSE, etc. we will try to detect low memory
     # conditions such as on a Raspberry Pi 3B, and skip the 'mainsize' test.
+
+    verbose_msg "********************"
+    verbose_msg "version_memory_size = $version_memory_size"
+    verbose_msg "********************"
+    verbose_msg    # output a newline
+
     if [ $version_memory_size -lt 2000 ]; then
         verbose_msg "System with low memory"
         verbose_msg "Skipping 'mainsize.tst'"
