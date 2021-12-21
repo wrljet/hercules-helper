@@ -3697,7 +3697,7 @@ else
     # conditions such as on a Raspberry Pi 3B, and skip the 'mainsize' test.
 
     verbose_msg "********************"
-    verbose_msg "version_memory_size = $version_memory_size"
+    verbose_msg "Memory size = $version_memory_size"
     verbose_msg "********************"
     verbose_msg    # output a newline
 
