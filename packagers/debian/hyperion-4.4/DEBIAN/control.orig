@@ -1,0 +1,12 @@
+Package: hyperion-4.4
+Version: 4.4.0.0-SDL-gbf377f63
+Architecture: amd64
+Maintainer: Bill Lewis <bill@wrljet.com>
+Depends: libbz2-1.0,zlib1g
+Installed-Size: 13000
+Section: utils
+Priority: optional
+Homepage: https://sdl-hercules-390.github.io/html
+Tags: hercules hyperion
+Description: SDL-Hercules-390, built with Hercules-Helper
+ The SoftDevLabs (SDL) version of the Hercules 4.x Hyperion System/370, ESA/390, and z/Architecture Emulator
