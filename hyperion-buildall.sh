@@ -769,17 +769,6 @@ Please email bug reports, questions, etc. to: <bill@wrljet.com>
 "
 
 #------------------------------------------------------------------------------
-#                               trace
-#------------------------------------------------------------------------------
-trace_msg()
-{
-  if [ -n $debug ]  || \
-     [ -n $DEBUG ]; then
-    echo  "++ $1"
-  fi
-}
-
-#------------------------------------------------------------------------------
 #                               finish
 #------------------------------------------------------------------------------
 finish()
@@ -3323,7 +3312,20 @@ else
     add_build_entry "./extpkgs.sh  c d s t"
     ./extpkgs.sh  c d s t
     # DEBUG=1 ./extpkgs.sh  c d s t
-    # ./extpkgs.sh c d s t
+
+# mkdir -p hercpkgs
+# mkdir -p workdir
+#
+# for pkg in crypto decNumber SoftFloat telnet; do
+#     rm -rf $pkg
+#     git clone https://github.com/SDL-Hercules-390/$pkg.git
+#
+#     mkdir -p workdir/$pkg
+#     pushd workdir/$pkg
+#         ../../$pkg/build --pkgname . --arch 64 --rebuild --install ../../hercpkgs
+#     popd
+# done
+
 fi
 
 verbose_msg "-----------------------------------------------------------------

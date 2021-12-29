@@ -75,6 +75,7 @@ function the_works
 
 version_name="4.4"
 release_date="2021-12-18"
+# Sat, 18 Dec 2021 15:32:00 -0500
 
 # FIXME: this doesn't work if this script is running off a symlink
 SCRIPT_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")
@@ -339,7 +340,7 @@ echo_and_run "pushd hyperion >/dev/null;"
 
 echo_and_run   "./autogen.sh"
 
-echo_and_run   "./configure '--enable-optimization=-g -g3 -ggdb3 -O3 -march=native' \
+echo_and_run   "./configure '--enable-optimization=-g -g3 -ggdb3 -O3' \
     --enable-extpkgs=../extpkgs \
     --prefix=$install_prefix \
     --libdir=/usr/local/lib \

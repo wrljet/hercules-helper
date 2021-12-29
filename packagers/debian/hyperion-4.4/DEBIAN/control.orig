@@ -3,7 +3,7 @@ Version: 4.4.0.0-SDL-gbf377f63
 Architecture: amd64
 Maintainer: Bill Lewis <bill@wrljet.com>
 Depends: libbz2-1.0,zlib1g
-Installed-Size: 13000
+Installed-Size: 73000
 Section: utils
 Priority: optional
 Homepage: https://sdl-hercules-390.github.io/html
