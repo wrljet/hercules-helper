@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 21 DEC 2021
+# Updated: 31 DEC 2021
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,12 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 31 DEC 2021
+# - not wanting REXX support in Hercules no longer means skipping 'make check'
+# - if '--no-rexx' option is used, don't mention building Regina REXX
+# - for MacOS, use 'sysctl hw.memsize' rather than 'hw.physmem' to get 64-bit value
+# - display $GCC environment variable if present
 #
 # Updated: 21 DEC 2021
 # - pretty up memory display presented before running 'make check'
@@ -1400,7 +1406,7 @@ detect_system()
         version_build=$(echo $version_str | cut -f3 -d.)
         echo "VERSION_BUILD    : $version_build"
 
-        version_memory_size="$(sysctl hw.physmem | awk '/^hw.physmem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
+        version_memory_size="$(sysctl hw.memsize | awk '/^hw.memsize:/{mb = $2/1024/1024; printf "%.0f", mb}')"
         verbose_msg "Memory Total (MB): $version_memory_size"
 
         if [[ $version_major -eq 10 && $version_minor -eq 13 ]]; then
@@ -1919,6 +1925,7 @@ add_build_entry # newline
 add_build_entry "# Environment variables used:"
 add_build_entry "# PATH=\"$PATH\""
 add_build_entry "# CC=\"$CC\""
+add_build_entry "# GCC=\"${GCC:-""}\""
 add_build_entry "# CFLAGS=\"$CFLAGS\""
 add_build_entry "# CPPFLAGS=\"$CPPFLAGS\""
 add_build_entry "# LDFLAGS=\"$LDFLAGS\""
@@ -2784,11 +2791,12 @@ detect_rexx
 
 #-----------------------------------------------------------------------------
 verbose_msg "CC               : $CC"
+verbose_msg "GCC              : ${GCC:-""}"
 verbose_msg "CFLAGS           : $CFLAGS"
 verbose_msg "CPPFLAGS         : $CPPFLAGS"
 verbose_msg "LDFLAGS          : $LDFLAGS"
-verbose_msg "gcc presence     : $(which gcc || true)"
 verbose_msg "$CC              : $($CC --version | head -1)"
+verbose_msg "gcc presence     : $(which gcc || true)"
 verbose_msg "g++ presence     : $(which g++ || true)"
 
 # Check for older gcc on i686 systems, that is know to fail CBUC test
@@ -2942,14 +2950,13 @@ verbose_msg "-----------------------------------------------------------------
 
 built_regina_from_source=0
 
-if [[  $version_regina -ge 3 ]]; then
+if (! $dostep_regina_rexx); then
+    verbose_msg "Skipping step: build Regina-REXX from source (--no-rexx)."
+elif [[  $version_regina -ge 3 ]]; then
     verbose_msg "Regina REXX is present.  Skipping build Regina from source."
 elif [[  $version_oorexx -ge 4 ]]; then
     verbose_msg "ooRexx is present.  Skipping build ooRexx from source."
-elif (! $dostep_regina_rexx); then
-    verbose_msg "Skipping step: build Regina-REXX from source (--no-rexx)."
 else
-
     status_prompter "Step: Build Regina Rexx [used for test scripts]:"
 
     # Remove any existing Regina, download and untar
@@ -3399,16 +3406,16 @@ else
 
     # Check for REXX and set up its configure option
     if ( $opt_no_rexx ); then
-        note_msg "REXX support declined.  Tests will not be run"
+        note_msg "REXX support declined."
         enable_rexx_option="--disable-object-rexx --disable-regina-rexx"
-        dostep_tests=false
+        # dostep_tests=false
     elif [[ $version_regina -ge 3 ]]; then
         if [ $rexxsaa_h_present == true ]; then
             verbose_msg "Regina REXX is present. Using configure option: --enable-regina-rexx"
             enable_rexx_option="--enable-regina-rexx" # enable regina rexx support
         else
             error_msg "Regina REXX is present, but rexxsaa.h is not found.
-Regina REXX support will not be built into Hercules.  Tests will not be run.
+Regina REXX support will not be built into Hercules.
 
 Installing the Regina development package may fix this.
 for example, in Debian: sudo apt install libregina3-dev
@@ -3421,7 +3428,7 @@ for example, in Debian: sudo apt install libregina3-dev
             fi
 
             enable_rexx_option=""
-            dostep_tests=false
+            # dostep_tests=false
         fi
     elif [[ $version_oorexx -ge 4 ]]; then
         verbose_msg "ooRexx is present. Using configure option: --enable-object-rexx"
@@ -3429,9 +3436,9 @@ for example, in Debian: sudo apt install libregina3-dev
     elif [[ $built_regina_from_source -eq 1 ]]; then
         enable_rexx_option="--enable-regina-rexx" # enable regina rexx support
     else
-        note_msg "No REXX support.  Tests will not be run"
+        note_msg "No REXX support."
         enable_rexx_option=""
-        dostep_tests=false
+        # dostep_tests=false
     fi
 
     # Set up IPv6 configure option
