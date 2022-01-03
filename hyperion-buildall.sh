@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 31 DEC 2021
+# Updated: 03 JAN 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 03 JAN 2022
+# - rearrange order of various infos displays
+# - display info about ability to create crash dumps on MacOS
 #
 # Updated: 31 DEC 2021
 # - not wanting REXX support in Hercules no longer means skipping 'make check'
@@ -200,7 +204,6 @@
 # - add 'libtool' to required packages for openSUSE
 # - skip setcap operations on Apple macOS
 # - add error handling to various steps
-#
 #
 # Updated: 01 JUL 2021
 # - Fedora 34 support
@@ -2645,8 +2648,29 @@ if [[ $version_id == darwin* ]]; then
     opt_no_bldlvlck=true
 fi
 
+verbose_msg "Environment variables:"
 verbose_msg "Search Path      : ${PATH}"
-verbose_msg    # print a newline
+verbose_msg "CC               : $CC"
+verbose_msg "                 : $($CC --version | head -1)"
+verbose_msg "GCC              : ${GCC:-""}"
+verbose_msg "CFLAGS           : $CFLAGS"
+verbose_msg "CPPFLAGS         : $CPPFLAGS"
+verbose_msg "LDFLAGS          : $LDFLAGS"
+verbose_msg "gcc presence     : $(which gcc || true)"
+verbose_msg "g++ presence     : $(which g++ || true)"
+
+# Check for ability to create a core dump on MacOS
+if [ "$version_distro" == "darwin" ]; then
+    verbose_msg "ulimit -c        : $(ulimit -c || true)"
+    verbose_msg "ls -ld /cores    : $(ls -ld /cores || true)"
+
+    if [ ! -w /cores ] ; then
+        echo "/cores is NOT writeable.  Crash dumps will be disabled." ;
+    fi
+
+    # verbose_msg "Check for ability to create a core dump on MacOS
+    echo   # output a newline
+fi
 
 verbose_msg "Build tools versions:"
 verbose_msg "  autoconf       : $(autoconf --version 2>&1 | head -n 1)"
@@ -2667,6 +2691,145 @@ verbose_msg "  make           : $(make --version 2>&1 | head -n 1 | sed 's/^usag
 verbose_msg "  compiler       : $($CC --version 2>&1 | head -n 1)"
 verbose_msg "  linker         : $($LD --version 2>&1 | head -n 1)"
 verbose_msg    # print a newline
+
+# Check for older gcc on i686 systems, that is know to fail CBUC test
+
+as_awk_strverscmp='
+  # Use only awk features that work with 7th edition Unix awk (1978).
+  # My, what an old awk you have, Mr. Solaris!
+  END {
+    while (length(v1) && length(v2)) {
+      # Set d1 to be the next thing to compare from v1, and likewise for d2.
+      # Normally this is a single character, but if v1 and v2 contain digits,
+      # compare them as integers and fractions as strverscmp does.
+      if (v1 ~ /^[0-9]/ && v2 ~ /^[0-9]/) {
+        # Split v1 and v2 into their leading digit string components d1 and d2,
+        # and advance v1 and v2 past the leading digit strings.
+        for (len1 = 1; substr(v1, len1 + 1) ~ /^[0-9]/; len1++) continue
+        for (len2 = 1; substr(v2, len2 + 1) ~ /^[0-9]/; len2++) continue
+        d1 = substr(v1, 1, len1); v1 = substr(v1, len1 + 1)
+        d2 = substr(v2, 1, len2); v2 = substr(v2, len2 + 1)
+        if (d1 ~ /^0/) {
+          if (d2 ~ /^0/) {
+            # Compare two fractions.
+            while (d1 ~ /^0/ && d2 ~ /^0/) {
+              d1 = substr(d1, 2); len1--
+              d2 = substr(d2, 2); len2--
+            }
+            if (len1 != len2 && ! (len1 && len2 && substr(d1, 1, 1) == substr(d2, 1, 1))) {
+              # The two components differ in length, and the common prefix
+              # contains only leading zeros.  Consider the longer to be less.
+              d1 = -len1
+              d2 = -len2
+            } else {
+              # Otherwise, compare as strings.
+              d1 = "x" d1
+              d2 = "x" d2
+            }
+          } else {
+            # A fraction is less than an integer.
+            exit 1
+          }
+        } else {
+          if (d2 ~ /^0/) {
+            # An integer is greater than a fraction.
+            exit 2
+          } else {
+            # Compare two integers.
+            d1 += 0
+            d2 += 0
+          }
+        }
+      } else {
+        # The normal case, without worrying about digits.
+        d1 = substr(v1, 1, 1); v1 = substr(v1, 2)
+        d2 = substr(v2, 1, 1); v2 = substr(v2, 2)
+      }
+      if (d1 < d2) exit 1
+      if (d1 > d2) exit 2
+    }
+    # Beware Solaris /usr/xgp4/bin/awk (at least through Solaris 10),
+    # which mishandles some comparisons of empty strings to integers.
+    if (length(v2)) exit 1
+    if (length(v1)) exit 2
+  }
+'
+
+hc_gcc_level=$(gcc -dumpversion)
+
+if [[ "$(uname -m)" =~ ^(i686) && "$version_distro" == "debian" ]]; then
+    verbose_msg # output a newline
+    verbose_msg "Checking for gcc atomics ..."
+
+    as_arg_v1=$hc_gcc_level
+    as_arg_v2="6.3.0"
+
+    set +e
+    awk "$as_awk_strverscmp" v1="$as_arg_v1" v2="$as_arg_v2" /dev/null
+    awk_rc=$?
+    set -e
+
+    case $awk_rc in #(
+      1) :
+        # echo "... 1 found lesser version $hc_gcc_level < $as_arg_v2"
+        hc_cv_gcc_working_atomics=no ;; #(
+      0) :
+        # echo "... 0 found equal version $hc_gcc_level == $as_arg_v2"
+        hc_cv_gcc_working_atomics=yes ;; #(
+      2) :
+        # echo "... 2 found greater version $hc_gcc_level > $as_arg_v2"
+        hc_cv_gcc_working_atomics=yes  ;; #(
+      *) :
+      ;;
+    esac
+
+    if [[ $hc_cv_gcc_working_atomics == no ]]; then
+        error_msg "gcc versions before $as_arg_v2 will not create a fully functional"
+        error_msg "Hercules on this 32-bit system. Certain test are known to fail."
+
+        if ($opt_prompts); then
+            if confirm "Continue anyway? [y/N]" ; then
+                echo "OK"
+            else
+                exit 1
+            fi
+        else
+            echo "Giving up"
+            exit 1
+        fi
+    fi
+fi
+
+#-----------------------------------------------------------------------------
+verbose_msg "looking for files ... please wait ..."
+
+if [[ $version_wsl -eq 2 ]]; then
+    # echo "Windows WSL2 host system found"
+    # Don't run a search on /mnt because it takes forever
+    which_cc1=$(find / -path /mnt -prune -o -name cc1 -print 2>&1 | grep cc1 | head -5)
+    which_cc1plus=$(find / -path /mnt -prune -o -name cc1plus -print 2>&1 | grep cc1plus | head -5)
+elif [[ $version_id == netbsd* ]]; then
+    which_cc1=$(find / -xdev -name cc1 -print 2>&1 | grep cc1 | head -5)
+    which_cc1plus=$(find / -xdev -name cc1plus -print 2>&1 | grep cc1plus | head -5)
+elif [[ $version_id == darwin* ]]; then
+    # On macOS these two find commands can trigger:
+    # "Terminal wants to access your contacts"
+    # This looks scary, and we don't want to be suspected of being malware
+    # so we'll skip these checks.  They are mostly for debugging anyways.
+
+    which_cc1="skipped on macOS"
+    which_cc1plus="skipped on macOS"
+else
+    which_cc1="$(find / -mount -name cc1 -print 2>&1 | grep cc1 | head -5)" || true
+    which_cc1plus="$(find / -mount -name cc1plus -print 2>&1 | grep cc1plus | head -5)" || true
+fi
+
+verbose_msg "cc1 presence     : $which_cc1"
+verbose_msg "cc1plus presence : $which_cc1plus"
+
+verbose_msg    # print a newline
+
+#-----------------------------------------------------------------------------
 
 if ($opt_no_packages  ); then dostep_packages=false;    fi
 if ($opt_no_rexx      ); then dostep_regina_rexx=false; fi
@@ -2790,151 +2953,6 @@ status_prompter "Step: Check REXX and compiler files:"
 detect_rexx
 
 #-----------------------------------------------------------------------------
-verbose_msg "CC               : $CC"
-verbose_msg "GCC              : ${GCC:-""}"
-verbose_msg "CFLAGS           : $CFLAGS"
-verbose_msg "CPPFLAGS         : $CPPFLAGS"
-verbose_msg "LDFLAGS          : $LDFLAGS"
-verbose_msg "$CC              : $($CC --version | head -1)"
-verbose_msg "gcc presence     : $(which gcc || true)"
-verbose_msg "g++ presence     : $(which g++ || true)"
-
-# Check for older gcc on i686 systems, that is know to fail CBUC test
-
-as_awk_strverscmp='
-  # Use only awk features that work with 7th edition Unix awk (1978).
-  # My, what an old awk you have, Mr. Solaris!
-  END {
-    while (length(v1) && length(v2)) {
-      # Set d1 to be the next thing to compare from v1, and likewise for d2.
-      # Normally this is a single character, but if v1 and v2 contain digits,
-      # compare them as integers and fractions as strverscmp does.
-      if (v1 ~ /^[0-9]/ && v2 ~ /^[0-9]/) {
-        # Split v1 and v2 into their leading digit string components d1 and d2,
-        # and advance v1 and v2 past the leading digit strings.
-        for (len1 = 1; substr(v1, len1 + 1) ~ /^[0-9]/; len1++) continue
-        for (len2 = 1; substr(v2, len2 + 1) ~ /^[0-9]/; len2++) continue
-        d1 = substr(v1, 1, len1); v1 = substr(v1, len1 + 1)
-        d2 = substr(v2, 1, len2); v2 = substr(v2, len2 + 1)
-        if (d1 ~ /^0/) {
-          if (d2 ~ /^0/) {
-            # Compare two fractions.
-            while (d1 ~ /^0/ && d2 ~ /^0/) {
-              d1 = substr(d1, 2); len1--
-              d2 = substr(d2, 2); len2--
-            }
-            if (len1 != len2 && ! (len1 && len2 && substr(d1, 1, 1) == substr(d2, 1, 1))) {
-              # The two components differ in length, and the common prefix
-              # contains only leading zeros.  Consider the longer to be less.
-              d1 = -len1
-              d2 = -len2
-            } else {
-              # Otherwise, compare as strings.
-              d1 = "x" d1
-              d2 = "x" d2
-            }
-          } else {
-            # A fraction is less than an integer.
-            exit 1
-          }
-        } else {
-          if (d2 ~ /^0/) {
-            # An integer is greater than a fraction.
-            exit 2
-          } else {
-            # Compare two integers.
-            d1 += 0
-            d2 += 0
-          }
-        }
-      } else {
-        # The normal case, without worrying about digits.
-        d1 = substr(v1, 1, 1); v1 = substr(v1, 2)
-        d2 = substr(v2, 1, 1); v2 = substr(v2, 2)
-      }
-      if (d1 < d2) exit 1
-      if (d1 > d2) exit 2
-    }
-    # Beware Solaris /usr/xgp4/bin/awk (at least through Solaris 10),
-    # which mishandles some comparisons of empty strings to integers.
-    if (length(v2)) exit 1
-    if (length(v1)) exit 2
-  }
-'
-
-hc_gcc_level=$(gcc -dumpversion)
-
-if [[ "$(uname -m)" =~ ^(i686) && "$version_distro" == "debian" ]]; then
-    verbose_msg # output a newline
-    verbose_msg "Checking for gcc atomics ..."
-
-    as_arg_v1=$hc_gcc_level
-    as_arg_v2="6.3.0"
-
-    set +e
-    awk "$as_awk_strverscmp" v1="$as_arg_v1" v2="$as_arg_v2" /dev/null
-    awk_rc=$?
-    set -e
-
-    case $awk_rc in #(
-      1) :
-        # echo "... 1 found lesser version $hc_gcc_level < $as_arg_v2"
-        hc_cv_gcc_working_atomics=no ;; #(
-      0) :
-        # echo "... 0 found equal version $hc_gcc_level == $as_arg_v2"
-        hc_cv_gcc_working_atomics=yes ;; #(
-      2) :
-        # echo "... 2 found greater version $hc_gcc_level > $as_arg_v2"
-        hc_cv_gcc_working_atomics=yes  ;; #(
-      *) :
-      ;;
-    esac
-
-    if [[ $hc_cv_gcc_working_atomics == no ]]; then
-        error_msg "gcc versions before $as_arg_v2 will not create a fully functional"
-        error_msg "Hercules on this 32-bit system. Certain test are known to fail."
-
-        if ($opt_prompts); then
-            if confirm "Continue anyway? [y/N]" ; then
-                echo "OK"
-            else
-                exit 1
-            fi
-        else
-            echo "Giving up"
-            exit 1
-        fi
-    fi
-fi
-
-#-----------------------------------------------------------------------------
-
-verbose_msg "looking for files ... please wait ..."
-
-if [[ $version_wsl -eq 2 ]]; then
-    # echo "Windows WSL2 host system found"
-    # Don't run a search on /mnt because it takes forever
-    which_cc1=$(find / -path /mnt -prune -o -name cc1 -print 2>&1 | grep cc1 | head -5)
-    which_cc1plus=$(find / -path /mnt -prune -o -name cc1plus -print 2>&1 | grep cc1plus | head -5)
-elif [[ $version_id == netbsd* ]]; then
-    which_cc1=$(find / -xdev -name cc1 -print 2>&1 | grep cc1 | head -5)
-    which_cc1plus=$(find / -xdev -name cc1plus -print 2>&1 | grep cc1plus | head -5)
-elif [[ $version_id == darwin* ]]; then
-    # On macOS these two find commands can trigger:
-    # "Terminal wants to access your contacts"
-    # This looks scary, and we don't want to be suspected of being malware
-    # so we'll skip these checks.  They are mostly for debugging anyways.
-
-    which_cc1="skipped on macOS"
-    which_cc1plus="skipped on macOS"
-else
-    which_cc1="$(find / -mount -name cc1 -print 2>&1 | grep cc1 | head -5)" || true
-    which_cc1plus="$(find / -mount -name cc1plus -print 2>&1 | grep cc1plus | head -5)" || true
-fi
-
-verbose_msg "cc1 presence     : $which_cc1"
-verbose_msg "cc1plus presence : $which_cc1plus"
-
 # FIXME macOS
 # start_seconds="$(TZ=UTC0 printf '%(%s)T\n' '-1')"
 start_seconds="$(date +%s)"
