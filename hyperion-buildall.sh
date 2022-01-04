@@ -50,6 +50,7 @@
 # Changelog:
 #
 # Updated: 03 JAN 2022
+# - help FreeBSD find headers and libraries (for Vagrant)
 # - rearrange order of various infos displays
 # - display info about ability to create crash dumps on MacOS
 #
@@ -3029,11 +3030,18 @@ else
         regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib64"
     fi
 
+    # For FreeBSD, Clang doesn't seem to know about /usr/local
+    if [[ $version_id == freebsd* ]]; then
+        export CFLAGS="$CFLAGS -I/usr/local/include"
+        export LDFLAGS="$LDFLAGS -L/usr/lib -L/usr/local/lib"
+    fi
+
     if (cc --version | grep -Fiqe "clang"); then
 #   if [[ $version_id == darwin* &&
 #         "$(uname -m)" =~ (^arm64|^aarch64) ]];
 #   then
-        regina_configure_cmd="CFLAGS=\"-Wno-error=implicit-function-declaration\" ./configure"
+#       regina_configure_cmd="CFLAGS=\"-Wno-error=implicit-function-declaration\" ./configure"
+        regina_configure_cmd="CFLAGS=\"$CFLAGS -Wno-error=implicit-function-declaration\" ./configure"
     fi
 
     # FIXME on macOS on Apple M1 build Regina with a separate helper
