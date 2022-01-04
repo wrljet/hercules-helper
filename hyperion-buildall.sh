@@ -50,6 +50,7 @@
 # Changelog:
 #
 # Updated: 03 JAN 2022
+# - fix bug related to '--no-rexx' erroring out on missing headers
 # - help FreeBSD find headers and libraries (for Vagrant)
 # - rearrange order of various infos displays
 # - display info about ability to create crash dumps on MacOS
@@ -1558,6 +1559,7 @@ detect_rexx()
 
     detect_regina
 
+  if ($dostep_regina_rexx); then
     # See if the compiler can find the Regina-REXX include file(s)
     if [[ $version_regina -ge 3 ]]; then
         echo "#include \"rexxsaa.h\"" | $CC $CPPFLAGS $CFLAGS -dI -E -x c - >/dev/null 2>&1
@@ -1584,6 +1586,7 @@ detect_rexx()
             rexxsaa_h_present=false
         fi
     fi
+  fi
 
     detect_oorexx
 
