@@ -51,6 +51,7 @@
 #
 # Updated: 05 JAN 2022
 # - add package 'time' to Fedora.  Found missing using Vagrant.
+# - add package 'time' to Alma Linux.  Found missing using Vagrant.
 #
 # Updated: 03 JAN 2022
 # - fix bug related to '--no-rexx' erroring out on missing headers
@@ -2154,7 +2155,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           echo "AlmaLinux version 8 or later found"
 
           declare -a almalinux_packages=( \
-              "git" "wget" \
+              "git" "wget" "time" \
               "gcc" "make" "flex" "gawk" "m4" \
               "autoconf" "automake" "libtool-ltdl-devel" "libtool" \
               "cmake"
