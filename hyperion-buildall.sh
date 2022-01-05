@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 03 JAN 2022
+# Updated: 05 JAN 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 05 JAN 2022
+# - add package 'time' to Fedora.  Found missing using Vagrant.
 #
 # Updated: 03 JAN 2022
 # - fix bug related to '--no-rexx' erroring out on missing headers
@@ -2115,7 +2118,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           echo "Fedora version 34 or later found"
 
           declare -a fedora_packages=( \
-              "git" "wget" \
+              "git" "wget" "time" \
               "gcc" "make" "flex" "gawk" "m4" \
               "autoconf" "automake" "libtool-ltdl-devel" "libtool" \
               "cmake"
