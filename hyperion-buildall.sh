@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 05 JAN 2022
+# Updated: 14 JAN 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 14 JAN 2022
+# - add new '--askpass' option to use a 'sudo -A' askpass helper
+# - add missing 'setcap' commands to the build log
 #
 # Updated: 05 JAN 2022
 # - add package 'time' to Fedora.  Found missing using Vagrant.
@@ -574,6 +578,9 @@ opt_detect_only=${opt_detect_only:-false}
 # Use 'sudo' for 'make install'
 opt_usesudo=${opt_usesudo:-false}
 
+# Use 'sudo -A' askpass helper
+opt_askpass=${opt_askpass:-false}
+
 # Sub-functions, in order of operation
 #
 # --no-packages  skip installing required packages
@@ -756,6 +763,7 @@ Options:
   -p,  --prompts      print a prompt before each major step
   -c,  --config=FILE  specify config file containing options
   -s,  --sudo         use \'sudo\' for installing
+       --askpass      use \'sudo -A\' askpass helper
   -a,  --auto         run everything, with --verbose (but not --prompts),
                       and create a full log file
        --homebrew     assume Homebrew package manager on MacOS
@@ -1640,6 +1648,7 @@ opt_override_trace=false
 opt_override_verbose=false
 opt_override_prompts=false
 opt_override_usesudo=false
+opt_override_askpass=false
 opt_override_auto=false
 
 opt_override_detect_only=false    # Run detection only and exit
@@ -1704,6 +1713,11 @@ case $key in
 
   -s|--sudo)
     opt_override_usesudo=true
+    shift # past argument
+    ;;
+
+  --askpass)
+    opt_override_askpass=true
     shift # past argument
     ;;
 
@@ -1892,6 +1906,7 @@ if [ $opt_override_trace       == true ]; then TRACE=true; fi
 if [ $opt_override_verbose     == true ]; then opt_verbose=true; fi
 if [ $opt_override_prompts     == true ]; then opt_prompts=true; fi
 if [ $opt_override_usesudo     == true ]; then opt_usesudo=true; fi
+if [ $opt_override_askpass     == true ]; then opt_askpass=true; fi
 if [ $opt_override_auto        == true ]; then opt_auto=true; fi
 
 if [ $opt_override_detect_only == true ]; then opt_detect_only=true; fi
@@ -1979,7 +1994,7 @@ prepare_packages()
 
       add_build_entry # newline
       add_build_entry "# Install required packages: "
-      add_build_entry "sudo apt install ${debian_packages[*]}"
+      add_build_entry "\$HH_SUDOCMD apt install ${debian_packages[*]}"
 
       # First let's see if apt is expecting to find a CD-ROM
       # This happened to me on a fresh out-of-the box install
@@ -2005,7 +2020,7 @@ prepare_packages()
       fi
 
       verbose_msg "sudo apt update ... may take a while ..."
-      output=$(sudo apt update 2>&1)
+      output=$($HH_SUDOCMD apt update 2>&1)
       found_apt_cdrom_error=$?
 
       echo "$output" | grep -iqe "Err:. cdrom:"
@@ -2038,7 +2053,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               echo "is already installed"
           else
               echo "is missing, installing"
-              sudo apt -y install $package 2>&1
+              $HH_SUDOCMD apt -y install $package 2>&1
               echo "-----------------------------------------------------------------"
           fi
       done
@@ -2057,7 +2072,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               echo "package: $package is already installed"
           else
               echo "installing package: $package"
-              sudo apt-get -y install $package
+              $HH_SUDOCMD apt-get -y install $package
           fi
       fi
 
@@ -2085,7 +2100,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               echo "is already installed"
           else
               echo "is missing, installing"
-              sudo pacman -S --needed --noconfirm $package
+              $HH_SUDOCMD pacman -S --needed --noconfirm $package
               echo "-----------------------------------------------------------------"
           fi
       done
@@ -2104,7 +2119,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               echo "package: $package is already installed"
           else
               echo "installing package: $package"
-              sudo apt-get -y install $package
+              $HH_SUDOCMD apt-get -y install $package
           fi
       fi
 
@@ -2137,7 +2152,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
                   echo "package $package is already installed"
               else
                   echo "installing package: $package"
-                  sudo dnf -y install $package
+                  $HH_SUDOCMD dnf -y install $package
               fi
           done
       else
@@ -2174,7 +2189,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
                   echo "package $package is already installed"
               else
                   echo "installing package: $package"
-                  sudo yum -y install $package
+                  $HH_SUDOCMD yum -y install $package
               fi
           done
       else
@@ -2212,7 +2227,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
                   echo "package $package is already installed"
               else
                   echo "installing package: $package"
-                  sudo yum -y install $package
+                  $HH_SUDOCMD yum -y install $package
               fi
           done
       else
@@ -2260,7 +2275,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
                   echo "package $package is already installed"
               else
                   echo "installing package: $package"
-                  sudo yum -y install $package
+                  $HH_SUDOCMD yum -y install $package
               fi
           done
 
@@ -2290,7 +2305,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
                   cd cmake-3.12.3/
                   ./bootstrap --prefix=/usr/local
                   make -j$(nproc)
-                  sudo make install
+                  $HH_SUDOCMD make install
                   cmake --version
                   popd > /dev/null;
               fi
@@ -2355,7 +2370,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           else
               echo "installing package: $package"
               echo "sudo zypper install -y -t pattern $package"
-              sudo zypper install -y -t pattern $package
+              $HH_SUDOCMD zypper install -y -t pattern $package
           fi
       done
 
@@ -2378,7 +2393,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           else
               echo "installing package: $package"
               echo "sudo zypper install -y $package"
-              sudo zypper install -y $package
+              $HH_SUDOCMD zypper install -y $package
           fi
       done
 
@@ -2399,7 +2414,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
       for package in "${clear_packages[@]}"; do
           echo -n "Checking for package: $package ... "
 
-          is_installed=$(sudo swupd bundle-list | grep -Fie "$package" 2>&1)
+          is_installed=$($HH_SUDOCMD swupd bundle-list | grep -Fie "$package" 2>&1)
           status=$?
 
           # install if missing
@@ -2407,7 +2422,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               echo "is already installed"
           else
               echo "is missing, installing"
-              sudo swupd bundle-add $package 2>&1
+              $HH_SUDOCMD swupd bundle-add $package 2>&1
           fi
           echo "-----------------------------------------------------------------"
       done
@@ -2425,7 +2440,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
       )
 
       echo "sudo apk -U upgrade"
-      sudo apk -U upgrade
+      $HH_SUDOCMD apk -U upgrade
 
       for package in "${alpine_packages[@]}"; do
           echo "-----------------------------------------------------------------"
@@ -2440,7 +2455,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           else
               echo "installing package: $package"
               echo "sudo apk add --no-cache $package"
-              sudo apk add --no-cache $package
+              $HH_SUDOCMD apk add --no-cache $package
           fi
       done
 
@@ -2482,7 +2497,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               # install if missing
               if [[ $status -eq 1 || $is_installed == *"Not installed"* ]] ; then
                   verbose_msg "installing package: $package"
-                  sudo port install $package
+                  $HH_SUDOCMD port install $package
 
                   if [ ${PIPESTATUS[0]} -ne 0 ]; then
                     echo    # print a newline
@@ -2587,7 +2602,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               else
                   # echo "$package : must be installed"
                   echo "installing package: $package"
-                  sudo pkg install -y $package
+                  $HH_SUDOCMD pkg install -y $package
               fi
           done
       fi
@@ -2609,6 +2624,17 @@ verbose_msg "  --trace         : $TRACE"
 verbose_msg "  --verbose       : $opt_verbose"
 verbose_msg "  --prompts       : $opt_prompts"
 verbose_msg "  --sudo          : $opt_usesudo"
+verbose_msg "  --askpass       : $opt_askpass"
+
+if ( $opt_askpass ) ; then
+    HH_SUDO_ASKPASS="-A"
+    HH_SUDOCMD="sudo -A"
+    add_build_entry "HH_SUDOCMD=\"sudo -A\""
+else
+    HH_SUDO_ASKPASS=""
+    HH_SUDOCMD="sudo"
+    add_build_entry "HH_SUDOCMD=\"sudo\""
+fi
 
 if ( $opt_use_homebrew ) ; then
     verbose_msg "  --homebrew      : $opt_use_homebrew"
@@ -3100,8 +3126,8 @@ else
 
     note_msg "sudo required to install Regina REXX in the default system directories"
     verbose_msg    # output a newline
-    add_build_entry "sudo time make install"
-    sudo time make install
+    add_build_entry "\$HH_SUDOCMD time make install"
+    $HH_SUDOCMD time make install
 
     # Check to see if the above 'sudo' or the 'make install' failed
     if [[ $? != 0 ]] ; then
@@ -3116,8 +3142,8 @@ else
     then
         verbose_msg "sudo ldconfig (for libregina.so)"
         add_build_entry "# ldconfig (for libregina.so)"
-        add_build_entry "sudo ldconfig"
-        sudo ldconfig
+        add_build_entry "\$HH_SUDOCMD ldconfig"
+        $HH_SUDOCMD ldconfig
     fi
 
 #   export PATH=$opt_build_dir/rexx/bin:$PATH
@@ -3791,8 +3817,8 @@ else
 
     if ($opt_usesudo); then
         status_prompter "Step: install [with sudo]:"
-        add_build_entry "sudo $make_install_cmd"
-        eval "sudo $make_install_cmd"
+        add_build_entry "\$HH_SUDOCMD $make_install_cmd"
+        eval "$HH_SUDOCMD $make_install_cmd"
     else
         status_prompter "Step: install [without sudo]:"
         add_build_entry "$make_install_cmd"
@@ -3824,11 +3850,16 @@ else
 
         verbose_msg    # output a newline
         verbose_msg "sudo setcap 'cap_sys_nice=eip' $opt_install_dir/bin/hercules"
-        sudo setcap 'cap_sys_nice=eip' $opt_install_dir/bin/hercules
+        add_build_entry "\$HH_SUDOCMD setcap \'cap_sys_nice=eip\' $opt_install_dir/bin/hercules"
+        $HH_SUDOCMD setcap 'cap_sys_nice=eip' $opt_install_dir/bin/hercules
+
         verbose_msg "sudo setcap 'cap_sys_nice=eip' $opt_install_dir/bin/herclin"
-        sudo setcap 'cap_sys_nice=eip' $opt_install_dir/bin/herclin
+        $HH_SUDOCMD setcap 'cap_sys_nice=eip' $opt_install_dir/bin/herclin
+        add_build_entry "\$HH_SUDOCMD setcap \'cap_sys_nice=eip\' $opt_install_dir/bin/herclin"
+
         verbose_msg "sudo setcap 'cap_net_admin+ep' $opt_install_dir/bin/hercifc"
-        sudo setcap 'cap_net_admin+ep' $opt_install_dir/bin/hercifc
+        $HH_SUDOCMD setcap 'cap_net_admin+ep' $opt_install_dir/bin/hercifc
+        add_build_entry "\$HH_SUDOCMD setcap \'cap_net_admin+ep\' $opt_install_dir/bin/hercifc"
     fi
 
     verbose_msg    # output a newline
@@ -3837,9 +3868,11 @@ else
         verbose_msg "Clang: skipping readelf"
     else
         if ($opt_usesudo); then
-            sudo readelf -p .GCC.command.line "$opt_install_dir/bin/hercules" | sudo tee "$opt_install_dir/hercules-gcc-options.txt" > /dev/null
+            $HH_SUDOCMD readelf -p .GCC.command.line "$opt_install_dir/bin/hercules" | $HH_SUDOCMD tee "$opt_install_dir/hercules-gcc-options.txt" > /dev/null
+            add_build_entry "\$HH_SUDOCMD readelf -p .GCC.command.line $opt_install_dir/bin/hercules | \$HH_SUDOCMD tee $opt_install_dir/hercules-gcc-options.txt > /dev/null"
         else
             readelf -p .GCC.command.line "$opt_install_dir/bin/hercules" > "$opt_install_dir/hercules-gcc-options.txt"
+            add_build_entry "readelf -p .GCC.command.line $opt_install_dir/bin/hercules > $opt_install_dir/hercules-gcc-options.txt"
         fi
     fi
 fi
@@ -3919,7 +3952,7 @@ FOE
 
     chmod +x "TEMP-hyperion-init-$shell.sh"
     if ($opt_usesudo); then
-        sudo mv "TEMP-hyperion-init-$shell.sh" "$opt_install_dir/hyperion-init-$shell.sh"
+        $HH_SUDOCMD mv "TEMP-hyperion-init-$shell.sh" "$opt_install_dir/hyperion-init-$shell.sh"
     else
         mv "TEMP-hyperion-init-$shell.sh" "$opt_install_dir/hyperion-init-$shell.sh"
     fi
