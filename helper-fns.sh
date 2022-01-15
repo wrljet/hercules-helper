@@ -104,7 +104,17 @@ confirm() {
 status_prompter()
 {
     if ($opt_prompts); then
-        read -p "$1  Hit return to continue"
+        # read -p "$1  Hit return to continue"
+        if [ "`echo -n`" = "-n" ]; then
+          n=""
+          c="\c"
+        else
+          n="-n"
+          c=""
+        fi
+
+        echo $n "$1  Hit return to continue$c"
+        read foo
     else
         echo "$1"
     fi

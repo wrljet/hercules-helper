@@ -51,7 +51,9 @@
 #
 # Updated: 14 JAN 2022
 # - add new '--askpass' option to use a 'sudo -A' askpass helper
+# - display SUDO_ASKPASS environment variable
 # - add missing 'setcap' commands to the build log
+# - replace 'read -p' with something that works over KVM ssh
 #
 # Updated: 05 JAN 2022
 # - add package 'time' to Fedora.  Found missing using Vagrant.
@@ -1950,6 +1952,7 @@ add_build_entry "# C compiler: $($CC --version | head -1)"
 add_build_entry # newline
 add_build_entry "# Environment variables used:"
 add_build_entry "# PATH=\"$PATH\""
+add_build_entry "# SUDO_ASKPASS=\"$SUDO_ASKPASS\""
 add_build_entry "# CC=\"$CC\""
 add_build_entry "# GCC=\"${GCC:-""}\""
 add_build_entry "# CFLAGS=\"$CFLAGS\""
@@ -2684,6 +2687,7 @@ fi
 
 verbose_msg "Environment variables:"
 verbose_msg "Search Path      : ${PATH}"
+verbose_msg "SUDO_ASKPASS     : ${SUDO_ASKPASS}"
 verbose_msg "CC               : $CC"
 verbose_msg "                 : $($CC --version | head -1)"
 verbose_msg "GCC              : ${GCC:-""}"
