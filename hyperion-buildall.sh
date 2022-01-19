@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 15 JAN 2022
+# Updated: 19 JAN 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -51,9 +51,11 @@
 #
 # Updated: 19 JAN 2022
 # - fix bug in display of SUDO_ASKPASS environment variable
+# - additional work to get NetBSD working fully
 #
 # Updated: 14 JAN 2022
 # - add new '--askpass' option to use a 'sudo -A' askpass helper
+# - display SUDO_ASKPASS environment variable
 # - add missing 'setcap' commands to the build log
 # - replace 'read -p' with something that works over KVM ssh
 #
@@ -1299,6 +1301,7 @@ detect_system()
 
         version_distro="netbsd"
         version_id="netbsd"
+        version_pretty_name="netbsd"
 
 # for NetBSD:
 # [bill@daisy:~/herctest] $ cat /proc/meminfo
@@ -1314,8 +1317,10 @@ detect_system()
 # SwapFree:  67107860 kB
 
         NETBSD_MEMINFO=$(cat /proc/meminfo)
-        verbose_msg "Memory Total (MB): $(cat /proc/meminfo | awk '/^Mem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
-        verbose_msg "Memory Free  (MB): $(cat /proc/meminfo | awk '/^Mem:/{mb = $4/1024/1024; printf "%.0f", mb}')"
+        #verbose_msg "Memory Free  (MB): $(cat /proc/meminfo | awk '/^Mem:/{mb = $4/1024/1024; printf "%.0f", mb}')"
+
+        version_memory_size="$(cat /proc/meminfo | awk '/^Mem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
+        verbose_msg "Memory Total (MB): $version_memory_size"
 
         # 9.0_STABLE
         version_str=$(uname -r)
@@ -1333,6 +1338,10 @@ detect_system()
         # show the default language
         # i.e. LANG=en_US.UTF-8
         verbose_msg "Language         : <unknown>"
+
+        if [[ $version_major -ge 9 ]]; then
+          os_is_supported=true
+        fi
 
 #------------------------------------------------------------------------------
     elif [ "$os_name" = "OpenBSD" ]; then
@@ -2552,9 +2561,9 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
   if [[ $version_id == netbsd* ]]; then
       declare -a netbsd_packages=( \
-          "git" \
-          "build-essential" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
-          "bzip2" "zlib1g-dev"
+          "git" "wget" \
+          "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
+          "libtool" "bzip2" "zlib"
       )
 
       for package in "${netbsd_packages[@]}"; do
@@ -2568,8 +2577,8 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           if [ $status -eq 0 ] ; then
               echo "package: $package is already installed"
           else
-              echo "$package : must be installed"
-              # echo "installing package: $package"
+              echo "installing package: $package"
+              $HH_SUDOCMD pkgin -y install $package
           fi
       done
 
@@ -2843,6 +2852,12 @@ fi
 #-----------------------------------------------------------------------------
 verbose_msg "looking for files ... please wait ..."
 
+    # For NetBSD, gcc doesn't seem to know about /usr/local
+    if [[ $version_id == netbsd* ]]; then
+        export CFLAGS="$CFLAGS -I/usr/local/include"
+        export LDFLAGS="$LDFLAGS -L/usr/lib -L/usr/local/lib"
+    fi
+
 if [[ $version_wsl -eq 2 ]]; then
     # echo "Windows WSL2 host system found"
     # Don't run a search on /mnt because it takes forever
@@ -3071,6 +3086,12 @@ else
 
     # For FreeBSD, Clang doesn't seem to know about /usr/local
     if [[ $version_id == freebsd* ]]; then
+        export CFLAGS="$CFLAGS -I/usr/local/include"
+        export LDFLAGS="$LDFLAGS -L/usr/lib -L/usr/local/lib"
+    fi
+
+    # For NetBSD, gcc doesn't seem to know about /usr/local
+    if [[ $version_id == netbsd* ]]; then
         export CFLAGS="$CFLAGS -I/usr/local/include"
         export LDFLAGS="$LDFLAGS -L/usr/lib -L/usr/local/lib"
     fi
@@ -3585,10 +3606,16 @@ for example, in Debian: sudo apt install libregina3-dev
 
     # Unless this is Clang (e.g. Apple Darwin), record the gcc switches in the binaries
 
+    # For NetBSD, gcc doesn't seem to know about /usr/local
+    if [[ $version_id == netbsd* ]]; then
+        export CFLAGS="$CFLAGS -I/usr/pkg/include"
+        export LDFLAGS="$LDFLAGS -L/usr/pkg/lib"
+    fi
+
     if ($CC --version | grep -Fiqe "clang"); then
-        frecord_gcc_switches_option=""
+        frecord_gcc_switches_option="CFLAGS=\"$CFLAGS\""
     else
-        frecord_gcc_switches_option="CFLAGS=-frecord-gcc-switches"
+        frecord_gcc_switches_option="CFLAGS=\"$CFLAGS -frecord-gcc-switches\""
     fi
 
     # For FreeBSD, Clang doesn't seem to know about /usr/local
@@ -3839,8 +3866,8 @@ else
     verbose_msg "-----------------------------------------------------------------
     "
 
-    if [[ $version_id == freebsd* ]]; then
-        verbose_msg "Skipping step: setcap operations on FreeBSD."
+    if [[ $version_id == freebsd* || $version_id == netbsd* ]]; then
+        verbose_msg "Skipping step: setcap operations on FreeBSD/NetBSD."
 
   # elif [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
     elif [[ $version_id == darwin* ]]; then
