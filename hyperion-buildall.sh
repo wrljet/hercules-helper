@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 14 JAN 2022
+# Updated: 15 JAN 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -49,9 +49,11 @@
 
 # Changelog:
 #
+# Updated: 19 JAN 2022
+# - fix bug in display of SUDO_ASKPASS environment variable
+#
 # Updated: 14 JAN 2022
 # - add new '--askpass' option to use a 'sudo -A' askpass helper
-# - display SUDO_ASKPASS environment variable
 # - add missing 'setcap' commands to the build log
 # - replace 'read -p' with something that works over KVM ssh
 #
@@ -1952,7 +1954,7 @@ add_build_entry "# C compiler: $($CC --version | head -1)"
 add_build_entry # newline
 add_build_entry "# Environment variables used:"
 add_build_entry "# PATH=\"$PATH\""
-add_build_entry "# SUDO_ASKPASS=\"$SUDO_ASKPASS\""
+add_build_entry "# SUDO_ASKPASS=\"${SUDO_ASKPASS:-""}\""
 add_build_entry "# CC=\"$CC\""
 add_build_entry "# GCC=\"${GCC:-""}\""
 add_build_entry "# CFLAGS=\"$CFLAGS\""
@@ -2687,7 +2689,7 @@ fi
 
 verbose_msg "Environment variables:"
 verbose_msg "Search Path      : ${PATH}"
-verbose_msg "SUDO_ASKPASS     : ${SUDO_ASKPASS}"
+verbose_msg "SUDO_ASKPASS     : ${SUDO_ASKPASS:-""}"
 verbose_msg "CC               : $CC"
 verbose_msg "                 : $($CC --version | head -1)"
 verbose_msg "GCC              : ${GCC:-""}"
