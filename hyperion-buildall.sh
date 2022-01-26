@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 19 JAN 2022
+# Updated: 26 JAN 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 26 JAN 2022
+# - correct Regina detection so it's not fooled by ooRexx earlier in the path
 #
 # Updated: 19 JAN 2022
 # - fix bug in display of SUDO_ASKPASS environment variable
