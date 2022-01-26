@@ -50,6 +50,7 @@
 # Changelog:
 #
 # Updated: 26 JAN 2022
+# - correct Regina/ooRexx options written to build log
 # - refer to 'ps' rather than '/bin/ps', as it's not there on some systems
 # - display LD_LIBRARY_PATH environment variable for debugging
 # - correct logic enabling/disabling Regina/ooRexx options for 'configure'
@@ -3699,7 +3700,8 @@ add_build_entry "    $config_opt_optimization \\"
 add_build_entry "    --enable-extpkgs=\$opt_build_dir/extpkgs \\"
 add_build_entry "    --prefix=\$opt_install_dir \\"
 add_build_entry "    --enable-custom=\"Built using Hercules-Helper (version: $hercules_helper_version)\" \\"
-add_build_entry "    $enable_rexx_option \\"
+add_build_entry "    $enable_regina_option \\"
+add_build_entry "    $enable_oorexx_option \\"
 add_build_entry "    $enable_ipv6_option \\"
 add_build_entry "    $enable_getoptwrapper_option \\"
 add_build_entry "    $without_included_ltdl_option"
