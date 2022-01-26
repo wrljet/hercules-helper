@@ -1482,23 +1482,22 @@ detect_regina()
 
     version_regina=0
 
-    which_rexx=$(which rexx) || true
+    which_regina=$(which regina) || true
     which_status=$?
 
     # echo "(which rexx) status: $which_status"
 
-    if [ -z $which_rexx ]; then
+    if [ -z $which_regina ]; then
         verbose_msg "nope"
         # verbose_msg "Regina-REXX      : is not installed"
     else
-        # rexx -v
+        # regina -v
         # REXX-Regina_3.6 5.00 31 Dec 2011
-        # rexx: REXX-Regina_3.9.3 5.00 5 Oct 2019 (32 bit)
+        # regina: REXX-Regina_3.9.3 5.00 5 Oct 2019 (32 bit)
 
-        regina_v=$(rexx -v 2>&1 | grep "Regina" | sed "s#^rexx: ##")
+        regina_v=$(regina -v 2>&1 | grep "Regina" | sed "s#^regina: ##")
         if [ -z "$regina_v" ]; then
             verbose_msg "nope"
-            verbose_msg "Found REXX, but not Regina-REXX"
         else
             verbose_msg " "  # output a newline
             verbose_msg "Found REXX       : $regina_v"
