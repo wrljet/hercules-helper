@@ -50,6 +50,7 @@
 # Changelog:
 #
 # Updated: 26 JAN 2022
+# - limit 'make -j' to 4 maximum
 # - correct Regina/ooRexx options written to build log
 # - refer to 'ps' rather than '/bin/ps', as it's not there on some systems
 # - display LD_LIBRARY_PATH environment variable for debugging
@@ -3736,6 +3737,7 @@ add_build_entry "cd build"
 cd build
 
 # Use 1.5 times as many processes as CPUs unless there's low memory
+# But limit to 4 maximum
 
 if [[ $version_multicore_with_low_memory == true ]]; then
     nprocs="1"
@@ -3745,6 +3747,7 @@ elif [[ $version_id == freebsd* || $version_id == netbsd* || $version_id == darw
 else
     nprocs="$(nproc 2>/dev/null || echo 1)"
     nprocs=$(( $nprocs * 3 / 2))
+    nprocs=$(($nprocs>4 ? 4: $nprocs))
 fi
 
 # For FreeBSD, BSD make acts up, so we'll use gmake.
@@ -3779,10 +3782,9 @@ verbose_msg "-----------------------------------------------------------------
 if (! $dostep_make); then
     verbose_msg "Skipping step: make (--no-make)"
 else
-    status_prompter "Step: make:"
+    status_prompter "Step: make -j $nprocs:"
 
     verbose_msg    # output a newline
-    # verbose_msg "time make -j $nprocs 2>&1"
     verbose_msg "$make_cmd"
     add_build_entry "$make_cmd"
     eval "$make_cmd"
