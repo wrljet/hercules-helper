@@ -50,6 +50,7 @@
 # Changelog:
 #
 # Updated: 26 JAN 2022
+# - refer to 'ps' rather than '/bin/ps', as it's not there on some systems
 # - display LD_LIBRARY_PATH environment variable for debugging
 # - correct logic enabling/disabling Regina/ooRexx options for 'configure'
 # - correct Regina detection so it's not fooled by ooRexx earlier in the path
@@ -3944,7 +3945,7 @@ if (! $dostep_install || ! $dostep_envscript); then
 else
     status_prompter "Step: create script to set environment variables [may require sudo]:"
 
-    shell=$(/usr/bin/basename $(/bin/ps -p $$ -ocomm=))
+    shell=$(/usr/bin/basename $(ps -p $$ -ocomm=))
     cat <<FOE >"TEMP-hyperion-init-$shell.sh"
 #!/usr/bin/env bash
 #
@@ -4018,7 +4019,7 @@ if ($dostep_bashrc); then
     if true; then # available for future system specific inclusion
 
         if true; then
-            shell=$(/usr/bin/basename $(/bin/ps -p $$ -ocomm=))
+            shell=$(/usr/bin/basename $(ps -p $$ -ocomm=))
 
             # Only do this for Bash
             if [[ $shell != bash ]]; then
