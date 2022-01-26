@@ -50,6 +50,7 @@
 # Changelog:
 #
 # Updated: 26 JAN 2022
+# - beta support for Elbrus Linux, E2K CPU (also requires Hercules changes)
 # - detect if compiler recognizes '-frecord-gcc-switches' before using it
 # - limit 'make -j' to 4 maximum
 # - correct Regina/ooRexx options written to build log
@@ -1226,6 +1227,37 @@ detect_system()
         fi
 #######################################################
 
+#  uname -a        : Linux yukari 5.4.0-3.13-e8c #1 SMP Sun Nov 21 22:58:49 GMT 2021 e2k E8C E8C-SWTX GNU/Linux
+#  uname -m        : e2k
+#  uname -p        : E8C
+#  uname -s        : Linux
+#
+# OS Type          : Linux
+# Machine Arch     : e2k
+# Memory Total (MB): 128704
+# Memory Free  (MB): 14653
+# VERSION_ID       : elbrus
+# VERSION_ID_LIKE  : 
+# VERSION_PRETTY   : Elbrus Linux 6.0.1
+# VERSION_STR      : 6
+# Language         : LANG=ru_RU.UTF-8
+
+        if [[ $version_id == elbrus* ]]; then
+            verbose_msg "We have an Elbrus Linux system"
+
+            version_distro="elbrus"
+            version_major=$(echo $version_str | cut -f1 -d.)
+            version_minor=$(echo $version_str | cut -f2 -d.)
+
+            verbose_msg "OS               : $version_distro variant"
+            verbose_msg "OS Version       : $version_major"
+
+            if [[ $version_major -ge 6 ]]; then
+                os_is_supported=true
+            fi
+        fi
+#######################################################
+
         # Look for openSUSE
         if [[ $version_id == opensuse* ]];
         then
@@ -2103,6 +2135,41 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
   fi
 
 #-----------------------------------------------------------------------------
+# Look for Elbrus Linux (apt similar to Debian, but different packages)
+
+  if [ "$version_distro" == "elbrus"  ]; then
+      declare -a elbrus_packages=( \
+          "git" "wget" "time" \
+          "build-essential" "cmake" \
+          "autoconf" "automake" "flex" "gawk" "m4" "libtool" \
+          "libcap" \
+          "bzip2" "zlib"
+      )
+
+      add_build_entry # newline
+      add_build_entry "# Install required packages: "
+      add_build_entry "\$HH_SUDOCMD apt install ${elbrus_packages[*]}"
+
+      for package in "${elbrus_packages[@]}"; do
+          echo -n "Checking for package: $package ... "
+
+          is_installed=$(/usr/bin/dpkg-query --show --showformat='${db:Status-Status}\n' $package 2>&1)
+          status=$?
+
+          # install if missing
+          if [ $status -eq 0 ] && [ "$is_installed" == "installed" ]; then
+              echo "is already installed"
+          else
+              note_msg "is missing, must be installed"
+              # $HH_SUDOCMD apt -y install $package 2>&1
+              echo "-----------------------------------------------------------------"
+          fi
+      done
+
+      return
+  fi
+
+#-----------------------------------------------------------------------------
   # Look for Arch/Manjaro
 
   if [ "$version_distro" == "arch"  ]; then
@@ -2884,6 +2951,10 @@ elif [[ $version_id == darwin* ]]; then
 
     which_cc1="skipped on macOS"
     which_cc1plus="skipped on macOS"
+elif [[ $version_id == elbrus* ]]; then
+    verbose_msg "Limited file search on Elbrus Linux"
+    which_cc1="skipped on Elbrus Linux"
+    which_cc1plus="skipped on Elbrus Linux"
 else
     which_cc1="$(find / -mount -name cc1 -print 2>&1 | grep cc1 | head -5)" || true
     which_cc1plus="$(find / -mount -name cc1plus -print 2>&1 | grep cc1plus | head -5)" || true
