@@ -50,6 +50,7 @@
 # Changelog:
 #
 # Updated: 26 JAN 2022
+# - display LD_LIBRARY_PATH environment variable for debugging
 # - correct Regina detection so it's not fooled by ooRexx earlier in the path
 #
 # Updated: 19 JAN 2022
@@ -1971,6 +1972,7 @@ add_build_entry "# GCC=\"${GCC:-""}\""
 add_build_entry "# CFLAGS=\"$CFLAGS\""
 add_build_entry "# CPPFLAGS=\"$CPPFLAGS\""
 add_build_entry "# LDFLAGS=\"$LDFLAGS\""
+add_build_entry "# LD_LIBRARY_PATH=\"${LD_LIBRARY_PATH:-""}\""
 
 add_build_entry # newline
 add_build_entry "opt_build_dir=\"$opt_build_dir/hyperion\""
@@ -2707,6 +2709,7 @@ verbose_msg "GCC              : ${GCC:-""}"
 verbose_msg "CFLAGS           : $CFLAGS"
 verbose_msg "CPPFLAGS         : $CPPFLAGS"
 verbose_msg "LDFLAGS          : $LDFLAGS"
+verbose_msg "LD_LIBRARY_PATH  : ${LD_LIBRARY_PATH:-""}"
 verbose_msg "gcc presence     : $(which gcc || true)"
 verbose_msg "g++ presence     : $(which g++ || true)"
 
