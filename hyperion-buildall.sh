@@ -50,6 +50,7 @@
 # Changelog:
 #
 # Updated: 26 JAN 2022
+# - detect if compiler recognizes '-frecord-gcc-switches' before using it
 # - limit 'make -j' to 4 maximum
 # - correct Regina/ooRexx options written to build log
 # - refer to 'ps' rather than '/bin/ps', as it's not there on some systems
@@ -3630,7 +3631,17 @@ for example, in Debian: sudo apt install libregina3-dev
     if ($CC --version | grep -Fiqe "clang"); then
         frecord_gcc_switches_option="CFLAGS=\"$CFLAGS\""
     else
-        frecord_gcc_switches_option="CFLAGS=\"$CFLAGS -frecord-gcc-switches\""
+        # Try to compile a do-nothing program with -frecord-gcc-switches
+        cc_accepts_frecord_switches=$(echo "#include \"stdio.h\"" | $CC $CPPFLAGS $CFLAGS -frecord-gcc-switches -dI -E -x c - 2>&1)
+        cc_status=$?
+
+        if [[ $cc_status -eq 0 ]]; then
+            verbose_msg "C compiler accepts -frecord-gcc-switches"
+            frecord_gcc_switches_option="CFLAGS=\"$CFLAGS -frecord-gcc-switches\""
+        else
+            verbose_msg "C compiler does not accept -frecord-gcc-switches"
+            frecord_gcc_switches_option="CFLAGS=\"$CFLAGS\""
+        fi
     fi
 
     # For FreeBSD, Clang doesn't seem to know about /usr/local
