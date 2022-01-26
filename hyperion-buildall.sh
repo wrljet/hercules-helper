@@ -51,6 +51,7 @@
 #
 # Updated: 26 JAN 2022
 # - display LD_LIBRARY_PATH environment variable for debugging
+# - correct logic enabling/disabling Regina/ooRexx options for 'configure'
 # - correct Regina detection so it's not fooled by ooRexx earlier in the path
 #
 # Updated: 19 JAN 2022
@@ -3498,38 +3499,44 @@ else
     # Check for REXX and set up its configure option
     if ( $opt_no_rexx ); then
         note_msg "REXX support declined."
-        enable_rexx_option="--disable-object-rexx --disable-regina-rexx"
+        enable_regina_option="--disable-regina-rexx"
+        enable_oorexx_option="--disable-object-rexx"
         # dostep_tests=false
-    elif [[ $version_regina -ge 3 ]]; then
-        if [ $rexxsaa_h_present == true ]; then
-            verbose_msg "Regina REXX is present. Using configure option: --enable-regina-rexx"
-            enable_rexx_option="--enable-regina-rexx" # enable regina rexx support
-        else
-            error_msg "Regina REXX is present, but rexxsaa.h is not found.
+    else
+        enable_regina_option=""
+        enable_oorexx_option=""
+
+        if [[ $version_regina -ge 3 ]]; then
+            if [ $rexxsaa_h_present == true ]; then
+                verbose_msg "Regina REXX is present. Using configure option: --enable-regina-rexx"
+                enable_regina_option="--enable-regina-rexx"
+            else
+                error_msg "Regina REXX is present, but rexxsaa.h is not found.
 Regina REXX support will not be built into Hercules.
 
 Installing the Regina development package may fix this.
 for example, in Debian: sudo apt install libregina3-dev
 "
 
-            if confirm "Continue anyway? [y/N]" ; then
-                echo "OK"
-            else
-                exit 1
-            fi
+                if confirm "Continue anyway? [y/N]" ; then
+                    echo "OK"
+                else
+                    exit 1
+                fi
 
-            enable_rexx_option=""
-            # dostep_tests=false
+                enable_regina_option="--disable-regina-rexx"
+                # dostep_tests=false
+            fi
         fi
-    elif [[ $version_oorexx -ge 4 ]]; then
-        verbose_msg "ooRexx is present. Using configure option: --enable-object-rexx"
-        enable_rexx_option="--enable-object-rexx" # enable OORexx support
-    elif [[ $built_regina_from_source -eq 1 ]]; then
-        enable_rexx_option="--enable-regina-rexx" # enable regina rexx support
-    else
-        note_msg "No REXX support."
-        enable_rexx_option=""
-        # dostep_tests=false
+
+        if [[ $built_regina_from_source -eq 1 ]]; then
+            enable_regina_option="--enable-regina-rexx"
+        fi
+
+        if [[ $version_oorexx -ge 4 ]]; then
+            verbose_msg "ooRexx is present. Using configure option: --enable-object-rexx"
+            enable_oorexx_option="--enable-object-rexx"
+        fi
     fi
 
     # Set up IPv6 configure option
@@ -3675,7 +3682,8 @@ $frecord_gcc_switches_option ../configure \
     --enable-extpkgs=$opt_build_dir/extpkgs \
     --prefix=$opt_install_dir \
     --enable-custom="Built using Hercules-Helper (version: $hercules_helper_version)" \
-    $enable_rexx_option \
+    $enable_regina_option \
+    $enable_oorexx_option \
     $enable_ipv6_option \
     $enable_getoptwrapper_option \
     $without_included_ltdl_option
