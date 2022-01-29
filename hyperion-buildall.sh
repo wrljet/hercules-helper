@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 26 JAN 2022
+# Updated: 29 JAN 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,11 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 29 JAN 2022
+# - add 'bitness' detection for use when building the external packages
+# - replace Fish's 'extpkgs.sh' build scheme with direct use of cmake
+#   this is to avoid changing the extpkgs to add E2K CPU
 #
 # Updated: 26 JAN 2022
 # - beta support for Elbrus Linux, E2K CPU (also requires Hercules changes)
@@ -558,14 +563,6 @@ git_branch_hyperion=${git_branch_hyperion:-""}
 # Git checkout commit for Hyperion
 git_commit_hyperion=${git_commit_hyperion:-""}
 # git_commit_hyperion=cb24398
-
-# Git repo for Hyperion Gists
-git_repo_gists=${git_repo_gists:-https://github.com/SDL-Hercules-390/gists.git}
-# git_repo_gists=https://github.com/wrljet/gists.git
-
-# Git checkout branch for Hyperion Gists
-git_branch_gists=${git_branch_gists:-""}
-# git_branch_gists="build-mods-i686"
 
 # Git repo for Hyperion External Packages
 git_repo_extpkgs=${git_repo_extpkgs:-https://github.com/SDL-Hercules-390}
@@ -1514,6 +1511,64 @@ detect_system()
 }
 
 #------------------------------------------------------------------------------
+#                              detect_bitness
+#------------------------------------------------------------------------------
+
+detect_bitness()
+{
+    # Platform specific tests to guess the "bitness"
+
+    os_osis64bit=no
+    os_bitflag="32"
+
+    case "${os_name}" in
+       *hp-hpux*)
+          ;;
+       *ibm-aix*)
+          rc=`lsconf -k | grep -c 64-bit`
+          if test $rc -eq 1; then
+             os_bitflag="64"
+             os_osis64bit=yes
+          fi
+          ;;
+       i*86*solaris*)
+          ;;
+       *solaris*)
+          rc=`isainfo -v | grep -c 64-bit`
+          if test $rc -eq 1; then
+             os_bitflag="64"
+             os_osis64bit=yes
+          fi
+          ;;
+       sparc*sunos*)
+          ;;
+       Linux)
+          mach="`uname -m`"
+          if test "$mach" = "aarch64" -o "$mach" = "x86_64" -o "$mach" = "ia86" -o "$mach" = "alpha" -o "$mach" = "ppc64" -o "$mach" = "s390x" -o "$mach" = "e2k" ; then
+             os_bitflag="64"
+             os_osis64bit=yes
+          fi
+          ;;
+       FreeBSD)
+          mach="`uname -m`"
+          if test "$mach" = "amd64"; then
+             os_bitflag="64"
+             os_osis64bit=yes
+          fi
+          ;;
+       Darwin)
+          os_osx_64bit=`sysctl hw.cpu64bit_capable | cut -f2 -d' '`
+          if test $os_osx_64bit -eq 1; then
+             os_bitflag="64"
+             os_osis64bit=yes
+          fi
+          ;;
+    esac
+
+    verbose_msg "Platform Bitness : $os_bitflag"
+}
+
+#------------------------------------------------------------------------------
 #                              detect_regina
 #------------------------------------------------------------------------------
 
@@ -2021,8 +2076,6 @@ add_build_entry "opt_regina_url=\"$opt_regina_url\""
 add_build_entry "git_repo_hyperion=\"$git_repo_hyperion\""
 add_build_entry "git_branch_hyperion=\"$git_branch_hyperion\""
 add_build_entry "git_commit_hyperion=\"$git_commit_hyperion\""
-add_build_entry "git_repo_gists=\"$git_repo_gists\""
-add_build_entry "git_branch_gists=\"$git_branch_gists\""
 add_build_entry "git_repo_extpkgs=\"$git_repo_extpkgs\""
 add_build_entry "git_branch_extpkgs=\"$git_branch_extpkgs\""
 
@@ -2760,6 +2813,7 @@ verbose_msg    # print a newline
 
 # Detect type of system we're running on and display info
 detect_system
+detect_bitness
 verbose_msg    # print a newline
 
 if [ $os_is_supported != true ]; then
@@ -2795,9 +2849,9 @@ if [ "$version_distro" == "darwin" ]; then
     fi
 
     # verbose_msg "Check for ability to create a core dump on MacOS
-    echo   # output a newline
 fi
 
+verbose_msg    # print a newline
 verbose_msg "Build tools versions:"
 verbose_msg "  autoconf       : $(autoconf --version 2>&1 | head -n 1)"
 verbose_msg "  automake       : $(automake --version 2>&1 | head -n 1)"
@@ -3001,12 +3055,6 @@ fi
 
 if [ ! -z "$git_commit_hyperion" ] ; then
     verbose_msg "GIT_REPO_HYPERION    : $git_repo_hyperion} [checkout $git_commit_hyperion]"
-fi
-
-if [ -z "$git_branch_gists" ] ; then
-    verbose_msg "GIT_REPO_GISTS       : $git_repo_gists [default branch]"
-else
-    verbose_msg "GIT_REPO_GISTS       : $git_repo_gists} [checkout $git_branch_gists]"
 fi
 
 if [ -z "$git_branch_extpkgs" ] ; then
@@ -3334,8 +3382,6 @@ else
 
     #-------
 
-    verbose_msg    # output a newline
-    add_build_entry # newline
     add_build_entry "cd \$opt_build_dir"
     cd $opt_build_dir
     add_build_entry "rm -rf extpkgs"
@@ -3345,38 +3391,8 @@ else
     add_build_entry "cd extpkgs/"
     cd extpkgs/
 
-    if [ -z "$git_repo_gists" ] ; then
-        error_msg "git_repo_gists variable is not set!"
-        exit 1
-    fi
-
-    verbose_msg "Cloning gists / extpkgs from $git_repo_gists"
-    if [ -z "$git_branch_gists" ] ; then
-        verbose_msg "git clone $git_repo_gists"
-        add_build_entry "git clone \$git_repo_gists"
-
-        git clone "$git_repo_gists"
-        if [[ $? != 0 ]] ; then
-            error_msg "git clone failed!"
-            exit 1
-        fi
-    else
-        verbose_msg "git clone -b $git_branch_gists $git_repo_gists"
-        add_build_entry "git clone -b \$git_branch_gists \$git_repo_gists"
-
-        git clone -b "$git_branch_gists" "$git_repo_gists"
-        if [[ $? != 0 ]] ; then
-            error_msg "git clone failed!"
-            exit 1
-        fi
-    fi
-
-    #-------
-
-    verbose_msg    # output a newline
-    add_build_entry # newline
-    add_build_entry "mkdir repos && cd repos"
-    mkdir repos && cd repos
+    # add_build_entry "mkdir repos && cd repos"
+    # mkdir repos && cd repos
     add_build_entry "rm -rf *"
     rm -rf *
 
@@ -3391,26 +3407,25 @@ else
         verbose_msg "-----------------------------------------------------------------
     "
         if [ -z "$git_branch_extpkgs" ] ; then
-            verbose_msg "git clone $git_repo_extpkgs/$pgm $pgm-0"
-            add_build_entry "git clone \$git_repo_extpkgs/$pgm $pgm-0"
+            verbose_msg "git clone $git_repo_extpkgs/$pgm"
+            add_build_entry "git clone \$git_repo_extpkgs/$pgm"
 
-            git clone "$git_repo_extpkgs/$pgm.git" "$pgm-0"
+            git clone "$git_repo_extpkgs/$pgm.git"
             if [[ $? != 0 ]] ; then
                 error_msg "git clone failed!"
                 exit 1
             fi
         else
-            verbose_msg "git clone -b $git_branch_extpkgs $git_repo_extpkgs/$pgm $pgm-0"
-            add_build_entry "git clone -b \$git_branch_extpkgs \$git_repo_extpkgs/$pgm $pgm-0"
+            verbose_msg "git clone -b $git_branch_extpkgs $git_repo_extpkgs/$pgm"
+            add_build_entry "git clone -b \$git_branch_extpkgs \$git_repo_extpkgs/$pgm"
 
-            git clone -b "$git_branch_extpkgs" "$git_repo_extpkgs/$pgm.git" "$pgm-0"
+            git clone -b "$git_branch_extpkgs" "$git_repo_extpkgs/$pgm.git"
             if [[ $? != 0 ]] ; then
                 error_msg "git clone failed!"
                 exit 1
             fi
         fi
     done
-
 fi
 
 verbose_msg "-----------------------------------------------------------------
@@ -3447,58 +3462,140 @@ else
 
     add_build_entry # newline
     add_build_entry "# Prepare and build extpkgs"
-    add_build_entry "cd \$opt_build_dir/extpkgs"
-    add_build_entry "cp gists/extpkgs.sh ."
-    add_build_entry "cp gists/extpkgs.sh.ini ."
 
-    cd $opt_build_dir/extpkgs
-    cp gists/extpkgs.sh .
-    cp gists/extpkgs.sh.ini .
-
-    # Edit extpkgs.sh.ini
-    # Change 'x86' to 'aarch64' for 64-bit, or 'arm' for 32-bit, etc.
-    add_build_entry "# Change 'x86' to 'aarch64' for 64-bit, or 'arm' for 32-bit, etc."
-
-    if   [[ "$(uname -m)" == x86* || "$(uname -m)" == amd64* ]]; then
-        verbose_msg "Defaulting to x86 machine type in extpkgs.sh.ini"
-        add_build_entry "# Defaulting to x86 machine type in extpkgs.sh.ini"
-    elif [[ "$(uname -m)" =~ (armv6l|armv7l) ]]; then
-        add_build_entry "mv extpkgs.sh.ini extpkgs.sh.ini-orig"
-        add_build_entry "sed \"s/x86/arm/\" extpkgs.sh.ini-orig > extpkgs.sh.ini"
-        mv extpkgs.sh.ini extpkgs.sh.ini-orig
-        sed "s/x86/arm/" extpkgs.sh.ini-orig > extpkgs.sh.ini
-    elif [[ "$(uname -m)" =~ (arm64) ]]; then
-        add_build_entry "mv extpkgs.sh.ini extpkgs.sh.ini-orig"
-        add_build_entry "sed \"s/x86/aarch64/\" extpkgs.sh.ini-orig > extpkgs.sh.ini"
-        mv extpkgs.sh.ini extpkgs.sh.ini-orig
-        sed "s/x86/aarch64/" extpkgs.sh.ini-orig > extpkgs.sh.ini
-    else
-        add_build_entry "mv extpkgs.sh.ini extpkgs.sh.ini-orig"
-        add_build_entry "sed \"s/x86/$(uname -m)/\" extpkgs.sh.ini-orig > extpkgs.sh.ini"
-        mv extpkgs.sh.ini extpkgs.sh.ini-orig
-        sed "s/x86/$(uname -m)/" extpkgs.sh.ini-orig > extpkgs.sh.ini
-    fi
+#    add_build_entry "cd \$opt_build_dir/extpkgs"
+#
+#    cd $opt_build_dir/extpkgs
+#
+#    # Edit extpkgs.sh.ini
+#    # Change 'x86' to 'aarch64' for 64-bit, or 'arm' for 32-bit, etc.
+#    add_build_entry "# Change 'x86' to 'aarch64' for 64-bit, or 'arm' for 32-bit, etc."
+#
+#    if   [[ "$(uname -m)" == x86* || "$(uname -m)" == amd64* ]]; then
+#        verbose_msg "Defaulting to x86 machine type in extpkgs.sh.ini"
+#        add_build_entry "# Defaulting to x86 machine type in extpkgs.sh.ini"
+#    elif [[ "$(uname -m)" =~ (armv6l|armv7l) ]]; then
+#        add_build_entry "mv extpkgs.sh.ini extpkgs.sh.ini-orig"
+#        add_build_entry "sed \"s/x86/arm/\" extpkgs.sh.ini-orig > extpkgs.sh.ini"
+#        mv extpkgs.sh.ini extpkgs.sh.ini-orig
+#        sed "s/x86/arm/" extpkgs.sh.ini-orig > extpkgs.sh.ini
+#    elif [[ "$(uname -m)" =~ (arm64) ]]; then
+#        add_build_entry "mv extpkgs.sh.ini extpkgs.sh.ini-orig"
+#        add_build_entry "sed \"s/x86/aarch64/\" extpkgs.sh.ini-orig > extpkgs.sh.ini"
+#        mv extpkgs.sh.ini extpkgs.sh.ini-orig
+#        sed "s/x86/aarch64/" extpkgs.sh.ini-orig > extpkgs.sh.ini
+#    else
+#        add_build_entry "mv extpkgs.sh.ini extpkgs.sh.ini-orig"
+#        add_build_entry "sed \"s/x86/$(uname -m)/\" extpkgs.sh.ini-orig > extpkgs.sh.ini"
+#        mv extpkgs.sh.ini extpkgs.sh.ini-orig
+#        sed "s/x86/$(uname -m)/" extpkgs.sh.ini-orig > extpkgs.sh.ini
+#    fi
 
     add_build_entry # newline
     add_build_entry "cd \$opt_build_dir/extpkgs"
     cd $opt_build_dir/extpkgs
 
-    add_build_entry "./extpkgs.sh  c d s t"
-    ./extpkgs.sh  c d s t
+    # 27JAN2022 Removed Fish's extpksg.sh building kludge
+    # add_build_entry "./extpkgs.sh  c d s t"
+    # ./extpkgs.sh  c d s t
     # DEBUG=1 ./extpkgs.sh  c d s t
 
-# mkdir -p hercpkgs
-# mkdir -p workdir
-#
-# for pkg in crypto decNumber SoftFloat telnet; do
-#     rm -rf $pkg
-#     git clone https://github.com/SDL-Hercules-390/$pkg.git
-#
-#     mkdir -p workdir/$pkg
-#     pushd workdir/$pkg
-#         ../../$pkg/build --pkgname . --arch 64 --rebuild --install ../../hercpkgs
-#     popd
-# done
+    # Mac Mini M1
+    # arm64
+
+    # We do this to match the way it's done in SDL Hercules configure
+    target_cpu=$(uname -m)
+    case "$target_cpu" in
+
+        i*86|x86*)
+            hc_cv_cpu_arch=x86
+            hc_cv_pkg_lib_subdir=""
+            ;;
+
+        amd64*)
+            hc_cv_cpu_arch=x86
+            hc_cv_pkg_lib_subdir=""
+            ;;
+
+        aarch64*)
+            hc_cv_cpu_arch=aarch64
+            hc_cv_pkg_lib_subdir="/aarch64"
+            ;;
+
+        arm64*)
+            hc_cv_cpu_arch=aarch64
+            hc_cv_pkg_lib_subdir="/aarch64"
+            ;;
+
+        arm*)
+            hc_cv_cpu_arch=arm
+            hc_cv_pkg_lib_subdir="/arm"
+            ;;
+
+        e2k*)
+            hc_cv_cpu_arch=e2k
+            hc_cv_pkg_lib_subdir="/e2k"
+            ;;
+
+        mips*)
+            hc_cv_cpu_arch=mips
+            hc_cv_pkg_lib_subdir="/mips"
+            ;;
+
+        ppc*|powerpc*)
+            hc_cv_cpu_arch=ppc
+            hc_cv_pkg_lib_subdir="/ppc"
+            ;;
+
+        sparc*)
+            hc_cv_cpu_arch=sparc
+            hc_cv_pkg_lib_subdir="/sparc"
+            ;;
+
+        s390x*)
+            hc_cv_cpu_arch=s390x
+            hc_cv_pkg_lib_subdir="/s390x"
+            ;;
+
+        xscale*)
+            hc_cv_cpu_arch=xscale
+            hc_cv_pkg_lib_subdir="/xscale"
+            ;;
+
+        *)
+            hc_cv_cpu_arch=unknown
+            hc_cv_pkg_lib_subdir="/unknown"
+            ;;
+    esac
+
+    for pkg in crypto decNumber SoftFloat telnet; do
+        verbose_msg "Building extpkg: $pkg"
+
+        #mkdir -p build/${pkg}$os_bitflag.Debug
+        #pushd build/${pkg}$os_bitflag.Debug
+
+        add_build_entry "mkdir -p build/${pkg}$os_bitflag.Release"
+        add_build_entry "pushd build/${pkg}$os_bitflag.Release"
+
+        mkdir -p build/${pkg}$os_bitflag.Release
+        pushd build/${pkg}$os_bitflag.Release
+
+            add_build_entry "cmake  -D INSTALL_PREFIX=$opt_build_dir/extpkgs  -DLIB_INSTALL_DIR=lib$hc_cv_pkg_lib_subdir  $opt_build_dir/extpkgs/$pkg"
+            add_build_entry "make clean"
+            add_build_entry "make -j 4 all"
+            add_build_entry "make install"
+
+            cmake  -D INSTALL_PREFIX=$opt_build_dir/extpkgs  -DLIB_INSTALL_DIR=lib$hc_cv_pkg_lib_subdir  $opt_build_dir/extpkgs/$pkg
+            rc=$?
+            if (( $rc != 0 )); then
+                error_msg "ERROR: Cmake has failed! rc=$rc";
+            fi
+
+            make clean
+            make -j 2 all
+            make install
+         popd
+    done
 
 fi
 
@@ -3700,7 +3797,8 @@ for example, in Debian: sudo apt install libregina3-dev
     fi
 
     if ($CC --version | grep -Fiqe "clang"); then
-        frecord_gcc_switches_option="CFLAGS=\"$CFLAGS\""
+        frecord_gcc_switches_option=""
+echo
     else
         # Try to compile a do-nothing program with -frecord-gcc-switches
         cc_accepts_frecord_switches=$(echo "#include \"stdio.h\"" | $CC $CPPFLAGS $CFLAGS -frecord-gcc-switches -dI -E -x c - 2>&1)
@@ -3790,6 +3888,9 @@ add_build_entry "    $enable_getoptwrapper_option \\"
 add_build_entry "    $without_included_ltdl_option"
 
     # Actually do the configure
+    verbose_msg "CFLAGS=$CFLAGS"
+    verbose_msg "LDFLAGS=$LDFLAGS"
+
     verbose_msg $configure_cmd
     verbose_msg    # output a newline
     eval "$configure_cmd"
@@ -3829,8 +3930,9 @@ elif [[ $version_id == freebsd* || $version_id == netbsd* || $version_id == darw
 else
     nprocs="$(nproc 2>/dev/null || echo 1)"
     nprocs=$(( $nprocs * 3 / 2))
-    nprocs=$(($nprocs>4 ? 4: $nprocs))
 fi
+
+nprocs=$(($nprocs>4 ? 4: $nprocs))
 
 # For FreeBSD, BSD make acts up, so we'll use gmake.
 
