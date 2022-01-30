@@ -2,9 +2,16 @@
 
     # Helper to build suite3270 (c3270, x3270, etc) on Elbrus Linux
 
-    # PATH will need to include ~/tools/bin
+    # PATH and LD_LIBRARY_PATH will need to be set
+    #
 
-    helper_dir="$(dirname "$0")"
+    # Stop on errors and trace everything we do here
+    set -e
+    set -x
+
+    # FIXME: this doesn't work if this script is running off a symlink
+    SCRIPT_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")
+    SCRIPT_DIR="$(dirname $SCRIPT_PATH)"
 
     # Create our work directory
     mkdir -p ~/tools
@@ -15,7 +22,7 @@
     cd suite3270-4.0/
 
     # Patch/replace config.guess with ones from Hercules-Helper
-    cp $helper_dir/patches/config.{guess,sub} .
+    cp $SCRIPT_DIR/patches/config.{guess,sub} .
 
     # Test config.guess
     ./config.guess 
