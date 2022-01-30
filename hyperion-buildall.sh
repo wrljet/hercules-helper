@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 29 JAN 2022
+# Updated: 30 JAN 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 30 JAN 2022
+# - rename macOS-prequisites.sh to prerequsites-macOS.sh
 #
 # Updated: 29 JAN 2022
 # - add 'bitness' detection for use when building the external packages
@@ -735,7 +738,7 @@ if [ "$uname_system" == "Darwin" ]; then
 
     if ( $darwin_need_prereqs == true ) ; then
         echo   # output a newline
-        echo "Please run macOS_prerequisites.sh first"
+        echo "Please run prerequisites-macOS.sh first"
         echo   # output a newline
         exit 1
     fi
