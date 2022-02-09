@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 30 JAN 2022
+# Updated: 09 FEB 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 09 FEB 2022
+# - disallow running as the root user (this check got lost 7 JAN 2021)
 #
 # Updated: 30 JAN 2022
 # - rename macOS-prequisites.sh to prerequsites-macOS.sh
@@ -688,6 +691,24 @@ CFLAGS=${CFLAGS:-""}
 CPPFLAGS=${CPPFLAGS:-""}
 LD=${LD:-"ld"}
 LDFLAGS=${LDFLAGS:-""}
+
+#-----------------------------------------------------------------------------
+
+if [ "$EUID" -eq 0 ]; then
+    echo    # print a new line
+    echo "Running this as root is dangerous and can cause misconfiguration issues"
+    echo "or damage to your system.  Run as a normal user, and the parts that need"
+    echo "it will ask for your sudo password (if required)."
+    echo    # print a new line
+    echo "For information, see:"
+    echo "https://askubuntu.com/questions/16178/why-is-it-bad-to-log-in-as-root"
+    echo "https://wiki.debian.org/sudo/"
+    echo "https://phoenixnap.com/kb/how-to-create-add-sudo-user-centos"
+    echo    # print a new line
+    read -p "Hit return to exit" -n 1 -r
+    echo    # print a new line
+    exit 1
+fi
 
 #-----------------------------------------------------------------------------
 
