@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 09 FEB 2022
+# Updated: 12 FEB 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 12 FEB 2022
+# - correct logic for Homebrew vs. MacPorts and x86 vs. M1
 #
 # Updated: 09 FEB 2022
 # - disallow running as the root user (this check got lost 7 JAN 2021)
@@ -3849,6 +3852,7 @@ echo
 
     without_included_ltdl_option=""
 
+    # split cases between Homebrew and MacPorts
 #   if [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
     if [[ $version_id == darwin* && $opt_use_homebrew == true ]]; then
         without_included_ltdl_option="--without-included-ltdl"
@@ -3857,17 +3861,20 @@ echo
         add_build_entry "export LDFLAGS=\"\$LDFLAGS -L\$(find \$(brew --cellar libtool) -type d -name \"lib\" | sort -n | tail -n 1)\""
         export CFLAGS="$CFLAGS -I$(find $(brew --cellar libtool) -type d -name "include" | sort -n | tail -n 1)"
         export LDFLAGS="$LDFLAGS -L$(find $(brew --cellar libtool) -type d -name "lib" | sort -n | tail -n 1)"
-    elif [[ $version_id == darwin* && "$(uname -m)" =~ ^x86_64 ]]; then
 
-        # split cases between Homebrew and MacPorts
-        if ( $opt_use_macports == true ) ; then
-            without_included_ltdl_option="--without-included-ltdl"
+#    elif [[ $version_id == darwin* && "$(uname -m)" =~ ^x86_64 ]]; then
+    elif [[ $version_id == darwin* && $opt_use_macports == true ]]; then
+        without_included_ltdl_option="--without-included-ltdl"
 
-            add_build_entry "export CFLAGS=\"\$CFLAGS -I\$(dirname \$(port contents libtool | grep \"ltdl.h\" | head -n 1))\""
-            add_build_entry "export LDFLAGS=\"\$LDFLAGS -L\$(dirname \$(port contents libtool | grep \"libltdl.a\" | head -n 1))\""
-            export CFLAGS="$CFLAGS -I$(dirname $(port contents libtool | grep "ltdl.h" | head -n 1))"
-            export LDFLAGS="$LDFLAGS -L$(dirname $(port contents libtool | grep "libltdl.a" | head -n 1))"
-        fi
+# bill@Bills-MacBook-Air-2 herctest % port contents libtool | grep \"ltdl.h\"
+#
+# This warning comes out on stderr, printed and not found by grep
+# Warning: port definitions are more than two weeks old, consider updating them by running 'port selfupdate'.
+
+        add_build_entry "export CFLAGS=\"\$CFLAGS -I\$(dirname \$(port contents libtool | grep \"ltdl.h\" | head -n 1))\""
+        add_build_entry "export LDFLAGS=\"\$LDFLAGS -L\$(dirname \$(port contents libtool | grep \"libltdl.a\" | head -n 1))\""
+        export CFLAGS="$CFLAGS -I$(dirname $(port contents libtool | grep "ltdl.h" | head -n 1))"
+        export LDFLAGS="$LDFLAGS -L$(dirname $(port contents libtool | grep "libltdl.a" | head -n 1))"
     else
         without_included_ltdl_option=""
     fi
