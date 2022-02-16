@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 12 FEB 2022
+# Updated: 16 FEB 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 16 FEB 2022
+# - fix incomplete --config= option
 #
 # Updated: 12 FEB 2022
 # - correct logic for Homebrew vs. MacPorts and x86 vs. M1
@@ -801,7 +804,7 @@ Options:
   -t,  --trace        print every command (set -x)
   -v,  --verbose      print lots of messages
   -p,  --prompts      print a prompt before each major step
-  -c,  --config=FILE  specify config file containing options
+       --config=FILE  specify config file containing options
   -s,  --sudo         use \'sudo\' for installing
        --askpass      use \'sudo -A\' askpass helper
   -a,  --auto         run everything, with --verbose (but not --prompts),
@@ -1806,17 +1809,19 @@ opt_override_no_bashrc=false      # Add "source" to set environment variables fr
 opt_use_homebrew=false            # User Homebrew package manager on MacOS
 opt_use_macports=false            # User MacPorts package manager on MacOS
 
+CONFIG_FILE=""
+
 POSITIONAL=()
 while [[ $# -gt 0 ]]
 do
 key="$1"
 
 case $key in
-#  -c|--config)  # FIXME pick up filename
-#    shift # past argument
-#    CONFIGFILE="$1"
-#    shift # past argument
-#    ;;
+  --config=*)
+    opt_config_file="${1#*--config=}"
+    CONFIG_FILE=$(cd "$(dirname "$opt_config_file")" && pwd)/$(basename "$opt_config_file")
+    shift # past --config=xxx option
+    ;;
 
   -h|--help)
     echo "$usage"
@@ -2026,12 +2031,22 @@ echo    # print a newline
 
 # Find and read in the configuration
 
-config_dir="$(dirname "$0")"
-config_file="$config_dir/hercules-helper.conf"
-echo "Config file: $config_file"
+# If there was a config file specified on the command line, use that
+if [ ! -z "$CONFIG_FILE" ]; then
+    # Ensure the config file actually exists
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo "Config file specified with --config=\"$CONFIG_FILE\" not found."
+        exit 3
+    fi
+else
+    config_dir="$(dirname "$0")"
+    CONFIG_FILE="$config_dir/hercules-helper.conf"
+fi
 
-if test -f "$config_file" ; then
-    source "$config_file"
+echo "Config file: $CONFIG_FILE"
+
+if test -f "$CONFIG_FILE" ; then
+    source "$CONFIG_FILE"
 else
     echo "Config file not found.  Using defaults."
 fi

@@ -55,7 +55,7 @@ Options:
   -t,  --trace        print every command (set -x)
   -v,  --verbose      print lots of messages
   -p,  --prompts      print a prompt before each major step
-  -c,  --config=FILE  specify config file containing options
+       --config=FILE  specify config file containing options
   -s,  --sudo         use \'sudo\' for installing
   -a,  --auto         run everything, with --verbose and --prompts,
                       and creating a full log file
