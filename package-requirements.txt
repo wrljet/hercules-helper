@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
 # SDL-Hercules-390 Hyperion 4.x required packages
-# Updated: 17 NOV 2021
+# Updated: 24 FEB 2022
 
 #------------------------------------------------------------------------------
 # Debian/Ubuntu/Mint/etc
@@ -14,11 +14,19 @@ For Regina REXX:
     sudo apt-get -y install libregina3-dev
 
 #-----------------------------------------------------------------------------
+# Elbrus Linux (similar to Debian)
+
+    sudo apt-get -y install git wget time
+    sudo apt-get -y install build-essential cmake flex gawk m4 autoconf automake libtool
+    sudo apt-get -y install bzip2 zlib
+    sudo apt-get -y install libcap
+
+#-----------------------------------------------------------------------------
 # Arch/Manjaro
 
-    sudo apt-get -y install git wget
-    sudo apt-get -y install base-devel make cmake flex gawk m4 autoconf automake
-    sudo apt-get -y install bzip2 zlib
+    sudo pacman -S --needed --noconfirm git wget
+    sudo pacman -S --needed --noconfirm base-devel make cmake flex gawk m4 autoconf automake
+    sudo pacman -S --needed --noconfirm bzip2 zlib
 
 #-----------------------------------------------------------------------------
 # Fedora
