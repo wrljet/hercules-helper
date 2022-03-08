@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 16 FEB 2022
+# Updated: 07 MAR 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 07 MAR 2022
+# - bail out if CMake for extpkgs fails
 #
 # Updated: 16 FEB 2022
 # - fix incomplete --config= option
@@ -3631,6 +3634,8 @@ else
             rc=$?
             if (( $rc != 0 )); then
                 error_msg "ERROR: Cmake has failed! rc=$rc";
+                error_msg "ERROR: extpkgs not built";
+                exit 3
             fi
 
             make clean
