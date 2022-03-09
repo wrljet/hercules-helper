@@ -39,7 +39,10 @@ uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
         version_build=$(echo $version_str | cut -f3 -d.)
           echo "VERSION_BUILD    : $version_build"
 
-      if [[ $version_major -eq 10 && $version_minor -eq 13 ]]; then
+      if [[ $version_major -eq 10 && $version_minor -eq 12 ]]; then
+          os_is_supported=true
+          echo "Apple macOS version $version_str (Sierra) found"
+      elif [[ $version_major -eq 10 && $version_minor -eq 13 ]]; then
           os_is_supported=true
           echo "Apple macOS version $version_str (High Sierra) found"
       elif [[ $version_major -eq 10 && $version_minor -eq 14 ]]; then

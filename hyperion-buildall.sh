@@ -50,6 +50,9 @@
 # Changelog:
 #
 # Updated: 09 MAR 2022
+# - add support for macOS 10.12 Sierra
+#
+# Updated: 09 MAR 2022
 # - add SLES to openSUSE detection (got lost somewhere along the way)
 #
 # Updated: 07 MAR 2022
@@ -1514,7 +1517,10 @@ detect_system()
         version_memory_size="$(sysctl hw.memsize | awk '/^hw.memsize:/{mb = $2/1024/1024; printf "%.0f", mb}')"
         verbose_msg "Memory Total (MB): $version_memory_size"
 
-        if [[ $version_major -eq 10 && $version_minor -eq 13 ]]; then
+        if [[ $version_major -eq 10 && $version_minor -eq 12 ]]; then
+            os_is_supported=true
+            echo "Apple macOS version $version_str (Sierra) found"
+        elif [[ $version_major -eq 10 && $version_minor -eq 13 ]]; then
             os_is_supported=true
             echo "Apple macOS version $version_str (High Sierra) found"
         elif [[ $version_major -eq 10 && $version_minor -eq 14 ]]; then
