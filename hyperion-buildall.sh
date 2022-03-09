@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 07 MAR 2022
+# Updated: 09 MAR 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 09 MAR 2022
+# - add SLES to openSUSE detection (got lost somewhere along the way)
 #
 # Updated: 07 MAR 2022
 # - bail out if CMake for extpkgs fails
@@ -1289,7 +1292,8 @@ detect_system()
 #######################################################
 
         # Look for openSUSE
-        if [[ $version_id == opensuse* ]];
+        if [[ $version_id == opensuse* || \
+              $version_id == sles*     ]];
         then
             version_distro="openSUSE"
             version_major=$(echo $version_str | cut -f1 -d.)
