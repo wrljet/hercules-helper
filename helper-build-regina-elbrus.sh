@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-    # Helper to build oorexx on Elbrus Linux
+    # Helper to build Regina REXX on Elbrus Linux
 
     # PATH and LD_LIBRARY_PATH will need to be set
     #
