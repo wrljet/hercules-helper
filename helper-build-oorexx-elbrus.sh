@@ -4,6 +4,8 @@
 
     # Requires cmake
 
+    # To use the oorexx built by this script when building Hercules:
+    #
     # PATH and LD_LIBRARY_PATH will need to be set
     #
     # export PATH=~/tools/oorexx/bin:$PATH

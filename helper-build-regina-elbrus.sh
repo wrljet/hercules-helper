@@ -2,6 +2,8 @@
 
     # Helper to build Regina REXX on Elbrus Linux
 
+    # To use the oorexx built by this script when building Hercules:
+    #
     # PATH and LD_LIBRARY_PATH will need to be set
     #
     # export LD_LIBRARY_PATH=~/tools/lib:$LD_LIBRARY_PATH
