@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 09 MAR 2022
+# Updated: 11 JUN 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 11 JUN 2022
+# - add support for RISC-V CPU
 #
 # Updated: 09 MAR 2022
 # - add support for macOS 10.12 Sierra
@@ -1587,7 +1590,7 @@ detect_bitness()
           ;;
        Linux)
           mach="`uname -m`"
-          if test "$mach" = "aarch64" -o "$mach" = "x86_64" -o "$mach" = "ia86" -o "$mach" = "alpha" -o "$mach" = "ppc64" -o "$mach" = "s390x" -o "$mach" = "e2k" ; then
+          if test "$mach" = "aarch64" -o "$mach" = "x86_64" -o "$mach" = "ia86" -o "$mach" = "alpha" -o "$mach" = "ppc64" -o "$mach" = "s390x" -o "$mach" = "e2k" -o "$mach" = "riscv64" ; then
              os_bitflag="64"
              os_osis64bit=yes
           fi
@@ -2104,7 +2107,7 @@ fi
 # CFLAGS           :
 # CPPFLAGS         : -I/usr/local/opt/llvm@11/include -I/usr/local/include
 # LDFLAGS          : -L/usr/local/opt/llvm@11/lib
-# clang              : Homebrew clang version 11.1.0
+# clang            : Homebrew clang version 11.1.0
 
 add_build_entry # newline
 add_build_entry "# $(uname -a)"
@@ -2927,7 +2930,7 @@ verbose_msg "  compiler       : $($CC --version 2>&1 | head -n 1)"
 verbose_msg "  linker         : $($LD --version 2>&1 | head -n 1)"
 verbose_msg    # print a newline
 
-# Check for older gcc on i686 systems, that is know to fail CBUC test
+# Check for older gcc on i686 systems, that is known to fail CBUC test
 
 as_awk_strverscmp='
   # Use only awk features that work with 7th edition Unix awk (1978).
@@ -3291,7 +3294,7 @@ else
     # FIXME on macOS on Apple M1 build Regina with a separate helper
     # before running this script!
 
-    # If this is a RPIOS 64-bit:
+    # If this is a RPIOS 64-bit, or RISC-V:
     #   for Regina 3.9.3:
     #     we need to patch configure
     #
@@ -3319,6 +3322,24 @@ else
           exit 1
         fi
       fi
+    fi
+
+    if [[ "$(uname -m)" =~ (^riscv64) ]]; then
+        if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
+          verbose_msg "Patching Regina 3.9.3 source for RISC-V"
+          patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.9.3.patch"
+          verbose_msg    # output a newline
+        elif [[ "$opt_regina_dir" =~ "3.6" ]]; then
+          verbose_msg "Patching Regina 3.6 source for RISC-V"
+          patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.6.patch"
+          verbose_msg "Replacing config.{guess,sub}"
+          cp "$SCRIPT_DIR/patches/config.guess" ./common/
+          cp "$SCRIPT_DIR/patches/config.sub" ./common/
+          verbose_msg    # output a newline
+        else
+          error_msg "Don't know how to build your Regina!"
+          exit 1
+        fi
     fi
 
     verbose_msg $regina_configure_cmd
@@ -3615,6 +3636,11 @@ else
         xscale*)
             hc_cv_cpu_arch=xscale
             hc_cv_pkg_lib_subdir="/xscale"
+            ;;
+
+        riscv64*)
+            hc_cv_cpu_arch=riscv64
+            hc_cv_pkg_lib_subdir="/riscv64"
             ;;
 
         *)
