@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 11 JUN 2022
+# Updated: 05 JUL 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 05 JUL 2022
+# - add detection of new Raspberry Pi 4B rev 1.5 PCB
 #
 # Updated: 11 JUN 2022
 # - add support for RISC-V CPU
@@ -905,6 +908,9 @@ function get_pi_version()
 
 function check_pi_version()
 {
+    # Source:
+    # https://www.raspberrypi.org/documentation/hardware/raspberrypi/revision-codes/README.md
+
   local -rA RPI_REVISIONS=(
     [900021]="A+        1.1     512MB   Sony UK"
     [900032]="B+        1.2     512MB   Sony UK"
@@ -934,10 +940,13 @@ function check_pi_version()
     [b03111]="4B        1.1     2GB     Sony UK"
     [b03112]="4B        1.2     2GB     Sony UK"
     [b03114]="4B        1.4     2GB     Sony UK"
+    [b03115]="4B        1.5     2GB     Sony UK"
     [c03111]="4B        1.1     4GB     Sony UK"
     [c03112]="4B        1.2     4GB     Sony UK"
     [c03114]="4B        1.4     4GB     Sony UK"
+    [c03115]="4B        1.5     4GB     Sony UK"
     [d03114]="4B        1.4     8GB     Sony UK"
+    [d03115]="4B        1.5     8GB     Sony UK"
     [c03130]="Pi 4004   1.0     4GB     Sony UK"
     [a03140]="CM4       1.0     1GB     Sony UK"
     [b03140]="CM4       1.0     2GB     Sony UK"
