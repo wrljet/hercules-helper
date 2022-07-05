@@ -26,6 +26,10 @@ These scripts will prompt for your sudo password where required.
 
 Report errors in this to me so everyone can benefit.
 
+Note: by default, this will build the SDL-Hercules "develop"
+branch.  You may change this using the hercules-helper.conf
+config file.
+
 ## hyperion-buildall.sh
 
 This script will perform a complete build of Hercules and its external
