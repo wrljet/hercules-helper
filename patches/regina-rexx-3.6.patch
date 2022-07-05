@@ -5,7 +5,7 @@
     *linux*|*kfreebsd*-gnu*)
        mach="`uname -m`"
 -      if test "$mach" = "x86_64" -o "$mach" = "ia86" -o "$mach" = "alpha" -o "$mach" = "ppc64" -o "$mach" = "s390x"; then
-+      if test "$mach" = "x86_64" -o "$mach" = "ia86" -o "$mach" = "alpha" -o "$mach" = "ppc64" -o "$mach" = "s390x" -o "$mach" = "aarch64" -o "$mach" = "e2k"; then
++      if test "$mach" = "x86_64" -o "$mach" = "ia86" -o "$mach" = "alpha" -o "$mach" = "ppc64" -o "$mach" = "s390x" -o "$mach" = "aarch64" -o "$mach" = "e2k" -o "$mach" = "riscv64"; then
           bitflag="64"
           osis64bit=yes
        fi
