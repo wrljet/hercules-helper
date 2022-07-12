@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 05 JUL 2022
+# Updated: 12 JUL 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 12 JUL 2022
+# - add config option to override CMake extpkgs optimization settings
 #
 # Updated: 05 JUL 2022
 # - add detection of new Raspberry Pi 4B rev 1.5 PCB
@@ -605,6 +608,7 @@ opt_regina_tarfile=${opt_regina_tarfile:-"Regina-REXX-3.6.tar.gz"}
 opt_regina_url=${opt_regina_url:-"http://www.wrljet.com/ibm360/Regina-REXX-3.6.tar.gz"}
 
 opt_configure_optimization=${opt_configure_optimization:-""}
+opt_cmake_defines=${opt_cmake_defines:-""}
 
 # Print verbose progress information
 opt_verbose=${opt_verbose:-false}
@@ -3134,6 +3138,10 @@ if [ ! -z "$opt_configure_optimization" ] ; then
     verbose_msg "OPT_CONFIGURE_OPTIMIZATION : $opt_configure_optimization"
 fi
 
+if [ ! -z "$opt_cmake_defines" ] ; then
+    verbose_msg "OPT_CMAKE_DEFINES    : $opt_cmake_defines"
+fi
+
 #-----------------------------------------------------------------------------
 
 if [[ $version_rpidesktop -eq 1 ]]; then
@@ -3670,12 +3678,34 @@ else
         mkdir -p build/${pkg}$os_bitflag.Release
         pushd build/${pkg}$os_bitflag.Release
 
-            add_build_entry "cmake  -D INSTALL_PREFIX=$opt_build_dir/extpkgs  -DLIB_INSTALL_DIR=lib$hc_cv_pkg_lib_subdir  $opt_build_dir/extpkgs/$pkg"
+            # Clear CMake cache in case we've changed the options
+            rm -f CMakeCache.txt
+
+            # e.g. opt_cmake_defines="-DCMAKE_C_FLAGS_RELWITHDEBINFO=\"-O3 -march=native -g\""
+            if [ ! -z "$opt_cmake_defines" ] ; then
+                verbose_msg "Adding CMake defines: $opt_cmake_defines"
+            fi
+
+            #cmake $opt_cmake_defines -D INSTALL_PREFIX=$opt_build_dir/extpkgs  -DLIB_INSTALL_DIR=lib$hc_cv_pkg_lib_subdir  $opt_build_dir/extpkgs/$pkg
+
+            cmake_cmd=$(cat <<-END-CMAKE
+cmake $opt_cmake_defines \
+    -D INSTALL_PREFIX=$opt_build_dir/extpkgs \
+    -DLIB_INSTALL_DIR=lib$hc_cv_pkg_lib_subdir \
+    $opt_build_dir/extpkgs/$pkg
+END-CMAKE
+)
+
+            add_build_entry "rm -f CMakeCache.txt"
+            add_build_entry "$cmake_cmd"
             add_build_entry "make clean"
             add_build_entry "make -j 4 all"
             add_build_entry "make install"
 
-            cmake  -D INSTALL_PREFIX=$opt_build_dir/extpkgs  -DLIB_INSTALL_DIR=lib$hc_cv_pkg_lib_subdir  $opt_build_dir/extpkgs/$pkg
+            verbose_msg $cmake_cmd
+            verbose_msg    # output a newline
+            eval "$cmake_cmd"
+
             rc=$?
             if (( $rc != 0 )); then
                 error_msg "ERROR: Cmake has failed! rc=$rc";
