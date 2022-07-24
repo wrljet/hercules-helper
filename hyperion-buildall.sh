@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 12 JUL 2022
+# Updated: 24 JUL 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 24 JUL 2022
+# - add support for macOS 13 Ventura
 #
 # Updated: 12 JUL 2022
 # - add config option to override CMake extpkgs optimization settings
