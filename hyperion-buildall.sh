@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 24 JUL 2022
+# Updated: 17 AUG 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -49,6 +49,10 @@
 
 # Changelog:
 #
+# Updated: 17 AUG 2022
+# - correct bitness detection for POWER8 and later ppc64le CPUs
+#   thanks Matthew for fixing this
+
 # Updated: 24 JUL 2022
 # - add support for macOS 13 Ventura
 #
@@ -1614,7 +1618,7 @@ detect_bitness()
           ;;
        Linux)
           mach="`uname -m`"
-          if test "$mach" = "aarch64" -o "$mach" = "x86_64" -o "$mach" = "ia86" -o "$mach" = "alpha" -o "$mach" = "ppc64" -o "$mach" = "s390x" -o "$mach" = "e2k" -o "$mach" = "riscv64" ; then
+          if test "$mach" = "aarch64" -o "$mach" = "x86_64" -o "$mach" = "ia86" -o "$mach" = "alpha" -o "$mach" = "ppc64" -o "$mach" = "ppc64le" -o "$mach" = "s390x" -o "$mach" = "e2k" -o "$mach" = "riscv64" ; then
              os_bitflag="64"
              os_osis64bit=yes
           fi
@@ -3322,7 +3326,7 @@ else
     # FIXME on macOS on Apple M1 build Regina with a separate helper
     # before running this script!
 
-    # If this is a RPIOS 64-bit, or RISC-V:
+    # If this is a RPIOS 64-bit, RISC-V, or ppc64le:
     #   for Regina 3.9.3:
     #     we need to patch configure
     #
@@ -3352,13 +3356,13 @@ else
       fi
     fi
 
-    if [[ "$(uname -m)" =~ (^riscv64) ]]; then
+    if [[ "$(uname -m)" =~ (^riscv64|^ppc64) ]]; then
         if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
-          verbose_msg "Patching Regina 3.9.3 source for RISC-V"
+          verbose_msg "Patching Regina 3.9.3"
           patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.9.3.patch"
           verbose_msg    # output a newline
         elif [[ "$opt_regina_dir" =~ "3.6" ]]; then
-          verbose_msg "Patching Regina 3.6 source for RISC-V"
+          verbose_msg "Patching Regina 3.6 source"
           patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.6.patch"
           verbose_msg "Replacing config.{guess,sub}"
           cp "$SCRIPT_DIR/patches/config.guess" ./common/
