@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 17 AUG 2022
+# Updated: 25 AUG 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 25 AUG 2022
+# - add support for Slackware
 #
 # Updated: 17 AUG 2022
 # - correct bitness detection for POWER8 and later ppc64le CPUs
@@ -1108,6 +1111,20 @@ detect_system()
         verbose_msg "VERSION_ID_LIKE  : $version_id_like"
         verbose_msg "VERSION_PRETTY   : $version_pretty_name"
         verbose_msg "VERSION_STR      : $version_str"
+
+        # Look for Slackware Linux
+
+        if [[ $version_id == slackware* ]];
+        then
+            version_distro="slackware"
+            version_major=$(echo $version_str | cut -f1 -d.)
+            version_minor=$(echo $version_str | cut -f2 -d.)
+
+            verbose_msg "OS               : $version_distro variant"
+            verbose_msg "OS Version       : $version_major"
+
+            os_is_supported=true
+        fi
 
         # Look for Alpine Linux
 
@@ -2839,6 +2856,43 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
     return
   fi
 
+#-----------------------------------------------------------------------------
+  # Slackware
+
+  if [[ $version_id == slackware* ]]; then
+          echo "FreeBSD (version ?? or later) found"
+
+          declare -a slackware_packages=( \
+              "git" "wget" \
+              "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
+              "bzip2" \
+              "make" "libtool"
+          )
+
+          echo "Required packages: "
+          echo "${slackware_packages[*]}"
+          echo    # print a newline
+
+          for package in "${slackware_packages[@]}"; do
+              echo "-----------------------------------------------------------------"
+              echo "Checking for package: $package"
+
+              is_installed=$($HH_SUDOCMD /usr/sbin/slackpkg search $package)
+              status=$?
+
+              # install if missing
+              # if [ $status -eq 0 ] ; then
+              #     echo "package: $package is already installed"
+              # else
+                  # echo "$package : must be installed"
+                  echo "Installing package: $package"
+                  $HH_SUDOCMD /usr/sbin/slackpkg install $package
+              # fi
+          done
+    return
+  fi
+
+#-----------------------------------------------------------------------------
   if [ $os_is_supported != true ]; then
     error_msg "Your system ( $version_pretty ) is not (yet) supported!"
     exit 1
@@ -3408,6 +3462,14 @@ else
         add_build_entry "# ldconfig (for libregina.so)"
         add_build_entry "\$HH_SUDOCMD ldconfig"
         $HH_SUDOCMD ldconfig
+    fi
+
+    if [[ "$version_distro" == "slackware" ]];
+    then
+        verbose_msg "sudo /sbin/ldconfig (for libregina.so)"
+        add_build_entry "# ldconfig (for libregina.so)"
+        add_build_entry "\$HH_SUDOCMD /sbin/ldconfig"
+        $HH_SUDOCMD /sbin/ldconfig
     fi
 
 #   export PATH=$opt_build_dir/rexx/bin:$PATH
@@ -4224,18 +4286,24 @@ else
     else
         verbose_msg "Step: setcap operations so Hercules can run without elevated privileges:"
 
+        HH_SETCAP="setcap"
+	if [[ "$version_distro" == "slackware" ]];
+        then
+	    HH_SETCAP="/sbin/setcap"
+        fi
+
         verbose_msg    # output a newline
-        verbose_msg "sudo setcap 'cap_sys_nice=eip' $opt_install_dir/bin/hercules"
-        add_build_entry "\$HH_SUDOCMD setcap \'cap_sys_nice=eip\' $opt_install_dir/bin/hercules"
-        $HH_SUDOCMD setcap 'cap_sys_nice=eip' $opt_install_dir/bin/hercules
+        verbose_msg "sudo $HH_SETCAP 'cap_sys_nice=eip' $opt_install_dir/bin/hercules"
+        add_build_entry "\$HH_SUDOCMD $HH_SETCAP \'cap_sys_nice=eip\' $opt_install_dir/bin/hercules"
+        $HH_SUDOCMD $HH_SETCAP 'cap_sys_nice=eip' $opt_install_dir/bin/hercules
 
-        verbose_msg "sudo setcap 'cap_sys_nice=eip' $opt_install_dir/bin/herclin"
-        $HH_SUDOCMD setcap 'cap_sys_nice=eip' $opt_install_dir/bin/herclin
-        add_build_entry "\$HH_SUDOCMD setcap \'cap_sys_nice=eip\' $opt_install_dir/bin/herclin"
+        verbose_msg "sudo $HH_SETCAP 'cap_sys_nice=eip' $opt_install_dir/bin/herclin"
+        $HH_SUDOCMD $HH_SETCAP 'cap_sys_nice=eip' $opt_install_dir/bin/herclin
+        add_build_entry "\$HH_SUDOCMD $HH_SETCAP \'cap_sys_nice=eip\' $opt_install_dir/bin/herclin"
 
-        verbose_msg "sudo setcap 'cap_net_admin+ep' $opt_install_dir/bin/hercifc"
-        $HH_SUDOCMD setcap 'cap_net_admin+ep' $opt_install_dir/bin/hercifc
-        add_build_entry "\$HH_SUDOCMD setcap \'cap_net_admin+ep\' $opt_install_dir/bin/hercifc"
+        verbose_msg "sudo $HH_SETCAP 'cap_net_admin+ep' $opt_install_dir/bin/hercifc"
+        $HH_SUDOCMD $HH_SETCAP 'cap_net_admin+ep' $opt_install_dir/bin/hercifc
+        add_build_entry "\$HH_SUDOCMD $HH_SETCAP \'cap_net_admin+ep\' $opt_install_dir/bin/hercifc"
     fi
 
     verbose_msg    # output a newline
