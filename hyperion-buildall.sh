@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 25 AUG 2022
+# Updated: 09 SEP 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 09 SEP 2022
+# - add support for Rocky Linux
 #
 # Updated: 25 AUG 2022
 # - add support for Slackware
@@ -1173,6 +1176,30 @@ detect_system()
 
         if [[ $version_id == raspbian* ]]; then
             echo "$(cat /boot/issue.txt | head -1)"
+        fi
+
+        # Look for Rocky Linux
+        if [[ $version_id == rocky* ]]; then
+            verbose_msg "We have an Rocky Linux system"
+
+            # Rocky Linux 8.6
+            # $ rpm --query centos-release
+            # package centos-release is not installed
+            # $ cat /etc/redhat-release 
+            # Rocky Linux release 8.6 (Green Obsidian)
+
+          # rockylinux_vers=$(rpm --query centos-release) || true
+            rockylinux_vers=$(cat /etc/redhat-release) || true
+            rockylinux_vers="${rockylinux_vers#*release }"
+            rockylinux_vers="${rockylinux_vers/ */}"
+
+            version_distro="rockylinux"
+            version_major=$(echo $rockylinux_vers | cut -f1 -d.)
+            version_minor=$(echo "$rockylinux_vers.0" | cut -f2 -d.)
+
+            verbose_msg "VERSION_MAJOR    : $version_major"
+            verbose_msg "VERSION_MINOR    : $version_minor"
+            os_is_supported=true
         fi
 
         # Look for AlmaLinux
@@ -2409,11 +2436,11 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
   fi
 
 #-----------------------------------------------------------------------------
-  # AlmaLinux
+  # Alma or Rocky Linux
 
-  if [[ $version_id == almalinux* ]]; then
+  if [[ $version_id == almalinux* || $version_id == rocky* ]]; then
       if [[ $version_major -ge 8 ]]; then
-          echo "AlmaLinux version 8 or later found"
+          echo "Alma or Rocky Linux version 8 or later found"
 
           declare -a almalinux_packages=( \
               "git" "wget" "time" \
@@ -2439,7 +2466,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               fi
           done
       else
-          error_msg "AlmaLinux version 7 or earlier found, and not supported"
+          error_msg "Alma or Rocky Linux version 7 or earlier found, and not supported"
           exit 1
       fi
     return
@@ -3352,8 +3379,9 @@ else
         regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib"
     fi
 
-    if [[ "$version_distro" == "almalinux" ||
-          "$version_distro" == "redhat"  ]]; then
+    if [[ "$version_distro" == "almalinux"  ||
+          "$version_distro" == "rockylinux" ||
+          "$version_distro" == "redhat"     ]]; then
         regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib64"
     fi
 
@@ -3456,6 +3484,7 @@ else
     if [[ "$version_distro" == "debian" ||
           "$version_distro" == "openSUSE" ||
           "$version_distro" == "almalinux" ||
+          "$version_distro" == "rockylinux" ||
           "$version_distro" == "fedora" ]];
     then
         verbose_msg "sudo ldconfig (for libregina.so)"
