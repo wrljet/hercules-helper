@@ -16,7 +16,7 @@ AlmaLinux       8.4      x86_64    4 GB    gcc 8.4.1     VMware      16-Jul-21
 CentOS       Stream 8    x86_64            gcc 8.4.1     VMware      14-Jan-21
 CentOS       8.2.2004    x86_64            gcc 8.3.1     VMware      14-Jan-21
 CentOS       7.9.2009    x86_64            gcc 4.8.5     VMware      14-Jan-21
-Fedora          34       x86_64    4 GB   gcc 11.1.1     VMware      01-Jul-21
+Fedora          36       x86_64    4 GB   gcc 12.2.1     VMware      12-Aug-02
 
 Debian         10.9      x86_64    4 GB    gcc 8.3.0     VMware      30-Jun-21
 Debian         10.6    i686 32-bit         gcc 8.3.0     VMware      22-Dec-20
