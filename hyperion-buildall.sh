@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 09 SEP 2022
+# Updated: 13 SEP 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 13 SEP 2022
+# - fix broken Debian 32-bit
 #
 # Updated: 09 SEP 2022
 # - add support for Rocky Linux
@@ -3114,7 +3117,8 @@ if [[ "$(uname -m)" =~ ^(i686) && "$version_distro" == "debian" ]]; then
     set +e
     awk "$as_awk_strverscmp" v1="$as_arg_v1" v2="$as_arg_v2" /dev/null
     awk_rc=$?
-    set -e
+    # FIXME fix broken Debian 32-bit
+    # set -e
 
     case $awk_rc in #(
       1) :
