@@ -1,70 +1,73 @@
-
-https://github.com/wrljet/hercules-helper
-
-This chart updated:      9/13/2022
-The hercules-helper scripts are tested (occassionally) on these systems:
-
-VMware indicates VMware 16.2.3 running on Windows 10 running on Intel i7 CPU
-All builds are compiled natively on the target OS (not cross compiled)
-All builds match the bitness of the installed OS
-
- Target OS  OS Version     CPU      RAM    Compiler      System     Date Tested                Notes / Problems
-
-Windows 10   Pro 20H2    x86_64    6 GB   VS2017/2019    Vmware      25-Feb-21
-
-AlmaLinux       8.4      x86_64    4 GB    gcc 8.4.1     VMware      16-Jul-21
-CentOS       Stream 8    x86_64            gcc 8.4.1     VMware      14-Jan-21
-CentOS       8.2.2004    x86_64            gcc 8.3.1     VMware      14-Jan-21
-CentOS       7.9.2009    x86_64            gcc 4.8.5     VMware      14-Jan-21
-Fedora          36       x86_64    4 GB   gcc 12.2.1     VMware      13-Sep-22
-
-Debian         10.9      x86_64    4 GB    gcc 8.3.0     VMware      30-Jun-21
-Debian         10.6    i686 32-bit 6 GB    gcc 8.3.0     VMware      13-Sep-22
-Debian         10.6    i686 32-bit 6 GB   clang 7.0.1    VMware      13-Sep-22  Build fails: missing __atomic_compare_exchange_8
-Debian          9.9    i686 32-bit         gcc 6.3.0     VMware      12-Dec-20
-Debian          8.6    i686 32-bit         gcc 8.3.0     VMware      18-Dec-20
-Debian          8.6    i686 32-bit         gcc 6.3.0     VMware      17-Dec-20
-Debian          8.6    i686 32-bit         gcc 5.4.0     VMware      20-Dec-20  CBUC test fails
-Debian          8.6    i686 32-bit         gcc 4.9.3     VMware      12-Dec-20  CBUC test fails
-Debian          8.6    i686 32-bit         gcc 4.9.2     VMware      12-Dec-20  Tests failed; crashed
-
-Zorin          15.3      x86_64    4 GB    gcc 7.5.0     VMware      01-Jul-21  seems to be based on Ubuntu 18.04
-Kubuntu        20.04     x86_64            gcc 9.3.0     VMware      03-Aug-21
-Ubuntu         20.04     x86_64            gcc 9.3.0      WSL2       13-Dec-20
-Ubuntu         18.04     x86_64            gcc 7.5.0     VMware      12-Dec-20
-Ubuntu         16.04     x86_64            gcc 5.4.0     Docker      18-Feb-21  Docker on WSL2
-Ubuntu         12.04   i686 32-bit         gcc 8.3.0     VMware      18-Dec-20
-Ubuntu         12.04   i686 32-bit         gcc 6.3.0     VMware      17-Dec-20
-Ubuntu         12.04   i686 32-bit         gcc 4.8.5     VMware      12-Dec-20  CBUC test fails
-Ubuntu         12.04   i686 32-bit         gcc 4.6.3     VMware      12-Dec-20  CBUC test fails
-
-KDE Neon       5.21      x86_64    6 GB    gcc 9.3.0     VMware      06-Jul-21
-KDE Neon       20.04     x86_64    2 GB    gcc 9.3.0     VMware      09-Jan-21
-KDE Neon       11.19     x86_64            gcc 7.5.0     VMware      12-Dec-20
-Mint            20       x86_64            gcc 9.3.0     VMware      13-Dec-20
-Arch          5.14.12    x86_64    4 GB   gcc 11.1.0     VMware      14-Oct-21
-Manjaro KDE 21 5.10.136  x86_64    4 GB   gcc 12.1.1     VMware      12-Sep-22
-
-openSUSE       15.1      x86_64            gcc 7.5.0     VMware      07-Jan-21
-openSUSE       15.2      x86_64            gcc 7.5.0     VMware
-openSUSE       15.3      x86_64            gcc 7.5.0     VMware      30-Apr-21  Tests hang waiting for input after EXIT command
-
-RPI OS        (beta)     AArch64   8 GB    gcc 8.3.0    Pi 4B 8GB    15-Jul-21  Locally built Regina 3.6
-Raspbian    2020-05-27   armv7l    8 GB    gcc 8.3.0    Pi 4B 8GB    13-Sep-22  CBUC test fails
-Raspbian     2019-07-10  armv6l   512 MB   gcc 8.3.0    Pi Zero W    16-Jul-21
-Ubuntu         21.04     AArch64   8 GB    gcc 7.5.0    Pi 4B 8GB    07-Jan-21
-Ubuntu Mate    20.10     AArch64   8 GB   gcc 10.2.0    Pi 4B 4GB    07-Jan-21
-Manjaro        20.12     AArch64   8 GB   gcc 10.2.0    Pi 4B 4GB    19-Jan-21
-
-Freebsd        12.2       arm64            Clang 10      Pi 3B+      08-Apr-21  'mainsize' test is skipped
-Freebsd        12.2      x86_64            Clang 10      Vmware      11-Oct-21
-Freebsd      13.0 RC5     arm64            Clang 11       Pi 4B      12-Apr-21
-NetBSD          9.0       amd64                       AMD64 Server not ready yet
-
-MacOS         10.13.6     amd64          Clang 10.0.0    VMware      06-Jul-21  High Sierra
-MacOS         10.14.6     amd64            Clang 10      VMware      02-May-21  Mojave
-MacOS          10.15      amd64                          VMware                 Catalina
-MacOS         11.5.1      amd64          Clang 12.0.5    VMware      28-Aug-21  Big Sur (Homebrew)
-MacOS         11.5.1      amd64          Clang 12.0.5    VMware      28-Aug-21  Big Sur (MacPorts)
-MacOS           12        amd64            Clang 13      VMware      01-Oct-21  Monterey (Beta)
-MacOS          11.4     Apple M1         Clang 12.0.5  Mac Mini M1   06-Jul-21  Big Sur
+https://github.com/wrljet/hercules-helper							
+							
+This chart updated:		10/21/2022					
+The hercules-helper scripts are tested (occassionally) on these systems:							
+							
+VMware indicates VMware 16 running on Windows 10 running on Intel i7 CPU							
+All builds are compiled natively on the target OS (not cross compiled)							
+All builds match the bitness of the installed OS							
+							
+Target OS	OS Version	CPU	RAM	Compiler	System	Date Tested	Notes / Problems
+							
+Windows 10	Pro 20H2	x86_64	6 GB	VS2017/2019	Vmware	25-Feb-21	
+							
+AlmaLinux	8.4	x86_64	4 GB	gcc 8.4.1	VMware	16-Jul-21	
+CentOS	Stream 8	x86_64		gcc 8.4.1	VMware	14-Jan-21	
+CentOS	8.2.2004	x86_64		gcc 8.3.1	VMware	14-Jan-21	
+CentOS	7.9.2009	x86_64		gcc 4.8.5	VMware	14-Jan-21	
+Fedora	36	x86_64	4 GB	gcc 12.2.1	VMware	13-Sep-22	
+							
+Debian	11	x86_64	6 GB	gcc 10.2.1	VMware	13-Sep-22	
+Debian	10.9	x86_64	6 GB	gcc 8.3.0	VMware	13-Sep-22	
+Debian	10.6	i686 32-bit	6 GB	gcc 8.3.0	VMware	13-Sep-22	
+Debian	10.6	i686 32-bit	6 GB	clang 7.0.1	VMware	13-Sep-22	Build fails: missing __atomic_compare_exchange_8
+Debian	9.9	i686 32-bit		gcc 6.3.0	VMware	12-Dec-20	
+Debian	8.6	i686 32-bit		gcc 8.3.0	VMware	18-Dec-20	
+Debian	8.6	i686 32-bit		gcc 6.3.0	VMware	17-Dec-20	
+Debian	8.6	i686 32-bit		gcc 5.4.0	VMware	20-Dec-20	CBUC test fails
+Debian	8.6	i686 32-bit		gcc 4.9.3	VMware	12-Dec-20	CBUC test fails
+Debian	8.6	i686 32-bit		gcc 4.9.2	VMware	12-Dec-20	Tests failed; crashed
+							
+Zorin	15.3	x86_64	4 GB	gcc 7.5.0	VMware	01-Jul-21	seems to be based on Ubuntu 18.04
+Kubuntu	20.04	x86_64		gcc 9.3.0	VMware	03-Aug-21	
+Ubuntu	22.10	x86_64	6 GB	gcc 12.2.0	VMware	21-Oct-22	
+Ubuntu	20.04	x86_64		gcc 9.3.0	WSL2	13-Dec-20	
+Ubuntu	18.04	x86_64		gcc 7.5.0	VMware	12-Dec-20	
+Ubuntu	16.04	x86_64		gcc 5.4.0	Docker	18-Feb-21	Docker on WSL2
+Ubuntu	12.04	i686 32-bit		gcc 8.3.0	VMware	18-Dec-20	
+Ubuntu	12.04	i686 32-bit		gcc 6.3.0	VMware	17-Dec-20	
+Ubuntu	12.04	i686 32-bit		gcc 4.8.5	VMware	12-Dec-20	CBUC test fails
+Ubuntu	12.04	i686 32-bit		gcc 4.6.3	VMware	12-Dec-20	CBUC test fails
+							
+KDE Neon	5.21	x86_64	6 GB	gcc 9.3.0	VMware	06-Jul-21	
+KDE Neon	20.04	x86_64	2 GB	gcc 9.3.0	VMware	09-Jan-21	
+KDE Neon	11.19	x86_64		gcc 7.5.0	VMware	12-Dec-20	
+Mint	20	x86_64		gcc 9.3.0	VMware	13-Dec-20	
+Arch	5.14.12	x86_64	4 GB	gcc 11.1.0	VMware	14-Oct-21	
+Manjaro KDE	21 5.10.136	x86_64	4 GB	gcc 12.1.1	VMware	12-Sep-22	
+							
+openSUSE	15.1	x86_64		gcc 7.5.0	VMware	07-Jan-21	
+openSUSE	15.2	x86_64		gcc 7.5.0	VMware		
+openSUSE	15.3	x86_64		gcc 7.5.0	VMware	30-Apr-21	Tests hang waiting for input after EXIT command
+							
+RPI OS	(beta)	AArch64	8 GB	gcc 8.3.0	Pi 4B 8GB	15-Jul-21	Locally built Regina 3.6
+Raspbian	2020-05-27	armv7l	8 GB	gcc 8.3.0	Pi 4B 8GB	13-Sep-22	CBUC test fails
+Raspbian	 2019-07-10	armv6l	512 MB	gcc 8.3.0	Pi Zero W	16-Jul-21	
+Ubuntu	21.04	AArch64	8 GB	gcc 7.5.0	Pi 4B 8GB	07-Jan-21	
+Ubuntu Mate	20.10	AArch64	8 GB	gcc 10.2.0	Pi 4B 4GB	07-Jan-21	
+Manjaro	20.12	AArch64	8 GB	gcc 10.2.0	Pi 4B 4GB	19-Jan-21	
+							
+Freebsd	12.2	arm64		Clang 10	Pi 3B+	08-Apr-21	'mainsize' test is skipped
+Freebsd	12.2	x86_64		Clang 10	Vmware	11-Oct-21	
+Freebsd	13.0 RC5	arm64		Clang 11	Pi 4B	12-Apr-21	
+NetBSD	9.0	amd64			AMD64 Server	not ready yet	
+OpenBSD	7.1	amd64	6 GB	Clang 13	Vmware	not ready yet	trouble with dlopen()
+							
+MacOS	10.13.6	amd64		Clang 10.0.0	VMware	06-Jul-21	High Sierra
+MacOS	10.14.6	amd64		Clang 10	VMware	02-May-21	Mojave
+MacOS	10.15	amd64			VMware		Catalina
+MacOS	11.5.1	amd64		Clang 12.0.5	VMware	28-Aug-21	Big Sur (Homebrew)
+MacOS	11.5.1	amd64		Clang 12.0.5	VMware	28-Aug-21	Big Sur (MacPorts)
+MacOS	12	amd64		Clang 13	VMware	01-Oct-21	Monterey (Beta)
+MacOS	11.4	Apple M1		Clang 12.0.5	Mac Mini M1	06-Jul-21	Big Sur
+							
