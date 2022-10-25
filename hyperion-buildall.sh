@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 13 SEP 2022
+# Updated: 27 SEP 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 27 SEP 2022
+# - add support for OpenBSD (tested with 7.1)
 #
 # Updated: 13 SEP 2022
 # - fix broken Debian 32-bit
@@ -1493,7 +1496,42 @@ detect_system()
 
 #------------------------------------------------------------------------------
     elif [ "$os_name" = "OpenBSD" ]; then
-        error_msg "OpenBSD is not yet supported!"
+        verbose_msg "OpenBSD is not yet supported!"
+
+        version_distro="openbsd"
+        version_id="openbsd"
+
+        HH_SUDOCMD="doas"
+        add_build_entry "HH_SUDOCMD=\"doas\""
+
+        version_memory_size="$(($(sysctl -n hw.physmem) / 1024 / 1024))"
+        verbose_msg "Memory Total (MB): $(($(sysctl -n hw.physmem) / 1024 / 1024))"
+
+        # sysctl hw.model
+        # hw.model: ARM Cortex-A53 r0p4
+        version_freebsd_model="$(sysctl hw.model | cut -f2 -d: | awk '{$1=$1};1')"
+        verbose_msg "CPU Model        : $(sysctl hw.model | cut -f2 -d: | awk '{$1=$1};1')"
+
+        # 12.2-RELEASE
+        version_str=$(uname -r)
+
+        verbose_msg "VERSION_ID       : $version_id"
+        verbose_msg "VERSION_STR      : $version_str"
+
+        version_substr=$(echo $version_str | cut -f1 -d-)
+        # verbose_msg "VERSION_SUBSTR   : $version_substr"
+        version_major=$(echo $version_substr | cut -f1 -d.)
+        # verbose_msg "VERSION_MAJOR    : $version_major"
+        version_minor=$(echo $version_substr | cut -f2 -d.)
+        # verbose_msg "VERSION_MINOR    : $version_minor"
+
+        # show the default language
+        # i.e. LANG=en_US.UTF-8
+        verbose_msg "Language         : <unknown>"
+
+        if [[ $version_major -ge 7 ]]; then
+          os_is_supported=true
+        fi
 
 #------------------------------------------------------------------------------
     elif [ "$os_name" = "FreeBSD" ]; then
@@ -1670,7 +1708,7 @@ detect_bitness()
              os_osis64bit=yes
           fi
           ;;
-       FreeBSD)
+       FreeBSD|OpenBSD)
           mach="`uname -m`"
           if test "$mach" = "amd64"; then
              os_bitflag="64"
@@ -2887,10 +2925,51 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
   fi
 
 #-----------------------------------------------------------------------------
+  # OpenBSD
+
+  if [[ $version_id == openbsd* ]]; then
+      if [[ $version_major -ge 7 ]]; then
+          echo "OpenBSD version 7 or later found"
+
+          declare -a openbsd_packages=( \
+              "git" "wget" \
+              "autoconf-2.71" "automake-1.16.3" "cmake" "flex" "gawk" "m4" \
+              "bzip2" \
+              "gmake" "libltdl" "libtool"
+          )
+
+          echo "Required packages: "
+          echo "${openbsd_packages[*]}"
+          echo    # print a newline
+
+          # update package lists
+          doas pkg_add -u links
+
+          for package in "${openbsd_packages[@]}"; do
+              echo "-----------------------------------------------------------------"
+              echo "Checking for package: $package"
+
+              is_installed=$(pkg_info | grep "$package")
+              status=$?
+
+              # install if missing
+              if [ $status -eq 0 ] ; then
+                  echo "package: $package is already installed"
+              else
+                  echo "installing package: $package"
+                  $HH_SUDOCMD pkg_add $package
+              fi
+          done
+      fi
+
+    return
+  fi
+
+#-----------------------------------------------------------------------------
   # Slackware
 
   if [[ $version_id == slackware* ]]; then
-          echo "FreeBSD (version ?? or later) found"
+          echo "Slackware (version ?? or later) found"
 
           declare -a slackware_packages=( \
               "git" "wget" \
@@ -3389,8 +3468,8 @@ else
         regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib64"
     fi
 
-    # For FreeBSD, Clang doesn't seem to know about /usr/local
-    if [[ $version_id == freebsd* ]]; then
+    # For FreeBSD and OpenBSD, Clang doesn't seem to know about /usr/local
+    if [[ $version_id == freebsd* || $version_id == openbsd* ]]; then
         export CFLAGS="$CFLAGS -I/usr/local/include"
         export LDFLAGS="$LDFLAGS -L/usr/lib -L/usr/local/lib"
     fi
@@ -3947,8 +4026,8 @@ for example, in Debian: sudo apt install libregina3-dev
     if [[ $version_id == alpine* ]]; then
         verbose_msg "Disabling IPv6 support for Alpine Linux"
         enable_ipv6_option="--disable-ipv6"
-    elif [[ $version_id == freebsd* ]]; then
-        verbose_msg "Disabling IPv6 support for FreeBSD"
+    elif [[ $version_id == freebsd* || $version_id == openbsd* ]]; then
+        verbose_msg "Disabling IPv6 support for FreeBSD/OpenBSD"
         enable_ipv6_option="--disable-ipv6"
     else
         enable_ipv6_option=""
@@ -4045,8 +4124,8 @@ echo
         fi
     fi
 
-    # For FreeBSD, Clang doesn't seem to know about /usr/local
-    if [[ $version_id == freebsd* ]]; then
+    # For FreeBSD / OpenBSD, Clang doesn't seem to know about /usr/local
+    if [[ $version_id == freebsd*|| $version_id == openbsd* ]]; then
         export CFLAGS="$CFLAGS -I/usr/local/include"
         export LDFLAGS="$LDFLAGS -L/usr/local/lib"
     fi
@@ -4080,6 +4159,8 @@ echo
         add_build_entry "export LDFLAGS=\"\$LDFLAGS -L\$(dirname \$(port contents libtool | grep \"libltdl.a\" | head -n 1))\""
         export CFLAGS="$CFLAGS -I$(dirname $(port contents libtool | grep "ltdl.h" | head -n 1))"
         export LDFLAGS="$LDFLAGS -L$(dirname $(port contents libtool | grep "libltdl.a" | head -n 1))"
+    elif [[ $version_id == freebsd*|| $version_id == openbsd* ]]; then
+        without_included_ltdl_option="--without-included-ltdl"
     else
         without_included_ltdl_option=""
     fi
@@ -4170,9 +4251,9 @@ fi
 
 nprocs=$(($nprocs>4 ? 4: $nprocs))
 
-# For FreeBSD, BSD make acts up, so we'll use gmake.
+# For FreeBSD, OpenBSD, BSD make acts up, so we'll use gmake.
 
-if [[ $version_id == freebsd* ]]; then
+if [[ $version_id == freebsd* || $version_id == openbsd* ]]; then
     make_clean_cmd="gmake clean"
     make_cmd="time gmake -j $nprocs 2>&1"
 else
@@ -4225,7 +4306,7 @@ else
     verbose_msg "Be patient, this can take a while with no output."
     verbose_msg    # output a newline
 
-    if [[ $version_id == freebsd* ]]; then
+    if [[ $version_id == freebsd* || $version_id == openbsd* ]]; then
         make_check_cmd="gmake check"
 
     else
@@ -4280,7 +4361,7 @@ verbose_msg "-----------------------------------------------------------------
 if (! $dostep_install); then
     verbose_msg "Skipping step: install (--no-install)"
 else
-    if [[ $version_id == freebsd* ]]; then
+    if [[ $version_id == freebsd* || $version_id == openbsd* ]]; then
         make_install_cmd="time gmake install 2>&1"
     else
         make_install_cmd="time make install 2>&1"
