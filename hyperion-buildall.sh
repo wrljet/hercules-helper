@@ -52,6 +52,7 @@
 #
 # Updated: 16 NOV 2022
 # - add support for CentOS 9 Stream
+#   thanks to Matthew Wilson for fixing this and Michael Richmond for finding it
 #
 # Updated: 27 SEP 2022
 # - add support for OpenBSD (tested with 7.1)
