@@ -1,6 +1,6 @@
 https://github.com/wrljet/hercules-helper							
 							
-This chart updated:		10/21/2022					
+This chart updated:		11/16/2022					
 The hercules-helper scripts are tested (occassionally) on these systems:							
 							
 VMware indicates VMware 16 running on Windows 10 running on Intel i7 CPU							
@@ -12,9 +12,11 @@ Target OS	OS Version	CPU	RAM	Compiler	System	Date Tested	Notes / Problems
 Windows 10	Pro 20H2	x86_64	6 GB	VS2017/2019	Vmware	25-Feb-21	
 							
 AlmaLinux	8.4	x86_64	4 GB	gcc 8.4.1	VMware	16-Jul-21	
+CentOS	Stream 9	x86_64	6 GB	gcc 11.3.1	VMware	16-Nov-22	
 CentOS	Stream 8	x86_64		gcc 8.4.1	VMware	14-Jan-21	
 CentOS	8.2.2004	x86_64		gcc 8.3.1	VMware	14-Jan-21	
 CentOS	7.9.2009	x86_64		gcc 4.8.5	VMware	14-Jan-21	
+Fedora	37	x86_64	6 GB	gcc 12.2.1	VMware	15-Nov-22	
 Fedora	36	x86_64	4 GB	gcc 12.2.1	VMware	13-Sep-22	
 							
 Debian	11	x86_64	6 GB	gcc 10.2.1	VMware	13-Sep-22	
