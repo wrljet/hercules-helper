@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # helper-check-packages.sh
-# Updated: 26 NOV 2021
+# Updated: 16 NOV 2022
 
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git

@@ -51,8 +51,8 @@
 #
 #
 # Updated: 16 NOV 2022
-# - add support for CentOS 9 Stream
-#   thanks to Matthew Wilson for fixing this and Michael Richmond for finding it
+# - add support for CentOS 9 Stream, AlmaLinux 9, and Rocky Linux 9
+#   thanks to Matthew Wilson the fix, and Michael Richmond for finding it
 #
 # Updated: 27 SEP 2022
 # - add support for OpenBSD (tested with 7.1)
@@ -2492,9 +2492,14 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               "git" "wget" "time" \
               "gcc" "make" "flex" "gawk" "m4" \
               "autoconf" "automake" "libtool-ltdl-devel" "libtool" \
-              "cmake"
+              "cmake" \
               "bzip2-devel" "zlib-devel"
               )
+
+          if [[ $version_major -ge 9 ]]; then
+              echo "Enabling CRB repository"
+              $HH_SUDOCMD yum config-manager --set-enabled crb
+          fi
 
           for package in "${almalinux_packages[@]}"; do
               echo "-----------------------------------------------------------------"
