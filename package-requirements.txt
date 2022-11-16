@@ -48,6 +48,12 @@ For Regina REXX:
 
     Note: On CentOS 7, there is no package for CMAKE 3.x, Must be built from source.
 
+# CentOS 9 Stream
+    sudo yum config-manager --set-enabled crb
+    sudo yum -y install git wget
+    sudo yum -y install gcc make cmake flex gawk m4 autoconf automake libtool-ltdl-devel libtool  time
+    sudo yum -y install bzip2-devel zlib-devel
+
 #-----------------------------------------------------------------------------
 # openSUSE (15.1)
 

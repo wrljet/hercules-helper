@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 27 SEP 2022
+# Updated: 16 NOV 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+#
+# Updated: 16 NOV 2022
+# - add support for CentOS 9 Stream
 #
 # Updated: 27 SEP 2022
 # - add support for OpenBSD (tested with 7.1)
@@ -2567,14 +2571,19 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               )
           fi
 
-          if [[ $version_major -eq 8 ]]; then
+          if [[ $version_major -ge 8 ]]; then
               declare -a centos_packages=( \
-                  "git" "wget" \
+                  "git" "wget" "time" \
                   "gcc" "make" "flex" "gawk" "m4" \
                   "autoconf" "automake" "libtool-ltdl-devel" \
-                  "cmake"
+                  "cmake" \
                   "bzip2-devel" "zlib-devel"
               )
+          fi
+
+          if [[ $version_major -ge 9 ]]; then
+              echo "enabling CRB repository"
+              $HH_SUDOCMD yum config-manager --set-enabled crb
           fi
 
           for package in "${centos_packages[@]}"; do

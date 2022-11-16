@@ -719,11 +719,11 @@ check_packages()
               )
           fi
 
-          if [[ $version_major -eq 8 ]]; then
+          if [[ $version_major -ge 8 ]]; then
               declare -a packages=( \
                   "gcc" "make" "flex" "gawk" "m4" \
                   "autoconf" "automake" "libtool-ltdl-devel" \
-                  "cmake"
+                  "cmake" "time" \
                   "bzip2-devel" "zlib-devel"
               )
           fi
