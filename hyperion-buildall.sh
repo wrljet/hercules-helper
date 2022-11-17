@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 16 NOV 2022
+# Updated: 17 NOV 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -49,6 +49,8 @@
 
 # Changelog:
 #
+# Updated: 16 NOV 2022
+# - add support for RedHat RHEL 9
 #
 # Updated: 16 NOV 2022
 # - add support for CentOS 9 Stream, AlmaLinux 9, and Rocky Linux 9
@@ -1085,6 +1087,16 @@ detect_system()
 # VERSION_ID=34
 # PRETTY_NAME="Fedora 34 (Workstation Edition)"
 
+# /etc/os-release
+#
+# NAME="Red Hat Enterprise Linux"
+# VERSION="9.1 (Plow)"
+# ID="rhel"
+# ID_LIKE="fedora"
+# VERSION_ID="9.1"
+# PLATFORM_ID="platform:el9"
+# PRETTY_NAME="Red Hat Enterprise Linux 9.1 (Plow)"
+
     verbose_msg "System detection:"
 
     RPI_MODEL=""
@@ -1265,6 +1277,34 @@ detect_system()
             verbose_msg "VERSION_MINOR    : $version_minor"
 
             if [[ $version_major -ge 7 ]]; then
+              os_is_supported=true
+            fi
+        fi
+
+        # Look for RedHat
+# NAME="Red Hat Enterprise Linux"
+# VERSION="9.1 (Plow)"
+# ID="rhel"
+# ID_LIKE="fedora"
+# VERSION_ID="9.1"
+# PLATFORM_ID="platform:el9"
+# PRETTY_NAME="Red Hat Enterprise Linux 9.1 (Plow)"
+
+        if [[ $version_id == rhel* ]]; then
+            verbose_msg "We have a RedHat RHEL system"
+
+            # cat /etc/redhat-release
+            # Red Hat Enterprise Linux release 9.1 (Plow)
+            redhat_vers=$(cat /etc/redhat-release) || true
+
+            redhat_vers="${redhat_vers#*release }"
+            redhat_vers="${redhat_vers/-/.}"
+
+            version_distro="redhat"
+            version_major=$(echo $redhat_vers | cut -f1 -d'.')
+            verbose_msg "VERSION_MAJOR    : $version_major"
+
+            if [[ $version_major -ge 9 ]]; then
               os_is_supported=true
             fi
         fi
@@ -2482,11 +2522,23 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
   fi
 
 #-----------------------------------------------------------------------------
-  # Alma or Rocky Linux
+  # CentOS, Alma, or Rocky Linux
 
-  if [[ $version_id == almalinux* || $version_id == rocky* ]]; then
+# To update/add packages on RedHat requires some fiddling around.
+#
+# sudo subscription-manager register --username wrljet --force
+# sudo subscription-manager syspurpose role --set "Red Hat Enterprise Linux Workstation"
+
+# To get ltdl.h and friends, requires special fiddling around
+# after version 9.  Refer to:
+# https://www.redhat.com/sysadmin/install-epel-linux
+
+  if [[ $version_id == rhel* ||
+        $version_id == almalinux* ||
+        $version_id == rocky* ]];
+      then
       if [[ $version_major -ge 8 ]]; then
-          echo "Alma or Rocky Linux version 8 or later found"
+          echo "RedHat, Alma, or Rocky Linux version 8 or later found"
 
           declare -a almalinux_packages=( \
               "git" "wget" "time" \
@@ -2497,8 +2549,13 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               )
 
           if [[ $version_major -ge 9 ]]; then
-              echo "Enabling CRB repository"
-              $HH_SUDOCMD yum config-manager --set-enabled crb
+              if [[ $version_id == rhel* ]]; then
+                  echo "Enabling CodeReady Linux Builder repository"
+                  $HH_SUDOCMD subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
+              else
+                  echo "Enabling CRB repository"
+                  $HH_SUDOCMD yum config-manager --set-enabled crb
+              fi
           fi
 
           for package in "${almalinux_packages[@]}"; do
@@ -4416,9 +4473,9 @@ else
         verbose_msg "Step: setcap operations so Hercules can run without elevated privileges:"
 
         HH_SETCAP="setcap"
-	if [[ "$version_distro" == "slackware" ]];
+        if [[ "$version_distro" == "slackware" ]];
         then
-	    HH_SETCAP="/sbin/setcap"
+            HH_SETCAP="/sbin/setcap"
         fi
 
         verbose_msg    # output a newline
