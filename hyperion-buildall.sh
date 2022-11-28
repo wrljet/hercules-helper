@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 17 NOV 2022
+# Updated: 28 NOV 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 28 NOV 2022
+# - fix NetBSD support (inadvertently broken recently)
+# - add helper-build-regina-netbsd.sh
 #
 # Updated: 16 NOV 2022
 # - add support for RedHat RHEL 9
@@ -1753,7 +1757,7 @@ detect_bitness()
              os_osis64bit=yes
           fi
           ;;
-       FreeBSD|OpenBSD)
+       FreeBSD|OpenBSD|NetBSD)
           mach="`uname -m`"
           if test "$mach" = "amd64"; then
              os_bitflag="64"
