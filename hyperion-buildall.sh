@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 28 NOV 2022
+# Updated: 01 DEC 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -49,8 +49,11 @@
 
 # Changelog:
 #
+# Updated: 01 DEC 2022
+# - correct bitness checks on NetBSD for sparc64
+#
 # Updated: 28 NOV 2022
-# - fix NetBSD support (inadvertently broken recently)
+# - correct bitness checks on NetBSD for amd64
 # - add helper-build-regina-netbsd.sh
 #
 # Updated: 16 NOV 2022
@@ -1759,7 +1762,7 @@ detect_bitness()
           ;;
        FreeBSD|OpenBSD|NetBSD)
           mach="`uname -m`"
-          if test "$mach" = "amd64"; then
+          if test "$mach" = "amd64" -o "$mach" = "sparc64" ; then
              os_bitflag="64"
              os_osis64bit=yes
           fi
