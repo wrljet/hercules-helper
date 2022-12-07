@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 01 DEC 2022
+# Updated: 06 DEC 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 06 DEC 2022
+# - add support for Gentoo (thanks to Gavin de la Rey)
 #
 # Updated: 01 DEC 2022
 # - correct bitness checks on NetBSD for sparc64
@@ -1150,6 +1153,20 @@ detect_system()
         if [[ $version_id == slackware* ]];
         then
             version_distro="slackware"
+            version_major=$(echo $version_str | cut -f1 -d.)
+            version_minor=$(echo $version_str | cut -f2 -d.)
+
+            verbose_msg "OS               : $version_distro variant"
+            verbose_msg "OS Version       : $version_major"
+
+            os_is_supported=true
+        fi
+
+        # Look for Gentoo Linux
+
+        if [[ $version_id == gentoo* ]];
+        then
+            version_distro="gentoo"
             version_major=$(echo $version_str | cut -f1 -d.)
             version_minor=$(echo $version_str | cut -f2 -d.)
 
@@ -3076,6 +3093,43 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
                   echo "Installing package: $package"
                   $HH_SUDOCMD /usr/sbin/slackpkg install $package
               # fi
+          done
+    return
+  fi
+
+#-----------------------------------------------------------------------------
+  # Gentoo
+
+  if [[ $version_id == gentoo* ]]; then
+          echo "Gentoo (version ?? or later) found"
+
+          declare -a gentoo_packages=( \
+              "dev-vcs/git" "sys-process/time" "net-misc/wget" \
+              "sys-devel/autoconf" "sys-devel/automake" \
+              "dev-util/cmake" "sys-devel/flex" "sys-apps/gawk" "sys-devel/m4" \
+              "app-arch/bzip2" \
+              "sys-devel/make" "sys-devel/libtool"
+          )
+
+          echo "Required packages: "
+          echo "${gentoo_packages[*]}"
+          echo    # print a newline
+
+          for package in "${gentoo_packages[@]}"; do
+              echo "-----------------------------------------------------------------"
+              echo "Checking for package: $package"
+
+              is_installed=$(/usr/bin/equery list $package)
+              status=$?
+
+              # install if missing
+              if [ $status -eq 0 ] ; then
+                  echo "package: $package is already installed"
+              else
+                  echo "$package : must be installed"
+                  echo "Installing package: $package"
+                  $HH_SUDOCMD /usr/bin/emerge -av $package
+              fi
           done
     return
   fi
