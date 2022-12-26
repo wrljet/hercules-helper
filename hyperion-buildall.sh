@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 06 DEC 2022
+# Updated: 26 DEC 2022
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +48,9 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 26 DEC 2022
+# - add initial support for Debian GNU Hurd
 #
 # Updated: 06 DEC 2022
 # - add support for Gentoo (thanks to Gavin de la Rey)
@@ -1735,6 +1738,54 @@ detect_system()
             echo "Apple macOS version $version_major.$version_minor found, is currently unsupported"
             exit 1
         fi
+	#
+#------------------------------------------------------------------------------
+    elif [ "$os_name" = "GNU" ]; then
+        version_id="??? unknown ???"
+        version_id_like="??? unknown ???"
+        version_pretty_name="??? unknown ???"
+        version_str="??? unknown ???"
+
+# PRETTY_NAME="Debian GNU/Hurd bookworm/sid"
+# NAME="Debian GNU/Hurd"
+# VERSION_CODENAME=bookworm
+# ID=debian
+# HOME_URL="https://www.debian.org/"
+# SUPPORT_URL="https://www.debian.org/support"
+# BUG_REPORT_URL="https://bugs.debian.org/"
+#
+# uname -r
+# 0.9
+
+        if [ -f /etc/os-release ]; then
+            # awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release
+            version_id=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+            # echo "VERSION_ID is $version_id"
+
+            version_id_like="GNU"
+            # echo "VERSION_ID_LIKE is $version_id_like"
+
+            version_pretty_name=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+            # echo "VERSION_PRETTY_NAME is $version_pretty_name"
+
+            version_str=$(uname -r)
+            # echo "VERSION_STR is $version_str"
+        fi
+
+        if [[ $version_id =~ debian* ]];
+        then
+            version_distro="debian"
+            os_is_supported=true
+        fi
+
+        version_memory_size="$(free -m | awk '/^Mem:/{print $2}')"
+        verbose_msg "Memory Total (MB): $version_memory_size"
+        verbose_msg "Memory Free  (MB): $(free -m | awk '/^Mem:/{print $4}')"
+
+        verbose_msg "VERSION_ID       : $version_id"
+        verbose_msg "VERSION_ID_LIKE  : $version_id_like"
+        verbose_msg "VERSION_PRETTY   : $version_pretty_name"
+        verbose_msg "VERSION_STR      : $version_str"
     fi
 }
 
@@ -2332,13 +2383,22 @@ prepare_packages()
   # Look for Debian/Ubuntu/Mint
 
   if [ "$version_distro" == "debian"  ]; then
-      declare -a debian_packages=( \
-          "git" "wget" "time" "ncat" \
-          "build-essential" "cmake" \
-          "autoconf" "automake" "flex" "gawk" "m4" "libltdl-dev" "libtool-bin" \
-          "libcap2-bin" \
-          "libbz2-dev" "zlib1g-dev"
-      )
+      if [ "$os_name" = "GNU" ]; then
+          declare -a debian_packages=( \
+            "git" "wget" "time" "ncat" \
+            "build-essential" "cmake" \
+            "autoconf" "automake" "flex" "gawk" "m4" "libltdl-dev" "libtool-bin" \
+            "libbz2-dev" "zlib1g-dev"
+          )
+      else
+          declare -a debian_packages=( \
+            "git" "wget" "time" "ncat" \
+            "build-essential" "cmake" \
+            "autoconf" "automake" "flex" "gawk" "m4" "libltdl-dev" "libtool-bin" \
+            "libcap2-bin" \
+            "libbz2-dev" "zlib1g-dev"
+          )
+      fi
 
       add_build_entry # newline
       add_build_entry "# Install required packages: "
@@ -4162,6 +4222,9 @@ for example, in Debian: sudo apt install libregina3-dev
     elif [[ $version_id == freebsd* || $version_id == openbsd* ]]; then
         verbose_msg "Disabling IPv6 support for FreeBSD/OpenBSD"
         enable_ipv6_option="--disable-ipv6"
+    elif [[ $version_id_like == GNU* ]]; then
+        verbose_msg "Disabling IPv6 support for GNU (Hurd/Mach)"
+        enable_ipv6_option="--disable-ipv6"
     else
         enable_ipv6_option=""
     fi
@@ -4527,6 +4590,9 @@ else
 
     elif [[ ! -z "$RPI_MODEL" && "$RPI_MODEL" =~ "Raspberry" && $RPI_CPUS = 1 ]]; then
         verbose_msg "Skipping step: setcap operations on Raspberry Pi with single CPU core."
+
+    elif [[ "$os_name" = "GNU" ]]; then
+        verbose_msg "Skipping step: setcap operations on GNU Hurd."
 
     elif (! $dostep_setcap); then
         verbose_msg "Skipping step: setcap (--no-setcap)"
