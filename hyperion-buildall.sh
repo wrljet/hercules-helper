@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 26 DEC 2022
+# Updated: 27 DEC 2022
+VERSION_STR=v0.9.12+
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -48,6 +49,10 @@
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 27 DEC 2022
+# - add --version option
+# - rename various version related variables
 #
 # Updated: 26 DEC 2022
 # - add initial support for Debian GNU Hurd
@@ -739,13 +744,13 @@ debug=${debug:-""}
 DEBUG=${DEBUG:-""}
 
 version_distro=""
-version_id=""
-version_rpidesktop=0
-version_wsl=0
-version_freebsd_cpu=""
-version_freebsd_model=""
-version_memory_size=""
-version_multicore_with_low_memory=false
+os_version_id=""
+os_version_rpidesktop=0
+os_version_wsl=0
+os_version_freebsd_cpu=""
+os_version_freebsd_model=""
+os_version_memory_size=""
+os_version_multicore_with_low_memory=false
 version_regina=0
 
 uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
@@ -846,9 +851,12 @@ pushd "$(dirname "$0")" >/dev/null;
 
     if [ -z $which_git ]; then
         # verbose_msg "git is not installed"
-        version_info=""
+        version_info="$VERSION_STR"
+    elif [ ! -d "$SCRIPT_DIR/.git" ]; then
+        # verbose_msg "not a git repo"
+        version_info="$VERSION_STR"
     else
-        version_info="$SCRIPT_DIR/$(basename $0): $(git describe --long --tags --dirty --always 2>/dev/null)"
+        version_info="$(git describe --long --tags --dirty --always 2>/dev/null)"
     fi
 popd > /dev/null;
 
@@ -861,6 +869,7 @@ Options:
   -h,  --help         print this help
   -t,  --trace        print every command (set -x)
   -v,  --verbose      print lots of messages
+       --version      prints version info and exits
   -p,  --prompts      print a prompt before each major step
        --config=FILE  specify config file containing options
   -s,  --sudo         use \'sudo\' for installing
@@ -1022,9 +1031,9 @@ function detect_pi()
         # Running parallel 'make' jobs on this will cause the Linux
         # Out-Of-Memory killer to kick in.
 
-        if [[ $RPI_CPUS -gt 1 && $version_memory_size -lt 1000 ]]; then
+        if [[ $RPI_CPUS -gt 1 && $os_version_memory_size -lt 1000 ]]; then
             verbose_msg "                 : Multi-core Raspberry Pi with low memory"
-            version_multicore_with_low_memory=true
+            os_version_multicore_with_low_memory=true
         fi
     fi
 }
@@ -1122,42 +1131,42 @@ detect_system()
     verbose_msg "Machine Arch     : $machine"
 
     if [ "$os_name" = "Linux" ]; then
-        version_id="??? unknown ???"
-        version_id_like="??? unknown ???"
-        version_pretty_name="??? unknown ???"
-        version_str="??? unknown ???"
+        os_version_id="??? unknown ???"
+        os_version_id_like="??? unknown ???"
+        os_version_pretty_name="??? unknown ???"
+        os_version_str="??? unknown ???"
 
         if [ -f /etc/os-release ]; then
             # awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release
-            version_id=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-            # echo "VERSION_ID is $version_id"
+            os_version_id=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+            # echo "VERSION_ID is $os_version_id"
 
-            version_id_like=$(awk -F= '$1=="ID_LIKE" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-            # echo "VERSION_ID_LIKE is $version_id_like"
+            os_version_id_like=$(awk -F= '$1=="ID_LIKE" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+            # echo "VERSION_ID_LIKE is $os_version_id_like"
 
-            version_pretty_name=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-            # echo "VERSION_STR is $version_str"
+            os_version_pretty_name=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+            # echo "VERSION_STR is $os_os_version_str"
 
-            version_str=$(awk -F= '$1=="VERSION_ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-            # echo "VERSION_STR is $version_str"
+            os_version_str=$(awk -F= '$1=="VERSION_ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+            # echo "VERSION_STR is $os_version_str"
         fi
 
-        version_memory_size="$(free -m | awk '/^Mem:/{print $2}')"
-        verbose_msg "Memory Total (MB): $version_memory_size"
+        os_version_memory_size="$(free -m | awk '/^Mem:/{print $2}')"
+        verbose_msg "Memory Total (MB): $os_version_memory_size"
         verbose_msg "Memory Free  (MB): $(free -m | awk '/^Mem:/{print $4}')"
 
-        verbose_msg "VERSION_ID       : $version_id"
-        verbose_msg "VERSION_ID_LIKE  : $version_id_like"
-        verbose_msg "VERSION_PRETTY   : $version_pretty_name"
-        verbose_msg "VERSION_STR      : $version_str"
+        verbose_msg "VERSION_ID       : $os_version_id"
+        verbose_msg "VERSION_ID_LIKE  : $os_version_id_like"
+        verbose_msg "VERSION_PRETTY   : $os_version_pretty_name"
+        verbose_msg "VERSION_STR      : $os_version_str"
 
         # Look for Slackware Linux
 
-        if [[ $version_id == slackware* ]];
+        if [[ $os_version_id == slackware* ]];
         then
             version_distro="slackware"
-            version_major=$(echo $version_str | cut -f1 -d.)
-            version_minor=$(echo $version_str | cut -f2 -d.)
+            version_major=$(echo $os_version_str | cut -f1 -d.)
+            version_minor=$(echo $os_version_str | cut -f2 -d.)
 
             verbose_msg "OS               : $version_distro variant"
             verbose_msg "OS Version       : $version_major"
@@ -1167,11 +1176,11 @@ detect_system()
 
         # Look for Gentoo Linux
 
-        if [[ $version_id == gentoo* ]];
+        if [[ $os_version_id == gentoo* ]];
         then
             version_distro="gentoo"
-            version_major=$(echo $version_str | cut -f1 -d.)
-            version_minor=$(echo $version_str | cut -f2 -d.)
+            version_major=$(echo $os_version_str | cut -f1 -d.)
+            version_minor=$(echo $os_version_str | cut -f2 -d.)
 
             verbose_msg "OS               : $version_distro variant"
             verbose_msg "OS Version       : $version_major"
@@ -1181,11 +1190,11 @@ detect_system()
 
         # Look for Alpine Linux
 
-        if [[ $version_id == alpine* ]];
+        if [[ $os_version_id == alpine* ]];
         then
             version_distro="alpine"
-            version_major=$(echo $version_str | cut -f1 -d.)
-            version_minor=$(echo $version_str | cut -f2 -d.)
+            version_major=$(echo $os_version_str | cut -f1 -d.)
+            version_minor=$(echo $os_version_str | cut -f2 -d.)
 
             verbose_msg "OS               : $version_distro variant"
             verbose_msg "OS Version       : $version_major"
@@ -1196,12 +1205,12 @@ detect_system()
 
         # Look for Manjaro
 
-        if [[ $version_id == arch* || $version_id == manjaro* ]];
+        if [[ $os_version_id == arch* || $os_version_id == manjaro* ]];
         then
             version_distro="arch"
-            version_str=$(awk -F= '$1=="DISTRIB_RELEASE" { gsub(/"/, "", $2); print $2 ;}' /etc/lsb-release)
-            version_major=$(echo $version_str | cut -f1 -d.)
-            version_minor=$(echo $version_str | cut -f2 -d.)
+            os_version_str=$(awk -F= '$1=="DISTRIB_RELEASE" { gsub(/"/, "", $2); print $2 ;}' /etc/lsb-release)
+            version_major=$(echo $os_version_str | cut -f1 -d.)
+            version_minor=$(echo $os_version_str | cut -f2 -d.)
 
             verbose_msg "OS               : $version_distro variant"
             verbose_msg "OS Version       : $version_major"
@@ -1210,26 +1219,26 @@ detect_system()
 
         # Look for Debian/Ubuntu/Mint
 
-        if [[ $version_id == debian*   || $version_id == ubuntu*    || \
-              $version_id == neon*     || $version_id == linuxmint* || \
-              $version_id == raspbian* || $version_id == zorin*     || \
-              $version_id == pop*      ]];
+        if [[ $os_version_id == debian*   || $os_version_id == ubuntu*    || \
+              $os_version_id == neon*     || $os_version_id == linuxmint* || \
+              $os_version_id == raspbian* || $os_version_id == zorin*     || \
+              $os_version_id == pop*      ]];
         then
             version_distro="debian"
-            version_major=$(echo $version_str | cut -f1 -d.)
-            version_minor=$(echo $version_str | cut -f2 -d.)
+            version_major=$(echo $os_version_str | cut -f1 -d.)
+            version_minor=$(echo $os_version_str | cut -f2 -d.)
 
             verbose_msg "OS               : $version_distro variant"
             verbose_msg "OS Version       : $version_major"
             os_is_supported=true
         fi
 
-        if [[ $version_id == raspbian* ]]; then
+        if [[ $os_version_id == raspbian* ]]; then
             echo "$(cat /boot/issue.txt | head -1)"
         fi
 
         # Look for Rocky Linux
-        if [[ $version_id == rocky* ]]; then
+        if [[ $os_version_id == rocky* ]]; then
             verbose_msg "We have an Rocky Linux system"
 
             # Rocky Linux 8.6
@@ -1253,7 +1262,7 @@ detect_system()
         fi
 
         # Look for AlmaLinux
-        if [[ $version_id == almalinux* ]]; then
+        if [[ $os_version_id == almalinux* ]]; then
             verbose_msg "We have an AlmaLinux system"
 
             # AlmaLinux 8.4
@@ -1277,7 +1286,7 @@ detect_system()
         fi
 
         # Look for CentOS
-        if [[ $version_id == centos* ]]; then
+        if [[ $os_version_id == centos* ]]; then
             verbose_msg "We have a CentOS system"
 
             # CENTOS_VERS="centos-release-7-8.2003.0.el7.centos.x86_64"
@@ -1317,7 +1326,7 @@ detect_system()
 # PLATFORM_ID="platform:el9"
 # PRETTY_NAME="Red Hat Enterprise Linux 9.1 (Plow)"
 
-        if [[ $version_id == rhel* ]]; then
+        if [[ $os_version_id == rhel* ]]; then
             verbose_msg "We have a RedHat RHEL system"
 
             # cat /etc/redhat-release
@@ -1343,7 +1352,7 @@ detect_system()
 # VERSION_ID=34
 # PRETTY_NAME="Fedora 34 (Workstation Edition)"
 
-        if [[ $version_id == fedora* ]]; then
+        if [[ $os_version_id == fedora* ]]; then
             verbose_msg "We have a Fedora system"
 
             # cat /etc/redhat-release
@@ -1368,11 +1377,11 @@ detect_system()
 # VERSION_PRETTY   : Mageia 8
 # VERSION_STR      : 8
 
-        if [[ $version_id == mageia* ]]; then
+        if [[ $os_version_id == mageia* ]]; then
             verbose_msg "We have a Mageia system"
 
             version_distro="redhat"
-            version_major=$(echo $version_str | cut -f1 -d' ')
+            version_major=$(echo $os_version_str | cut -f1 -d' ')
             verbose_msg "VERSION_MAJOR    : $version_major"
 
             if [[ $version_major -ge 8 ]]; then
@@ -1395,12 +1404,12 @@ detect_system()
 # PRIVACY_POLICY_URL="http://www.intel.com/privacy"
 # BUILD_ID=35130
 
-        if [[ $version_id == clear-linux-os* ]]; then
+        if [[ $os_version_id == clear-linux-os* ]]; then
             verbose_msg "We have a Intel Clear Linux system"
 
             version_distro="clear-linux"
-            version_major=$(echo $version_str | cut -f1 -d.)
-            version_minor=$(echo $version_str | cut -f2 -d.)
+            version_major=$(echo $os_version_str | cut -f1 -d.)
+            version_minor=$(echo $os_version_str | cut -f2 -d.)
 
             verbose_msg "OS               : $version_distro variant"
             verbose_msg "OS Version       : $version_major"
@@ -1423,12 +1432,12 @@ detect_system()
 # VERSION_STR      : 6
 # Language         : LANG=ru_RU.UTF-8
 
-        if [[ $version_id == elbrus* ]]; then
+        if [[ $os_version_id == elbrus* ]]; then
             verbose_msg "We have an Elbrus Linux system"
 
             version_distro="elbrus"
-            version_major=$(echo $version_str | cut -f1 -d.)
-            version_minor=$(echo $version_str | cut -f2 -d.)
+            version_major=$(echo $os_version_str | cut -f1 -d.)
+            version_minor=$(echo $os_version_str | cut -f2 -d.)
 
             verbose_msg "OS               : $version_distro variant"
             verbose_msg "OS Version       : $version_major"
@@ -1440,12 +1449,12 @@ detect_system()
 #######################################################
 
         # Look for openSUSE
-        if [[ $version_id == opensuse* || \
-              $version_id == sles*     ]];
+        if [[ $os_version_id == opensuse* || \
+              $os_version_id == sles*     ]];
         then
             version_distro="openSUSE"
-            version_major=$(echo $version_str | cut -f1 -d.)
-            version_minor=$(echo $version_str | cut -f2 -d.)
+            version_major=$(echo $os_version_str | cut -f1 -d.)
+            version_minor=$(echo $os_version_str | cut -f2 -d.)
 
             verbose_msg "OS               : $version_distro variant"
             verbose_msg "OS Version       : $version_major"
@@ -1463,9 +1472,9 @@ detect_system()
                 opt_force_pi=true
             fi
 
-            if [[ $opt_force_pi && $version_memory_size -lt 2000 ]]; then
+            if [[ $opt_force_pi && $os_version_memory_size -lt 2000 ]]; then
                 verbose_msg "                 : openSUSE Raspberry Pi with low memory"
-                version_multicore_with_low_memory=true
+                os_version_multicore_with_low_memory=true
             fi
         fi
 
@@ -1475,19 +1484,19 @@ detect_system()
 
         # Check if running under Windows WSL
         verbose_msg " "  # output a newline
-        version_wsl=0
+        os_version_wsl=0
 
         verbose_msg -n "Checking for Windows WSL2... "
         if [ $(uname -r | sed -n 's/.*\( *Microsoft *\).*/\1/ip') ]; then
             verbose_msg "running on WSL2"
-            version_wsl=2
+            os_version_wsl=2
         else
             verbose_msg "nope"
 
             verbose_msg -n "Checking for Windows WSL1... "
             if [[ "$(< /proc/version)" == *@(Microsoft|WSL)* ]]; then
                 verbose_msg "running on WSL1"
-                version_wsl=1
+                os_version_wsl=1
             else
                 verbose_msg "nope"
             fi
@@ -1500,7 +1509,7 @@ detect_system()
         # Raspberry Pi reference 2020-02-12
         # Generated using pi-gen, https://github.com/RPi-Distro/pi-gen, f3b8a04dc10054b328a56fa7570afe6c6d1b856e, stage5
 
-        version_rpidesktop=0
+        os_version_rpidesktop=0
         RPI_CPUS=0
 
         if [ -f /etc/rpi-issue ]; then
@@ -1508,7 +1517,7 @@ detect_system()
                   "$machine" == "x86_64" ]];
             then
                 verbose_msg "Running on Raspberry Pi Desktop (for PC)"
-                version_rpidesktop=1
+                os_version_rpidesktop=1
             else
                 if [[ "$machine" != "x86_64" ]]; then
                     os_is_supported=true
@@ -1523,8 +1532,8 @@ detect_system()
     elif [ "$os_name" = "NetBSD" ]; then
 
         version_distro="netbsd"
-        version_id="netbsd"
-        version_pretty_name="netbsd"
+        os_version_id="netbsd"
+        os_version_pretty_name="netbsd"
 
 # for NetBSD:
 # [bill@daisy:~/herctest] $ cat /proc/meminfo
@@ -1542,16 +1551,16 @@ detect_system()
         NETBSD_MEMINFO=$(cat /proc/meminfo)
         #verbose_msg "Memory Free  (MB): $(cat /proc/meminfo | awk '/^Mem:/{mb = $4/1024/1024; printf "%.0f", mb}')"
 
-        version_memory_size="$(cat /proc/meminfo | awk '/^Mem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
-        verbose_msg "Memory Total (MB): $version_memory_size"
+        os_version_memory_size="$(cat /proc/meminfo | awk '/^Mem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
+        verbose_msg "Memory Total (MB): $os_version_memory_size"
 
         # 9.0_STABLE
-        version_str=$(uname -r)
+        os_version_str=$(uname -r)
 
-        verbose_msg "VERSION_ID       : $version_id"
-        verbose_msg "VERSION_STR      : $version_str"
+        verbose_msg "VERSION_ID       : $os_version_id"
+        verbose_msg "VERSION_STR      : $os_version_str"
 
-        version_substr=$(echo $version_str | cut -f1 -d_)
+        version_substr=$(echo $os_version_str | cut -f1 -d_)
         verbose_msg "VERSION_SUBSTR   : $version_substr"
         version_major=$(echo $version_substr | cut -f1 -d.)
         verbose_msg "VERSION_MAJOR    : $version_major"
@@ -1571,26 +1580,26 @@ detect_system()
         verbose_msg "OpenBSD is not yet supported!"
 
         version_distro="openbsd"
-        version_id="openbsd"
+        os_version_id="openbsd"
 
         HH_SUDOCMD="doas"
         add_build_entry "HH_SUDOCMD=\"doas\""
 
-        version_memory_size="$(($(sysctl -n hw.physmem) / 1024 / 1024))"
+        os_version_memory_size="$(($(sysctl -n hw.physmem) / 1024 / 1024))"
         verbose_msg "Memory Total (MB): $(($(sysctl -n hw.physmem) / 1024 / 1024))"
 
         # sysctl hw.model
         # hw.model: ARM Cortex-A53 r0p4
-        version_freebsd_model="$(sysctl hw.model | cut -f2 -d: | awk '{$1=$1};1')"
+        os_version_freebsd_model="$(sysctl hw.model | cut -f2 -d: | awk '{$1=$1};1')"
         verbose_msg "CPU Model        : $(sysctl hw.model | cut -f2 -d: | awk '{$1=$1};1')"
 
         # 12.2-RELEASE
-        version_str=$(uname -r)
+        os_version_str=$(uname -r)
 
-        verbose_msg "VERSION_ID       : $version_id"
-        verbose_msg "VERSION_STR      : $version_str"
+        verbose_msg "VERSION_ID       : $os_version_id"
+        verbose_msg "VERSION_STR      : $os_version_str"
 
-        version_substr=$(echo $version_str | cut -f1 -d-)
+        version_substr=$(echo $os_version_str | cut -f1 -d-)
         # verbose_msg "VERSION_SUBSTR   : $version_substr"
         version_major=$(echo $version_substr | cut -f1 -d.)
         # verbose_msg "VERSION_MAJOR    : $version_major"
@@ -1616,38 +1625,38 @@ detect_system()
 # Mem: 14M Active, 1636K Inact, 78M Wired, 47M Buf, 813M Free
 
         version_distro="freebsd"
-        version_id="freebsd"
+        os_version_id="freebsd"
 
         # FREEBSD_MEMINFO="$(sysctl hw | grep hw.phys)"
-        version_memory_size="$(sysctl hw.physmem | awk '/^hw.physmem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
+        os_version_memory_size="$(sysctl hw.physmem | awk '/^hw.physmem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
         verbose_msg "Memory Total (MB): $(sysctl hw.physmem | awk '/^hw.physmem:/{mb = $2/1024/1024; printf "%.0f", mb}')"
 
         # sysctl hw.model
         # hw.model: ARM Cortex-A53 r0p4
-        version_freebsd_model="$(sysctl hw.model | cut -f2 -d: | awk '{$1=$1};1')"
+        os_version_freebsd_model="$(sysctl hw.model | cut -f2 -d: | awk '{$1=$1};1')"
         verbose_msg "CPU Model        : $(sysctl hw.model | cut -f2 -d: | awk '{$1=$1};1')"
 
         # Try to detect FreeBSD on a Raspberry Pi
         # bcm2835_cpufreq0: <CPU Frequency Control> on cpu0
-        version_freebsd_cpu="$(dmesg | grep CPU | grep bcm2)"
+        os_version_freebsd_cpu="$(dmesg | grep CPU | grep bcm2)"
 
         # Raspberry Pi BCM chipset?
         if (dmesg | grep CPU | grep -Fqe "bcm2"); then
-            verbose_msg "                 : $version_freebsd_cpu"
+            verbose_msg "                 : $os_version_freebsd_cpu"
             verbose_msg "                 : assuming Raspberry Pi"
 
-            if [ $version_memory_size -lt 2000 ]; then
+            if [ $os_version_memory_size -lt 2000 ]; then
                 verbose_msg "                 : FreeBSD Raspberry Pi with low memory"
             fi
         fi
 
         # 12.2-RELEASE
-        version_str=$(uname -r)
+        os_version_str=$(uname -r)
 
-        verbose_msg "VERSION_ID       : $version_id"
-        verbose_msg "VERSION_STR      : $version_str"
+        verbose_msg "VERSION_ID       : $os_version_id"
+        verbose_msg "VERSION_STR      : $os_version_str"
 
-        version_substr=$(echo $version_str | cut -f1 -d-)
+        version_substr=$(echo $os_version_str | cut -f1 -d-)
         # verbose_msg "VERSION_SUBSTR   : $version_substr"
         version_major=$(echo $version_substr | cut -f1 -d.)
         # verbose_msg "VERSION_MAJOR    : $version_major"
@@ -1681,57 +1690,57 @@ detect_system()
 
 # 18.0.0 = macOS v10.14 (Mojave)
 
-        version_id="darwin"
-        version_str=$(sw_vers -productVersion)
+        os_version_id="darwin"
+        os_version_str=$(sw_vers -productVersion)
 
-        echo "VERSION_ID       : $version_id"
-        echo "VERSION_STR      : $version_str"
+        echo "VERSION_ID       : $os_version_id"
+        echo "VERSION_STR      : $os_version_str"
 
-        version_major=$(echo $version_str | cut -f1 -d.)
+        version_major=$(echo $os_version_str | cut -f1 -d.)
         echo "VERSION_MAJOR    : $version_major"
-        version_minor=$(echo $version_str | cut -f2 -d.)
+        version_minor=$(echo $os_version_str | cut -f2 -d.)
         echo "VERSION_MINOR    : $version_minor"
-        version_build=$(echo $version_str | cut -f3 -d.)
+        version_build=$(echo $os_version_str | cut -f3 -d.)
         echo "VERSION_BUILD    : $version_build"
 
-        version_memory_size="$(sysctl hw.memsize | awk '/^hw.memsize:/{mb = $2/1024/1024; printf "%.0f", mb}')"
-        verbose_msg "Memory Total (MB): $version_memory_size"
+        os_version_memory_size="$(sysctl hw.memsize | awk '/^hw.memsize:/{mb = $2/1024/1024; printf "%.0f", mb}')"
+        verbose_msg "Memory Total (MB): $os_version_memory_size"
 
         if [[ $version_major -eq 10 && $version_minor -eq 12 ]]; then
             os_is_supported=true
-            echo "Apple macOS version $version_str (Sierra) found"
+            echo "Apple macOS version $os_version_str (Sierra) found"
         elif [[ $version_major -eq 10 && $version_minor -eq 13 ]]; then
             os_is_supported=true
-            echo "Apple macOS version $version_str (High Sierra) found"
+            echo "Apple macOS version $os_version_str (High Sierra) found"
         elif [[ $version_major -eq 10 && $version_minor -eq 14 ]]; then
             os_is_supported=true
-            echo "Apple macOS version $version_str (Mojave) found"
+            echo "Apple macOS version $os_version_str (Mojave) found"
         elif [[ $version_major -eq 10 && $version_minor -eq 15 ]]; then
             os_is_supported=true
-            echo "Apple macOS version $version_str (Catalina) found"
+            echo "Apple macOS version $os_version_str (Catalina) found"
         elif [[ $version_major -eq 11 ]]; then
             os_is_supported=true
 
             if [[ "$(uname -m)" =~ ^arm64 ]]; then
-                echo "Apple macOS version $version_str (Big Sur) on ARM CPU found"
+                echo "Apple macOS version $os_version_str (Big Sur) on ARM CPU found"
             else
-                echo "Apple macOS version $version_str (Big Sur) found"
+                echo "Apple macOS version $os_version_str (Big Sur) found"
             fi
         elif [[ $version_major -eq 12 ]]; then
             os_is_supported=true
 
             if [[ "$(uname -m)" =~ ^arm64 ]]; then
-                echo "Apple macOS version $version_str (Monterey) on ARM CPU found"
+                echo "Apple macOS version $os_version_str (Monterey) on ARM CPU found"
             else
-                echo "Apple macOS version $version_str (Monterey) found"
+                echo "Apple macOS version $os_version_str (Monterey) found"
             fi
         elif [[ $version_major -eq 13 ]]; then
             os_is_supported=true
 
             if [[ "$(uname -m)" =~ ^arm64 ]]; then
-                echo "Apple macOS version $version_str (Ventura) on ARM CPU found"
+                echo "Apple macOS version $os_version_str (Ventura) on ARM CPU found"
             else
-                echo "Apple macOS version $version_str (Ventura) found"
+                echo "Apple macOS version $os_version_str (Ventura) found"
             fi
         else
             os_is_supported=false
@@ -1741,10 +1750,10 @@ detect_system()
 	#
 #------------------------------------------------------------------------------
     elif [ "$os_name" = "GNU" ]; then
-        version_id="??? unknown ???"
-        version_id_like="??? unknown ???"
-        version_pretty_name="??? unknown ???"
-        version_str="??? unknown ???"
+        os_version_id="??? unknown ???"
+        os_version_id_like="??? unknown ???"
+        os_version_pretty_name="??? unknown ???"
+        os_version_str="??? unknown ???"
 
 # PRETTY_NAME="Debian GNU/Hurd bookworm/sid"
 # NAME="Debian GNU/Hurd"
@@ -1759,33 +1768,33 @@ detect_system()
 
         if [ -f /etc/os-release ]; then
             # awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release
-            version_id=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-            # echo "VERSION_ID is $version_id"
+            os_version_id=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+            # echo "VERSION_ID is $os_version_id"
 
-            version_id_like="GNU"
-            # echo "VERSION_ID_LIKE is $version_id_like"
+            os_version_id_like="GNU"
+            # echo "VERSION_ID_LIKE is $os_version_id_like"
 
-            version_pretty_name=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-            # echo "VERSION_PRETTY_NAME is $version_pretty_name"
+            os_version_pretty_name=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
+            # echo "VERSION_PRETTY_NAME is $os_version_pretty_name"
 
-            version_str=$(uname -r)
-            # echo "VERSION_STR is $version_str"
+            os_version_str=$(uname -r)
+            # echo "VERSION_STR is $os_version_str"
         fi
 
-        if [[ $version_id =~ debian* ]];
+        if [[ $os_version_id =~ debian* ]];
         then
             version_distro="debian"
             os_is_supported=true
         fi
 
-        version_memory_size="$(free -m | awk '/^Mem:/{print $2}')"
-        verbose_msg "Memory Total (MB): $version_memory_size"
+        os_version_memory_size="$(free -m | awk '/^Mem:/{print $2}')"
+        verbose_msg "Memory Total (MB): $os_version_memory_size"
         verbose_msg "Memory Free  (MB): $(free -m | awk '/^Mem:/{print $4}')"
 
-        verbose_msg "VERSION_ID       : $version_id"
-        verbose_msg "VERSION_ID_LIKE  : $version_id_like"
-        verbose_msg "VERSION_PRETTY   : $version_pretty_name"
-        verbose_msg "VERSION_STR      : $version_str"
+        verbose_msg "VERSION_ID       : $os_version_id"
+        verbose_msg "VERSION_ID_LIKE  : $os_version_id_like"
+        verbose_msg "VERSION_PRETTY   : $os_version_pretty_name"
+        verbose_msg "VERSION_STR      : $os_version_str"
     fi
 }
 
@@ -2074,6 +2083,11 @@ case $key in
 
   -h|--help)
     echo "$usage"
+    exit
+    ;;
+
+     --version)
+    echo "Hercules-Helper $version_info"
     exit
     ;;
 
@@ -2572,7 +2586,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 #-----------------------------------------------------------------------------
   # Fedora
 
-  if [[ $version_id == fedora* ]]; then
+  if [[ $os_version_id == fedora* ]]; then
       if [[ $version_major -ge 34 ]]; then
           echo "Fedora version 34 or later found"
 
@@ -2617,9 +2631,9 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 # after version 9.  Refer to:
 # https://www.redhat.com/sysadmin/install-epel-linux
 
-  if [[ $version_id == rhel* ||
-        $version_id == almalinux* ||
-        $version_id == rocky* ]];
+  if [[ $os_version_id == rhel* ||
+        $os_version_id == almalinux* ||
+        $os_version_id == rocky* ]];
       then
       if [[ $version_major -ge 8 ]]; then
           echo "RedHat, Alma, or Rocky Linux version 8 or later found"
@@ -2633,7 +2647,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               )
 
           if [[ $version_major -ge 9 ]]; then
-              if [[ $version_id == rhel* ]]; then
+              if [[ $os_version_id == rhel* ]]; then
                   echo "Enabling CodeReady Linux Builder repository"
                   $HH_SUDOCMD subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
               else
@@ -2667,7 +2681,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 #-----------------------------------------------------------------------------
   # Mageia v8
 
-  if [[ $version_id == mageia* ]]; then
+  if [[ $os_version_id == mageia* ]]; then
       if [[ $version_major -ge 8 ]]; then
           echo "Mageia version 8 or later found"
 
@@ -2705,7 +2719,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 #-----------------------------------------------------------------------------
   # CentOS 7
 
-  if [[ $version_id == centos* ]]; then
+  if [[ $os_version_id == centos* ]]; then
       if [[ $version_major -ge 7 ]]; then
           echo "CentOS version 7 or later found"
 
@@ -2815,7 +2829,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 #-----------------------------------------------------------------------------
   # openSUSE (15.1)
 
-  if [[ $version_id == opensuse* ]]; then
+  if [[ $os_version_id == opensuse* ]]; then
 
 # devel_basis is a "pattern"
 # libcap-progs is not, and won't install it -t pattern
@@ -2872,7 +2886,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
 #-----------------------------------------------------------------------------
   # Intel Clear Linux (supported from 35130 onward)
-  if [[ $version_id == clear-linux-os* ]]; then
+  if [[ $os_version_id == clear-linux-os* ]]; then
       declare -a clear_packages=( \
           "git" "wget" \
           "dev-utils" "perl-basic" \
@@ -2901,7 +2915,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 #-----------------------------------------------------------------------------
   # Alpine Linux 3.x
 
-  if [[ $version_id == alpine* ]]; then
+  if [[ $os_version_id == alpine* ]]; then
       declare -a alpine_packages=( \
           "git" "wget" "bash" \
           "build-base" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
@@ -2935,7 +2949,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 #-----------------------------------------------------------------------------
   # Apple Darwin (macOS)
 
-  if [[ $version_id == darwin* ]]; then
+  if [[ $os_version_id == darwin* ]]; then
       declare -a darwin_packages=( \
           "wget"    \
           "autoconf" "automake" "libtool" \
@@ -3015,7 +3029,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 #-----------------------------------------------------------------------------
   # NetBSD
 
-  if [[ $version_id == netbsd* ]]; then
+  if [[ $os_version_id == netbsd* ]]; then
       declare -a netbsd_packages=( \
           "git" "wget" \
           "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
@@ -3044,7 +3058,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 #-----------------------------------------------------------------------------
   # FreeBSD
 
-  if [[ $version_id == freebsd* ]]; then
+  if [[ $os_version_id == freebsd* ]]; then
       if [[ $version_major -ge 12 ]]; then
           echo "FreeBSD version 12 or later found"
 
@@ -3083,7 +3097,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 #-----------------------------------------------------------------------------
   # OpenBSD
 
-  if [[ $version_id == openbsd* ]]; then
+  if [[ $os_version_id == openbsd* ]]; then
       if [[ $version_major -ge 7 ]]; then
           echo "OpenBSD version 7 or later found"
 
@@ -3124,7 +3138,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 #-----------------------------------------------------------------------------
   # Slackware
 
-  if [[ $version_id == slackware* ]]; then
+  if [[ $os_version_id == slackware* ]]; then
           echo "Slackware (version ?? or later) found"
 
           declare -a slackware_packages=( \
@@ -3160,7 +3174,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 #-----------------------------------------------------------------------------
   # Gentoo
 
-  if [[ $version_id == gentoo* ]]; then
+  if [[ $os_version_id == gentoo* ]]; then
           echo "Gentoo (version ?? or later) found"
 
           declare -a gentoo_packages=( \
@@ -3196,7 +3210,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
 #-----------------------------------------------------------------------------
   if [ $os_is_supported != true ]; then
-    error_msg "Your system ( $version_pretty ) is not (yet) supported!"
+    error_msg "Your system ( $os_version_pretty ) is not (yet) supported!"
     exit 1
   fi
 }
@@ -3259,12 +3273,12 @@ detect_bitness
 verbose_msg    # print a newline
 
 if [ $os_is_supported != true ]; then
-    error_msg "Your system ($version_pretty_name) is not (yet) supported!"
+    error_msg "Your system ($os_version_pretty_name) is not (yet) supported!"
     exit 1
 fi
 
 # Skip bldlvlck on MacOS
-if [[ $version_id == darwin* ]]; then
+if [[ $os_version_id == darwin* ]]; then
     opt_no_bldlvlck=true
 fi
 
@@ -3427,20 +3441,20 @@ fi
 verbose_msg "looking for files ... please wait ..."
 
     # For NetBSD, gcc doesn't seem to know about /usr/local
-    if [[ $version_id == netbsd* ]]; then
+    if [[ $os_version_id == netbsd* ]]; then
         export CFLAGS="$CFLAGS -I/usr/local/include"
         export LDFLAGS="$LDFLAGS -L/usr/lib -L/usr/local/lib"
     fi
 
-if [[ $version_wsl -eq 2 ]]; then
+if [[ $os_version_wsl -eq 2 ]]; then
     # echo "Windows WSL2 host system found"
     # Don't run a search on /mnt because it takes forever
     which_cc1=$(find / -path /mnt -prune -o -name cc1 -print 2>&1 | grep cc1 | head -5)
     which_cc1plus=$(find / -path /mnt -prune -o -name cc1plus -print 2>&1 | grep cc1plus | head -5)
-elif [[ $version_id == netbsd* ]]; then
+elif [[ $os_version_id == netbsd* ]]; then
     which_cc1=$(find / -xdev -name cc1 -print 2>&1 | grep cc1 | head -5)
     which_cc1plus=$(find / -xdev -name cc1plus -print 2>&1 | grep cc1plus | head -5)
-elif [[ $version_id == darwin* ]]; then
+elif [[ $os_version_id == darwin* ]]; then
     # On macOS these two find commands can trigger:
     # "Terminal wants to access your contacts"
     # This looks scary, and we don't want to be suspected of being malware
@@ -3448,7 +3462,7 @@ elif [[ $version_id == darwin* ]]; then
 
     which_cc1="skipped on macOS"
     which_cc1plus="skipped on macOS"
-elif [[ $version_id == elbrus* ]]; then
+elif [[ $os_version_id == elbrus* ]]; then
     verbose_msg "Limited file search on Elbrus Linux"
     which_cc1="skipped on Elbrus Linux"
     which_cc1plus="skipped on Elbrus Linux"
@@ -3477,7 +3491,7 @@ if ($opt_no_tests     ); then dostep_tests=false;       fi
 if ($opt_no_install   ); then dostep_install=false;     fi
 
 if ($opt_no_setcap    ); then dostep_setcap=false;      fi
-if [[ $version_id == freebsd* ]]; then dostep_setcap=false; fi
+if [[ $os_version_id == freebsd* ]]; then dostep_setcap=false; fi
 
 if ($opt_no_envscript ); then dostep_envscript=false;   fi
 if ($opt_no_bashrc    ); then dostep_bashrc=false;      fi
@@ -3516,12 +3530,12 @@ fi
 
 #-----------------------------------------------------------------------------
 
-if [[ $version_rpidesktop -eq 1 ]]; then
+if [[ $os_version_rpidesktop -eq 1 ]]; then
     error_msg "Running on Raspberry Pi Desktop (for PC) is not supported!"
     exit 1
 fi
 
-if [[ $version_wsl -eq 1 ]]; then
+if [[ $os_version_wsl -eq 1 ]]; then
     error_msg "Not supported under Windows WSL1!"
     exit 1
 fi
@@ -3638,7 +3652,7 @@ else
     elif [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
         # If it's an arm64 CPU, and not FreeBSD, enable 64-bit
         # This should work on Raspberry Pi with both FreeBSD and the Pi OSes
-        if [[ $version_id == freebsd* ]]; then
+        if [[ $os_version_id == freebsd* ]]; then
             regina_configure_cmd="./configure"
         else
             regina_configure_cmd="./configure --enable-64bit"
@@ -3662,19 +3676,19 @@ else
     fi
 
     # For FreeBSD and OpenBSD, Clang doesn't seem to know about /usr/local
-    if [[ $version_id == freebsd* || $version_id == openbsd* ]]; then
+    if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ]]; then
         export CFLAGS="$CFLAGS -I/usr/local/include"
         export LDFLAGS="$LDFLAGS -L/usr/lib -L/usr/local/lib"
     fi
 
     # For NetBSD, gcc doesn't seem to know about /usr/local
-    if [[ $version_id == netbsd* ]]; then
+    if [[ $os_version_id == netbsd* ]]; then
         export CFLAGS="$CFLAGS -I/usr/local/include"
         export LDFLAGS="$LDFLAGS -L/usr/lib -L/usr/local/lib"
     fi
 
     if (cc --version | grep -Fiqe "clang"); then
-#   if [[ $version_id == darwin* &&
+#   if [[ $os_version_id == darwin* &&
 #         "$(uname -m)" =~ (^arm64|^aarch64) ]];
 #   then
 #       regina_configure_cmd="CFLAGS=\"-Wno-error=implicit-function-declaration\" ./configure"
@@ -4114,7 +4128,7 @@ cd $opt_build_dir/hyperion
 
 # If we're on an Apple Mac M1 ARM CPU, run autogen, but skip autoreconf
 
-if [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
+if [[ $os_version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
     if (! $dostep_autogen); then
         verbose_msg "Skipping step: autogen.sh (--no-autogen)"
     else
@@ -4216,13 +4230,13 @@ for example, in Debian: sudo apt install libregina3-dev
     fi
 
     # Set up IPv6 configure option
-    if [[ $version_id == alpine* ]]; then
+    if [[ $os_version_id == alpine* ]]; then
         verbose_msg "Disabling IPv6 support for Alpine Linux"
         enable_ipv6_option="--disable-ipv6"
-    elif [[ $version_id == freebsd* || $version_id == openbsd* ]]; then
+    elif [[ $os_version_id == freebsd* || $os_version_id == openbsd* ]]; then
         verbose_msg "Disabling IPv6 support for FreeBSD/OpenBSD"
         enable_ipv6_option="--disable-ipv6"
-    elif [[ $version_id_like == GNU* ]]; then
+    elif [[ $os_version_id_like == GNU* ]]; then
         verbose_msg "Disabling IPv6 support for GNU (Hurd/Mach)"
         enable_ipv6_option="--disable-ipv6"
     else
@@ -4258,11 +4272,11 @@ for example, in Debian: sudo apt install libregina3-dev
     config_cc_optimizer_level="-O3"
 
     # For FreeBSD, Clang, and older gcc on Aarch64 don't accept -march=native
-    if [[ $version_id == freebsd* ]]; then
+    if [[ $os_version_id == freebsd* ]]; then
         config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 $config_cc_optimizer_level\""
-    elif [[ $version_id == alpine* ]]; then
+    elif [[ $os_version_id == alpine* ]]; then
         config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 $config_cc_optimizer_level -march=native -D__gnu_linux__=1 -D__ALPINE_LINUX__=1\""
-    elif [[ $version_id == darwin* &&
+    elif [[ $os_version_id == darwin* &&
             "$(uname -m)" =~ (^arm64|^aarch64) ]];
     then
         config_opt_optimization="--enable-optimization=\"-g -g3 -ggdb3 $config_cc_optimizer_level\""
@@ -4287,7 +4301,7 @@ for example, in Debian: sudo apt install libregina3-dev
     fi
 
     # For Apple Darwin, avoid fork bomb
-    if [[ $version_id == darwin* ]]; then
+    if [[ $os_version_id == darwin* ]]; then
         verbose_msg "Disabling \"getopt wrapper kludge\" for Apple Darwin"
         verbose_msg    # output a newline
         enable_getoptwrapper_option="--disable-getoptwrapper"
@@ -4298,7 +4312,7 @@ for example, in Debian: sudo apt install libregina3-dev
     # Unless this is Clang (e.g. Apple Darwin), record the gcc switches in the binaries
 
     # For NetBSD, gcc doesn't seem to know about /usr/local
-    if [[ $version_id == netbsd* ]]; then
+    if [[ $os_version_id == netbsd* ]]; then
         export CFLAGS="$CFLAGS -I/usr/pkg/include"
         export LDFLAGS="$LDFLAGS -L/usr/pkg/lib"
     fi
@@ -4321,7 +4335,7 @@ echo
     fi
 
     # For FreeBSD / OpenBSD, Clang doesn't seem to know about /usr/local
-    if [[ $version_id == freebsd*|| $version_id == openbsd* ]]; then
+    if [[ $os_version_id == freebsd*|| $os_version_id == openbsd* ]]; then
         export CFLAGS="$CFLAGS -I/usr/local/include"
         export LDFLAGS="$LDFLAGS -L/usr/local/lib"
     fi
@@ -4333,8 +4347,8 @@ echo
     without_included_ltdl_option=""
 
     # split cases between Homebrew and MacPorts
-#   if [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
-    if [[ $version_id == darwin* && $opt_use_homebrew == true ]]; then
+#   if [[ $os_version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
+    if [[ $os_version_id == darwin* && $opt_use_homebrew == true ]]; then
         without_included_ltdl_option="--without-included-ltdl"
 
         add_build_entry "export CFLAGS=\"\$CFLAGS -I\$(find \$(brew --cellar libtool) -type d -name \"include\" | sort -n | tail -n 1)\""
@@ -4342,8 +4356,8 @@ echo
         export CFLAGS="$CFLAGS -I$(find $(brew --cellar libtool) -type d -name "include" | sort -n | tail -n 1)"
         export LDFLAGS="$LDFLAGS -L$(find $(brew --cellar libtool) -type d -name "lib" | sort -n | tail -n 1)"
 
-#    elif [[ $version_id == darwin* && "$(uname -m)" =~ ^x86_64 ]]; then
-    elif [[ $version_id == darwin* && $opt_use_macports == true ]]; then
+#    elif [[ $os_version_id == darwin* && "$(uname -m)" =~ ^x86_64 ]]; then
+    elif [[ $os_version_id == darwin* && $opt_use_macports == true ]]; then
         without_included_ltdl_option="--without-included-ltdl"
 
 # bill@Bills-MacBook-Air-2 herctest % port contents libtool | grep \"ltdl.h\"
@@ -4355,7 +4369,7 @@ echo
         add_build_entry "export LDFLAGS=\"\$LDFLAGS -L\$(dirname \$(port contents libtool | grep \"libltdl.a\" | head -n 1))\""
         export CFLAGS="$CFLAGS -I$(dirname $(port contents libtool | grep "ltdl.h" | head -n 1))"
         export LDFLAGS="$LDFLAGS -L$(dirname $(port contents libtool | grep "libltdl.a" | head -n 1))"
-    elif [[ $version_id == freebsd*|| $version_id == openbsd* ]]; then
+    elif [[ $os_version_id == freebsd*|| $os_version_id == openbsd* ]]; then
         without_included_ltdl_option="--without-included-ltdl"
     else
         without_included_ltdl_option=""
@@ -4435,9 +4449,9 @@ cd build
 # Use 1.5 times as many processes as CPUs unless there's low memory
 # But limit to 4 maximum
 
-if [[ $version_multicore_with_low_memory == true ]]; then
+if [[ $os_version_multicore_with_low_memory == true ]]; then
     nprocs="1"
-elif [[ $version_id == freebsd* || $version_id == netbsd* || $version_id == darwin* ]]; then
+elif [[ $os_version_id == freebsd* || $os_version_id == netbsd* || $os_version_id == darwin* ]]; then
     nprocs="$(sysctl -n hw.ncpu 2>/dev/null || echo 1)"
     nprocs=$(( $nprocs * 3 / 2))
 else
@@ -4449,7 +4463,7 @@ nprocs=$(($nprocs>4 ? 4: $nprocs))
 
 # For FreeBSD, OpenBSD, BSD make acts up, so we'll use gmake.
 
-if [[ $version_id == freebsd* || $version_id == openbsd* ]]; then
+if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ]]; then
     make_clean_cmd="gmake clean"
     make_cmd="time gmake -j $nprocs 2>&1"
 else
@@ -4502,7 +4516,7 @@ else
     verbose_msg "Be patient, this can take a while with no output."
     verbose_msg    # output a newline
 
-    if [[ $version_id == freebsd* || $version_id == openbsd* ]]; then
+    if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ]]; then
         make_check_cmd="gmake check"
 
     else
@@ -4513,11 +4527,11 @@ else
     # conditions such as on a Raspberry Pi 3B, and skip the 'mainsize' test.
 
     verbose_msg "********************"
-    verbose_msg "Memory size = $version_memory_size"
+    verbose_msg "Memory size = $os_version_memory_size"
     verbose_msg "********************"
     verbose_msg    # output a newline
 
-    if [ $version_memory_size -lt 2000 ]; then
+    if [ $os_version_memory_size -lt 2000 ]; then
         verbose_msg "System with low memory"
         verbose_msg "Skipping 'mainsize.tst'"
         verbose_msg    # output a newline
@@ -4557,7 +4571,7 @@ verbose_msg "-----------------------------------------------------------------
 if (! $dostep_install); then
     verbose_msg "Skipping step: install (--no-install)"
 else
-    if [[ $version_id == freebsd* || $version_id == openbsd* ]]; then
+    if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ]]; then
         make_install_cmd="time gmake install 2>&1"
     else
         make_install_cmd="time make install 2>&1"
@@ -4581,11 +4595,11 @@ else
     verbose_msg "-----------------------------------------------------------------
     "
 
-    if [[ $version_id == freebsd* || $version_id == netbsd* ]]; then
+    if [[ $os_version_id == freebsd* || $os_version_id == netbsd* ]]; then
         verbose_msg "Skipping step: setcap operations on FreeBSD/NetBSD."
 
-  # elif [[ $version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
-    elif [[ $version_id == darwin* ]]; then
+  # elif [[ $os_version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
+    elif [[ $os_version_id == darwin* ]]; then
         verbose_msg "Skipping step: setcap operations on Apple macOS."
 
     elif [[ ! -z "$RPI_MODEL" && "$RPI_MODEL" =~ "Raspberry" && $RPI_CPUS = 1 ]]; then
