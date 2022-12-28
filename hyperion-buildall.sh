@@ -2,7 +2,7 @@
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
 # Updated: 27 DEC 2022
-VERSION_STR=v0.9.12+
+VERSION_STR=v0.9.13
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
