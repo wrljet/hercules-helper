@@ -2,7 +2,7 @@
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
 # Updated: 28 DEC 2022
-VERSION_STR=v0.9.13+
+VERSION_STR=v0.9.14
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -51,6 +51,7 @@ VERSION_STR=v0.9.13+
 # Changelog:
 #
 # Updated: 28 DEC 2022
+# - use sudo where requested to mkdir the installation directory
 # - correct bug introduced in variable renaming, affecting non-Hurd
 #
 # Updated: 27 DEC 2022
@@ -3588,6 +3589,27 @@ set_run_or_skip $dostep_bashrc;      verbose_msg "$run_or_skip : Add setting env
 
 #-----------------------------------------------------------------------------
 verbose_msg # output a newline
+verbose_msg "Step: Create installation directory"
+
+if ($opt_usesudo); then
+    add_build_entry "$HH_SUDOCMD mkdir -p \$opt_install_dir"
+    $HH_SUDOCMD mkdir -p $opt_install_dir
+else
+    add_build_entry "mkdir -p \$opt_install_dir"
+    mkdir -p $opt_install_dir
+
+    # Test if the installation directory is writable, and if not,
+    # ensure --sudo was specified
+
+    if [[ $? != 0 ]] ; then
+        error_msg "\'mkdir -p $opt_install_dir\' for installation directory failed!"
+        error_msg "Did you forget the --sudo option?"
+        exit 1
+    fi
+fi
+
+#-----------------------------------------------------------------------------
+verbose_msg # output a newline
 if (! $dostep_packages); then
     verbose_msg "Step: Check for required packages: (skipped)"
 else
@@ -3822,8 +3844,6 @@ else
     add_build_entry "# git clone required repos"
     add_build_entry "cd \$opt_build_dir"
     cd $opt_build_dir
-    add_build_entry "mkdir -p \$opt_install_dir"
-    mkdir -p $opt_install_dir
 
     # Grab unmodified SDL-Hercules Hyperion repo
     add_build_entry "rm -rf hyperion"
