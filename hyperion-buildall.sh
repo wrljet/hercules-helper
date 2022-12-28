@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 27 DEC 2022
-VERSION_STR=v0.9.13
+# Updated: 28 DEC 2022
+VERSION_STR=v0.9.13+
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -49,6 +49,9 @@ VERSION_STR=v0.9.13
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 28 DEC 2022
+# - correct bug introduced in variable renaming, affecting non-Hurd
 #
 # Updated: 27 DEC 2022
 # - add --version option
@@ -4236,7 +4239,7 @@ for example, in Debian: sudo apt install libregina3-dev
     elif [[ $os_version_id == freebsd* || $os_version_id == openbsd* ]]; then
         verbose_msg "Disabling IPv6 support for FreeBSD/OpenBSD"
         enable_ipv6_option="--disable-ipv6"
-    elif [[ $os_version_id_like == GNU* ]]; then
+    elif [[ "$os_name" == "GNU" ]]; then
         verbose_msg "Disabling IPv6 support for GNU (Hurd/Mach)"
         enable_ipv6_option="--disable-ipv6"
     else
@@ -4605,7 +4608,7 @@ else
     elif [[ ! -z "$RPI_MODEL" && "$RPI_MODEL" =~ "Raspberry" && $RPI_CPUS = 1 ]]; then
         verbose_msg "Skipping step: setcap operations on Raspberry Pi with single CPU core."
 
-    elif [[ "$os_name" = "GNU" ]]; then
+    elif [[ "$os_name" == "GNU" ]]; then
         verbose_msg "Skipping step: setcap operations on GNU Hurd."
 
     elif (! $dostep_setcap); then
