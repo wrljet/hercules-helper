@@ -53,6 +53,7 @@ VERSION_STR=v0.9.14
 # Updated: 28 DEC 2022
 # - use sudo where requested to mkdir the installation directory
 # - correct bug introduced in variable renaming, affecting non-Hurd
+# - add support for 'opt_configure' config file option
 #
 # Updated: 27 DEC 2022
 # - add --version option
@@ -655,6 +656,7 @@ opt_regina_dir=${opt_regina_dir:-"Regina-REXX-3.6"}
 opt_regina_tarfile=${opt_regina_tarfile:-"Regina-REXX-3.6.tar.gz"}
 opt_regina_url=${opt_regina_url:-"http://www.wrljet.com/ibm360/Regina-REXX-3.6.tar.gz"}
 
+opt_configure=${opt_configure:-""}
 opt_configure_optimization=${opt_configure_optimization:-""}
 opt_cmake_defines=${opt_cmake_defines:-""}
 
@@ -3524,6 +3526,10 @@ else
     verbose_msg "GIT_REPO_EXTPKGS     : $git_repo_extpkgs} [checkout $git_branch_extpkgs]"
 fi
 
+if [ ! -z "$opt_configure" ] ; then
+    verbose_msg "OPT_CONFIGURE        : $opt_configure"
+fi
+
 if [ ! -z "$opt_configure_optimization" ] ; then
     verbose_msg "OPT_CONFIGURE_OPTIMIZATION : $opt_configure_optimization"
 fi
@@ -4411,6 +4417,7 @@ echo
 
     configure_cmd=$(cat <<-END-CONFIGURE
 $frecord_gcc_switches_option ../configure \
+    $opt_configure \
     $config_opt_optimization \
     --enable-extpkgs=$opt_build_dir/extpkgs \
     --prefix=$opt_install_dir \
@@ -4427,6 +4434,7 @@ END-CONFIGURE
 add_build_entry # newline
 add_build_entry "# Configure and build Hercules"
 add_build_entry "$frecord_gcc_switches_option ../configure \\"
+add_build_entry "    $opt_configure \\"
 add_build_entry "    $config_opt_optimization \\"
 add_build_entry "    --enable-extpkgs=\$opt_build_dir/extpkgs \\"
 add_build_entry "    --prefix=\$opt_install_dir \\"
