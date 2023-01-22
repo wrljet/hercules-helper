@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 28 DEC 2022
+# Updated: 22 JAN 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -49,6 +49,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 22 JAN 2023
+# - initial support for Peppermint Devuan
 #
 # Updated: 28 DEC 2022
 # - use sudo where requested to mkdir the installation directory
@@ -1109,6 +1112,13 @@ detect_system()
 
 # /etc/os-release
 #
+# NAME="Peppermint"
+# VERSION_CODENAME="chimaera"
+# PRETTY_NAME="PeppermintOS Devuan"
+# ID=peppermint
+
+# /etc/os-release
+#
 # NAME=Fedora
 # VERSION="34 (Workstation Edition)"
 # ID=fedora
@@ -1225,10 +1235,10 @@ detect_system()
 
         # Look for Debian/Ubuntu/Mint
 
-        if [[ $os_version_id == debian*   || $os_version_id == ubuntu*    || \
-              $os_version_id == neon*     || $os_version_id == linuxmint* || \
-              $os_version_id == raspbian* || $os_version_id == zorin*     || \
-              $os_version_id == pop*      ]];
+        if [[ $os_version_id == debian*    || $os_version_id == ubuntu*     || \
+              $os_version_id == linuxmint* || $os_version_id == peppermint* || \
+              $os_version_id == raspbian*  || $os_version_id == neon*       || \
+              $os_version_id == pop*       || $os_version_id == zorin* ]];
         then
             version_distro="debian"
             version_major=$(echo $os_version_str | cut -f1 -d.)
