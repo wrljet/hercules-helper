@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 22 JAN 2023
+# Updated: 23 JAN 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -49,6 +49,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 23 JAN 2023
+# - remove incorrectly escaped quotes from 'setcap' commands in build cmdfile
 #
 # Updated: 22 JAN 2023
 # - initial support for Peppermint Devuan
@@ -4662,16 +4665,16 @@ else
 
         verbose_msg    # output a newline
         verbose_msg "sudo $HH_SETCAP 'cap_sys_nice=eip' $opt_install_dir/bin/hercules"
-        add_build_entry "\$HH_SUDOCMD $HH_SETCAP \'cap_sys_nice=eip\' $opt_install_dir/bin/hercules"
+        add_build_entry "\$HH_SUDOCMD $HH_SETCAP 'cap_sys_nice=eip' $opt_install_dir/bin/hercules"
         $HH_SUDOCMD $HH_SETCAP 'cap_sys_nice=eip' $opt_install_dir/bin/hercules
 
         verbose_msg "sudo $HH_SETCAP 'cap_sys_nice=eip' $opt_install_dir/bin/herclin"
+        add_build_entry "\$HH_SUDOCMD $HH_SETCAP 'cap_sys_nice=eip' $opt_install_dir/bin/herclin"
         $HH_SUDOCMD $HH_SETCAP 'cap_sys_nice=eip' $opt_install_dir/bin/herclin
-        add_build_entry "\$HH_SUDOCMD $HH_SETCAP \'cap_sys_nice=eip\' $opt_install_dir/bin/herclin"
 
         verbose_msg "sudo $HH_SETCAP 'cap_net_admin+ep' $opt_install_dir/bin/hercifc"
+        add_build_entry "\$HH_SUDOCMD $HH_SETCAP 'cap_net_admin+ep' $opt_install_dir/bin/hercifc"
         $HH_SUDOCMD $HH_SETCAP 'cap_net_admin+ep' $opt_install_dir/bin/hercifc
-        add_build_entry "\$HH_SUDOCMD $HH_SETCAP \'cap_net_admin+ep\' $opt_install_dir/bin/hercifc"
     fi
 
     verbose_msg    # output a newline
