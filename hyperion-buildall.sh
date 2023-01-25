@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 23 JAN 2023
+# Updated: 25 JAN 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -49,6 +49,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 25 JAN 2023
+# - use 'gmake' instead of BSD 'make' on NetBSD
 #
 # Updated: 23 JAN 2023
 # - remove incorrectly escaped quotes from 'setcap' commands in build cmdfile
@@ -3051,7 +3054,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
   if [[ $os_version_id == netbsd* ]]; then
       declare -a netbsd_packages=( \
           "git" "wget" \
-          "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
+          "gmake" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
           "libtool" "bzip2" "zlib"
       )
 
@@ -4505,9 +4508,10 @@ fi
 
 nprocs=$(($nprocs>4 ? 4: $nprocs))
 
-# For FreeBSD, OpenBSD, BSD make acts up, so we'll use gmake.
+# For FreeBSD, OpenBSD, and NetBSD, the BSD make acts up, so we'll use gmake.
 
-if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ]]; then
+if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ||
+      $os_version_id == netbsd*  ]]; then
     make_clean_cmd="gmake clean"
     make_cmd="time gmake -j $nprocs 2>&1"
 else
