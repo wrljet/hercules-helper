@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 25 JAN 2023
+# Updated: 28 JAN 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -49,6 +49,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 28 JAN 2023
+# - add --beeps option, to beep at each prompt
 #
 # Updated: 25 JAN 2023
 # - use 'gmake' instead of BSD 'make' on NetBSD
@@ -675,6 +678,9 @@ opt_verbose=${opt_verbose:-false}
 # Prompt the user before each major step is started
 opt_prompts=${opt_prompts:-false}
 
+# Beep to alert the user that a prompt is waiting
+opt_beeps=${opt_beeps:-false}
+
 # Run detection only and exit
 opt_detect_only=${opt_detect_only:-false}
 
@@ -886,6 +892,7 @@ Options:
   -v,  --verbose      print lots of messages
        --version      prints version info and exits
   -p,  --prompts      print a prompt before each major step
+       --beeps        beep at each prompt
        --config=FILE  specify config file containing options
   -s,  --sudo         use \'sudo\' for installing
        --askpass      use \'sudo -A\' askpass helper
@@ -2065,6 +2072,7 @@ fi
 opt_override_trace=false
 opt_override_verbose=false
 opt_override_prompts=false
+opt_override_beeps=false
 opt_override_usesudo=false
 opt_override_askpass=false
 opt_override_auto=false
@@ -2126,6 +2134,11 @@ case $key in
 
   -p|--prompt|--prompts)
     opt_override_prompts=true
+    shift # past argument
+    ;;
+
+  --beep|--beeps)
+    opt_override_beeps=true
     shift # past argument
     ;;
 
@@ -2340,6 +2353,7 @@ echo    # print a newline
 if [ $opt_override_trace       == true ]; then TRACE=true; fi
 if [ $opt_override_verbose     == true ]; then opt_verbose=true; fi
 if [ $opt_override_prompts     == true ]; then opt_prompts=true; fi
+if [ $opt_override_beeps       == true ]; then opt_beeps=true; fi
 if [ $opt_override_usesudo     == true ]; then opt_usesudo=true; fi
 if [ $opt_override_askpass     == true ]; then opt_askpass=true; fi
 if [ $opt_override_auto        == true ]; then opt_auto=true; fi
@@ -3244,6 +3258,7 @@ verbose_msg "General Options:"
 verbose_msg "  --trace         : $TRACE"
 verbose_msg "  --verbose       : $opt_verbose"
 verbose_msg "  --prompts       : $opt_prompts"
+verbose_msg "  --beeps         : $opt_beeps"
 verbose_msg "  --sudo          : $opt_usesudo"
 verbose_msg "  --askpass       : $opt_askpass"
 

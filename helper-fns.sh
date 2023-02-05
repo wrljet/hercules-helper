@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Hercules-Helper utility functions
-# Updated: 16 DEC 2021
+# Updated: 28 JAN 2023
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -82,6 +82,10 @@ set_yes_or_no()
 #                              confirm
 #------------------------------------------------------------------------------
 confirm() {
+    if ($opt_beeps); then
+        echo -ne '\a'; sleep 0.2; echo -ne '\a'
+    fi
+
     # call with a prompt string or use a default
     read -r -p "${1:-Are you sure? [y/N]} " response
     case "$response" in
@@ -104,6 +108,10 @@ confirm() {
 status_prompter()
 {
     if ($opt_prompts); then
+        if ($opt_beeps); then
+            echo -ne '\a'; sleep 0.15; echo -ne '\a'
+        fi
+
         # read -p "$1  Hit return to continue"
         if [ "`echo -n`" = "-n" ]; then
           n=""
