@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 28 JAN 2023
+# Updated: 02 MAR 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -49,6 +49,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 02 MAR 2023
+# - detect and warn about a new installation not being added to bashrc
 #
 # Updated: 28 JAN 2023
 # - add --beeps option, to beep at each prompt
@@ -3784,7 +3787,7 @@ else
           cp "$SCRIPT_DIR/patches/config.sub" ./common/
           verbose_msg    # output a newline
         else
-          error_msg "Don't know how to build your Regina on the Pi!"
+          error_msg "Don't know how to build your Regina on your Raspberry Pi!"
           exit 1
         fi
       fi
@@ -4818,6 +4821,12 @@ if ($dostep_bashrc); then
                 # Add .../hyperioninit-bash.sh to ~/.bashrc if not already present
                 if grep -Fqe "$opt_install_dir/hyperion-init-$shell.sh" ~/.bashrc ; then
                     verbose_msg "Hyperion profile commands are already present in your ~/.bashrc"
+                elif grep -Fqe "hyperion-init-$shell.sh" ~/.bashrc ; then
+                    # FIXME create beep() function
+                    echo -ne '\a'; sleep 0.2; echo -ne '\a'
+                    note_msg " "
+                    note_msg "Different Hyperion profile commands are already present in your ~/.bashrc!"
+                    note_msg " "
                 else
                     verbose_msg "Adding profile commands to your ~/.bashrc"
                     cat <<-BASHRC >> ~/.bashrc
