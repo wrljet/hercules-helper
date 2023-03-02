@@ -51,6 +51,7 @@ VERSION_STR=v0.9.14+
 # Changelog:
 #
 # Updated: 02 MAR 2023
+# - add support for Chromebook (Penguin Debian Linux)
 # - detect and warn about a new installation not being added to bashrc
 #
 # Updated: 28 JAN 2023
@@ -3763,7 +3764,7 @@ else
     # FIXME on macOS on Apple M1 build Regina with a separate helper
     # before running this script!
 
-    # If this is a RPIOS 64-bit, RISC-V, or ppc64le:
+    # If this is a RPIOS 64-bit, aarch64 Chromebook, RISC-V, or ppc64le:
     #   for Regina 3.9.3:
     #     we need to patch configure
     #
@@ -3771,23 +3772,28 @@ else
     #     we need to patch configure
     #     and supply a more modern config.{guess,sub}
 
+    # For Chromebook:
+    # uname -a
+    # Linux penguin 5.10 ...
+
     if [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
       if [[ ( ! -z "$RPI_MODEL" && "$RPI_MODEL" =~ "Raspberry" ) ||
-            ( $opt_force_pi == true ) ]]; then
+            ( $opt_force_pi == true ) ||
+            ( "$(uname -a)" =~ "Linux penguin" ) ]]; then
 
         if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
-          verbose_msg "Patching Regina 3.9.3 source for Raspberry Pi 64-bit"
+          verbose_msg "Patching Regina 3.9.3 source for aarch64"
           patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.9.3.patch"
           verbose_msg    # output a newline
         elif [[ "$opt_regina_dir" =~ "3.6" ]]; then
-          verbose_msg "Patching Regina 3.6 source for Raspberry Pi 64-bit"
+          verbose_msg "Patching Regina 3.6 source for aarch64"
           patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.6.patch"
           verbose_msg "Replacing config.{guess,sub}"
           cp "$SCRIPT_DIR/patches/config.guess" ./common/
           cp "$SCRIPT_DIR/patches/config.sub" ./common/
           verbose_msg    # output a newline
         else
-          error_msg "Don't know how to build your Regina on your Raspberry Pi!"
+          error_msg "Don't know how to build your Regina on your aarch64!"
           exit 1
         fi
       fi
