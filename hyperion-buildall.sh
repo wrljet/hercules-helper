@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 02 MAR 2023
+# Updated: 23 MAR 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -49,6 +49,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 23 MAR 2023
+# - detect and warn if sudo is missing
 #
 # Updated: 02 MAR 2023
 # - add support for Chromebook (Penguin Debian Linux)
@@ -3318,6 +3321,36 @@ if [ $os_is_supported != true ]; then
     exit 1
 fi
 
+# Detect presence of sudo and complain if it's missing
+which_sudo=$(which sudo 2>/dev/null) || true
+which_status=$?
+
+if [ -z $which_sudo ]; then
+    # sudo is not installed
+
+    # On FreeBSD, look for doas
+    if [ "$os_name" = "FreeBSD" ]; then
+        which_doas=$(which doas 2>/dev/null) || true
+        which_status=$?
+
+        if [ -z $which_doas ]; then
+            # doas is not installed
+
+            error_msg "Neither 'sudo' or 'doas' are installed."
+            echo    # print a new line
+            read -p "Hit return to exit" -n 1 -r
+            echo    # print a new line
+            exit 1
+        fi
+    else
+        error_msg "'sudo' is not installed."
+        echo    # print a new line
+        read -p "Hit return to exit" -n 1 -r
+        echo    # print a new line
+        exit 1
+    fi
+fi
+
 # Skip bldlvlck on MacOS
 if [[ $os_version_id == darwin* ]]; then
     opt_no_bldlvlck=true
@@ -3333,8 +3366,6 @@ verbose_msg "CFLAGS           : $CFLAGS"
 verbose_msg "CPPFLAGS         : $CPPFLAGS"
 verbose_msg "LDFLAGS          : $LDFLAGS"
 verbose_msg "LD_LIBRARY_PATH  : ${LD_LIBRARY_PATH:-""}"
-verbose_msg "gcc presence     : $(which gcc || true)"
-verbose_msg "g++ presence     : $(which g++ || true)"
 
 # Check for ability to create a core dump on MacOS
 if [ "$version_distro" == "darwin" ]; then
@@ -3367,6 +3398,8 @@ verbose_msg "  m4             : $(m4   --version 2>&1 | head -n 1 | sed 's/.*ill
 verbose_msg "  make           : $(make --version 2>&1 | head -n 1 | sed 's/^usage: make.*/BSD version of make/')"
 verbose_msg "  compiler       : $($CC --version 2>&1 | head -n 1)"
 verbose_msg "  linker         : $($LD --version 2>&1 | head -n 1)"
+verbose_msg "  gcc presence   : $(which gcc || true)"
+verbose_msg "  g++ presence   : $(which g++ || true)"
 verbose_msg    # print a newline
 
 # Check for older gcc on i686 systems, that is known to fail CBUC test
@@ -3581,7 +3614,7 @@ if [[ $os_version_rpidesktop -eq 1 ]]; then
 fi
 
 if [[ $os_version_wsl -eq 1 ]]; then
-    error_msg "Not supported under Windows WSL1!"
+    error_msg "Not supported on Windows WSL1!"
     exit 1
 fi
 
