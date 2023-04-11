@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 23 MAR 2023
+# Updated: 29 MAR 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -49,6 +49,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 29 MAR 2023
+# - detect aarch64 based rockchip64 / Linux g6sbc01
 #
 # Updated: 23 MAR 2023
 # - detect and warn if sudo is missing
@@ -3812,6 +3815,8 @@ else
     if [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
       if [[ ( ! -z "$RPI_MODEL" && "$RPI_MODEL" =~ "Raspberry" ) ||
             ( $opt_force_pi == true ) ||
+            ( "$(uname -r)" =~ "rockchip64" ) ||
+            ( "$(uname -a)" =~ "Linux g6sbc01" ) ||
             ( "$(uname -a)" =~ "Linux penguin" ) ]]; then
 
         if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
