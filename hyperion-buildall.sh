@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 29 MAR 2023
+# Updated: 11 APR 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -49,6 +49,13 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 11 APR 2022
+# - improve unfinished support for OpenBSD (tested with 7.3)
+#   correct # of CPUs detection
+#   skip 'setcap'
+#   remove old output libs before building extpkgs
+# - hide error output from 'which'
 #
 # Updated: 29 MAR 2023
 # - detect aarch64 based rockchip64 / Linux g6sbc01
@@ -3331,8 +3338,10 @@ which_status=$?
 if [ -z $which_sudo ]; then
     # sudo is not installed
 
-    # On FreeBSD, look for doas
-    if [ "$os_name" = "FreeBSD" ]; then
+    # On FreeBSD and OpenBSD, look for doas
+    if [[ "$os_name" = "FreeBSD" ||
+          "$os_name" = "OpenBSD"  ]];
+    then
         which_doas=$(which doas 2>/dev/null) || true
         which_status=$?
 
@@ -3401,8 +3410,8 @@ verbose_msg "  m4             : $(m4   --version 2>&1 | head -n 1 | sed 's/.*ill
 verbose_msg "  make           : $(make --version 2>&1 | head -n 1 | sed 's/^usage: make.*/BSD version of make/')"
 verbose_msg "  compiler       : $($CC --version 2>&1 | head -n 1)"
 verbose_msg "  linker         : $($LD --version 2>&1 | head -n 1)"
-verbose_msg "  gcc presence   : $(which gcc || true)"
-verbose_msg "  g++ presence   : $(which g++ || true)"
+verbose_msg "  gcc presence   : $(which gcc 2>/dev/null || true)"
+verbose_msg "  g++ presence   : $(which g++ 2>/dev/null || true)"
 verbose_msg    # print a newline
 
 # Check for older gcc on i686 systems, that is known to fail CBUC test
@@ -4169,6 +4178,9 @@ else
             ;;
     esac
 
+    add_build_entry "rm -rf lib/"
+    rm -rf lib/
+
     for pkg in crypto decNumber SoftFloat telnet; do
         verbose_msg "Building extpkg: $pkg"
 
@@ -4560,7 +4572,9 @@ cd build
 
 if [[ $os_version_multicore_with_low_memory == true ]]; then
     nprocs="1"
-elif [[ $os_version_id == freebsd* || $os_version_id == netbsd* || $os_version_id == darwin* ]]; then
+elif [[ $os_version_id == freebsd* || $os_version_id == netbsd* || $os_version_id == openbsd* ||
+        $os_version_id == darwin* ]];
+then
     nprocs="$(sysctl -n hw.ncpu 2>/dev/null || echo 1)"
     nprocs=$(( $nprocs * 3 / 2))
 else
@@ -4628,7 +4642,6 @@ else
 
     if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ]]; then
         make_check_cmd="gmake check"
-
     else
         make_check_cmd="make check"
     fi
@@ -4705,8 +4718,8 @@ else
     verbose_msg "-----------------------------------------------------------------
     "
 
-    if [[ $os_version_id == freebsd* || $os_version_id == netbsd* ]]; then
-        verbose_msg "Skipping step: setcap operations on FreeBSD/NetBSD."
+    if [[ $os_version_id == freebsd* || $os_version_id == netbsd* || $os_version_id == openbsd* ]]; then
+        verbose_msg "Skipping step: setcap operations on FreeBSD/NetBSD/OpenBSD."
 
   # elif [[ $os_version_id == darwin* && "$(uname -m)" =~ ^arm64 ]]; then
     elif [[ $os_version_id == darwin* ]]; then
