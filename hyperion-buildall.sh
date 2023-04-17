@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 11 APR 2023
+# Updated: 17 APR 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -49,6 +49,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 17 APR 2022
+# - add detection for Raspberry Pi 400 1.1 [c03131]
 #
 # Updated: 11 APR 2022
 # - improve unfinished support for OpenBSD (tested with 7.3)
@@ -1038,7 +1041,8 @@ function check_pi_version()
     [c03115]="4B        1.5     4GB     Sony UK"
     [d03114]="4B        1.4     8GB     Sony UK"
     [d03115]="4B        1.5     8GB     Sony UK"
-    [c03130]="Pi 4004   1.0     4GB     Sony UK"
+    [c03130]="Pi 400    1.0     4GB     Sony UK"
+    [c03131]="Pi 400    1.1     4GB     Sony UK"
     [a03140]="CM4       1.0     1GB     Sony UK"
     [b03140]="CM4       1.0     2GB     Sony UK"
     [c03140]="CM4       1.0     4GB     Sony UK"
