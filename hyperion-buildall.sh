@@ -51,6 +51,7 @@ VERSION_STR=v0.9.14+
 # Changelog:
 #
 # Updated: 17 APR 2022
+# - add detection for aarch64 linuxkit
 # - add detection for Raspberry Pi 400 1.1 [c03131]
 #
 # Updated: 11 APR 2022
@@ -3828,6 +3829,7 @@ else
     if [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
       if [[ ( ! -z "$RPI_MODEL" && "$RPI_MODEL" =~ "Raspberry" ) ||
             ( $opt_force_pi == true ) ||
+            ( "$(uname -r)" =~ "linuxkit" ) ||
             ( "$(uname -r)" =~ "rockchip64" ) ||
             ( "$(uname -a)" =~ "Linux g6sbc01" ) ||
             ( "$(uname -a)" =~ "Linux penguin" ) ]]; then
