@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 17 APR 2023
+# Updated: 08 MAY 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -49,6 +49,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 08 MAY 2022
+# - search for and list existing Hercules binaries
 #
 # Updated: 17 APR 2022
 # - add detection for aarch64 linuxkit
@@ -3529,7 +3532,7 @@ if [[ "$(uname -m)" =~ ^(i686) && "$version_distro" == "debian" ]]; then
 fi
 
 #-----------------------------------------------------------------------------
-verbose_msg "looking for files ... please wait ..."
+verbose_msg "looking for compiler files ... please wait ..."
 
     # For NetBSD, gcc doesn't seem to know about /usr/local
     if [[ $os_version_id == netbsd* ]]; then
@@ -3568,6 +3571,12 @@ verbose_msg "cc1plus presence : $which_cc1plus"
 verbose_msg    # print a newline
 
 #-----------------------------------------------------------------------------
+# Display existing Hercules binaries
+verbose_msg "looking for existing Hercules binaries ... please wait ..."
+
+find / -name hercules -type f \( -perm -u=x -o -perm -g=x -o -perm -o=x \) -exec test -x {} \; -print 2>/dev/null
+
+verbose_msg    # print a newline
 
 if ($opt_no_packages  ); then dostep_packages=false;    fi
 if ($opt_no_rexx      ); then dostep_regina_rexx=false; fi
