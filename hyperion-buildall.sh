@@ -1801,7 +1801,7 @@ detect_system()
             echo "Apple macOS version $version_major.$version_minor found, is currently unsupported"
             exit 1
         fi
-	#
+        #
 #------------------------------------------------------------------------------
     elif [ "$os_name" = "GNU" ]; then
         os_version_id="??? unknown ???"
@@ -3574,7 +3574,7 @@ verbose_msg    # print a newline
 # Display existing Hercules binaries
 verbose_msg "looking for existing Hercules binaries ... please wait ..."
 
-find / -name hercules -type f \( -perm -u=x -o -perm -g=x -o -perm -o=x \) -exec test -x {} \; -print 2>/dev/null
+find / -path /System/Volumes -prune -false -o -name hercules -type f \( -perm -u=x -o -perm -g=x -o -perm -o=x \) -exec test -x {} \; -print 2>/dev/null
 
 verbose_msg    # print a newline
 
