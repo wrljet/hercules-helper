@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 08 MAY 2023
+# Updated: 11 MAY 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -49,6 +49,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 11 MAY 2022
+# - improve warning messages when not adding profile commands
 #
 # Updated: 08 MAY 2022
 # - search for and list existing Hercules binaries
@@ -4881,26 +4884,29 @@ if ($dostep_bashrc); then
     if true; then # available for future system specific inclusion
 
         if true; then
-            shell=$(/usr/bin/basename $(ps -p $$ -ocomm=))
+            # shell=$(/usr/bin/basename $(ps -p $$ -ocomm=))
+            # ps on macOS adds a - to login shells
+            foo=$(ps -p $$ -ocomm=)
+            shell="${foo//-/}"
 
             # Only do this for Bash
             if [[ $shell != bash ]]; then
                 error_msg "Login shell is not Bash.  Unable to create profile commands."
 
             elif [ ! -f ~/.bashrc ]; then # Check for .bashrc existing first!
-                verbose_msg "Not adding environment variables to ~/.bashrc. File not found."
+                error_msg "Not adding environment variables to ~/.bashrc. File not found."
             else
-                # Add .../hyperioninit-bash.sh to ~/.bashrc if not already present
+                # Add .../hyperion-init-bash.sh to ~/.bashrc if not already present
                 if grep -Fqe "$opt_install_dir/hyperion-init-$shell.sh" ~/.bashrc ; then
-                    verbose_msg "Hyperion profile commands are already present in your ~/.bashrc"
+                    note_msg "The same Hercules profile commands are already present in your ~/.bashrc. Skipping"
                 elif grep -Fqe "hyperion-init-$shell.sh" ~/.bashrc ; then
                     # FIXME create beep() function
                     echo -ne '\a'; sleep 0.2; echo -ne '\a'
                     note_msg " "
-                    note_msg "Different Hyperion profile commands are already present in your ~/.bashrc!"
+                    error_msg "Different Hercules profile commands are already present in your ~/.bashrc! Skipping"
                     note_msg " "
                 else
-                    verbose_msg "Adding profile commands to your ~/.bashrc"
+                    verbose_msg "Adding Hercules profile commands to your ~/.bashrc"
                     cat <<-BASHRC >> ~/.bashrc
 
 # For SDL-Hyperion
@@ -4923,7 +4929,7 @@ if (! $opt_no_install && ! $opt_no_bashrc); then
       if [ -f $opt_install_dir/hyperion-init-$shell.sh ]; then
         echo   # output a newline
         echo "To make this new Hercules immediately available, run:"
-        echo "(note the '.', which will source the script)"
+        echo "(note the '.', which will \"source\" the script)"
         echo   # output a newline
         echo "  . $opt_install_dir/hyperion-init-$shell.sh"
       fi
