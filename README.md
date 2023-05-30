@@ -4,11 +4,6 @@ Utility scripts to help with building and deploying the Hercules emulator
 
 For Windows, go [here](https://github.com/wrljet/hercules-helper-windows)
 
-These scripts extend the existing functionality of SDL-Hercules-390 gists/extpkgs.
-
-This is a testbed and will be updated occassionally and/or merged
-into SDL-Hercules-390 and its documentation when completed.
-
 The most recent version of this project can be obtained with:
 ```
    git clone https://github.com/wrljet/hercules-helper.git
@@ -28,7 +23,7 @@ Report errors in this to me so everyone can benefit.
 
 Note: by default, this will build the SDL-Hercules "develop"
 branch.  You may change this using the hercules-helper.conf
-config file.
+config file.  Or use the --flavor= option.
 
 ## hyperion-buildall.sh
 
@@ -52,13 +47,14 @@ sudo apt install libregina3-dev
 ```
 Usage: hyperion-buildall.sh [OPTIONS]
 
-Perform a full build, test, and installation of SDL-Hercules-390 Hyperion from GitHub sources
+Perform a full build, test, and installation of Hercules 4 from GitHub sources
 
 Options:
   -h,  --help         print this help
   -t,  --trace        print every command (set -x)
   -v,  --verbose      print lots of messages
   -p,  --prompts      print a prompt before each major step
+       --flavor=      specify major flavor: aethra, sdl-hyperion, etc.
        --config=FILE  specify config file containing options
   -s,  --sudo         use \'sudo\' for installing
   -a,  --auto         run everything, with --verbose and --prompts,
@@ -108,6 +104,18 @@ Or for your first run, for finer control:
 ```
 $ ~/hercules-helper/hyperion-buildall.sh --verbose --prompts
 ```
+
+You may build Hercules from Jay Maynard's Aethra repo as well, adding:
+
+```
+--flavor=aethra
+```
+
+SDL-Hercules is still used by default if --flavor isn't specified.
+--flavor will select from a canned config that is tailored to the Aethra repo.
+Some directory and filenames will be altered to "aethra" vs "hyperion"
+
+You can still use the --config= to point to a local config for fine tuning.
 
 On MacOS, either Homebrew or MacPorts may be used.
 Supply either the --homebrew or --macports option accordingly.
