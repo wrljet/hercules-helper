@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Complete SDL-Hercules-390 build (optionally using wrljet GitHub mods)
-# Updated: 11 MAY 2023
+# Complete Hercules builder
+# Updated: 30 MAY 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -49,6 +49,10 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 30 MAY 2022
+# - accommodate building from non-Hyperion named repos
+# - add --flavor= switch, to select aethra.conf vs. sdl-hyperion.conf, etc.
 #
 # Updated: 11 MAY 2022
 # - improve warning messages when not adding profile commands
@@ -670,23 +674,23 @@ opt_build_dir=${opt_build_dir:-$(pwd)}
 # Prefix (target) directory
 opt_install_dir=${opt_install_dir:-$(pwd)/herc4x}
 
-# Git repo for SDL-Hercules Hyperion
-git_repo_hyperion=${git_repo_hyperion:-https://github.com/SDL-Hercules-390/hyperion.git}
-# git_repo_hyperion=https://github.com/wrljet/hyperion.git
+# Git repo for Hercules
+git_repo_hercules=${git_repo_hercules:-https://github.com/SDL-Hercules-390/hyperion.git}
+# git_repo_hercules=https://github.com/wrljet/hyperion.git
 
-# Git checkout branch for Hyperion
-git_branch_hyperion=${git_branch_hyperion:-""}
-# git_branch_hyperion="build-netbsd"
+# Git checkout branch for Hercules
+git_branch_hercules=${git_branch_hercules:-""}
+# git_branch_hercules="build-netbsd"
 
-# Git checkout commit for Hyperion
-git_commit_hyperion=${git_commit_hyperion:-""}
-# git_commit_hyperion=cb24398
+# Git checkout commit for Hercules
+git_commit_hercules=${git_commit_hercules:-""}
+# git_commit_hercules=cb24398
 
-# Git repo for Hyperion External Packages
+# Git repo for Hercules External Packages
 git_repo_extpkgs=${git_repo_extpkgs:-https://github.com/SDL-Hercules-390}
 # git_repo_extpkgs=https://github.com/wrljet
 
-# Git checkout branch for Hyperion External Packages
+# Git checkout branch for Hercules External Packages
 git_branch_extpkgs=${git_extpkgs_extpkgs:-""}
 # git_branch_extpkgs="build-mods-i686"
 
@@ -911,7 +915,7 @@ popd > /dev/null;
 usage="Hercules-Helper $version_info
 Usage: $(basename "$0") [OPTIONS]
 
-Perform a full build, test, and installation of SDL-Hercules-390 Hyperion from GitHub sources
+Perform a full build, test, and installation of Hercules from git sources
 
 Options:
   -h,  --help         print this help
@@ -920,6 +924,7 @@ Options:
        --version      prints version info and exits
   -p,  --prompts      print a prompt before each major step
        --beeps        beep at each prompt
+       --flavor=      specify major flavor: aethra, sdl-hyperion, etc.
        --config=FILE  specify config file containing options
   -s,  --sudo         use \'sudo\' for installing
        --askpass      use \'sudo -A\' askpass helper
@@ -2133,6 +2138,11 @@ do
 key="$1"
 
 case $key in
+  --flavor=*)
+    opt_flavor="${1#*--flavor=}"
+    shift # past --flavor=xxx option
+    ;;
+
   --config=*)
     opt_config_file="${1#*--config=}"
     CONFIG_FILE=$(cd "$(dirname "$opt_config_file")" && pwd)/$(basename "$opt_config_file")
@@ -2355,6 +2365,39 @@ pushd "$(dirname "$0")" >/dev/null;
 popd > /dev/null;
 echo    # print a newline
 
+# Process --flavor
+
+#if (! $opt_detect_only); then
+    opt_flavor=${opt_flavor:-}
+
+    # Using 'tr' here so this works on Bash 3.2
+    if [ ! -z "$opt_flavor" ]; then
+        opt_flavor="$(echo $opt_flavor | tr '[:upper:]' '[:lower:]')"
+    fi
+
+    # Check for a valid "flavor"
+    if [ -z "$opt_flavor" ]; then
+        verbose_msg "--flavor= is not specified.  Assuming build style: SDL-Hyperion"
+        opt_flavor="sdl-hyperion"
+    elif [ "$opt_flavor" == "sdl-hyperion" ]; then
+        verbose_msg "--flavor=sdl-hyperion specified.  Build style: SDL-Hyperion"
+    elif [ "$opt_flavor" == "aethra" ]; then
+        verbose_msg "--flavor=aethra specified.  Build style: Hercules Aethra"
+    else
+        error_msg "--flavor=$opt_flavor is not supported!"
+        exit 1
+    fi
+
+    if [ ! -z "$CONFIG_FILE" ]; then
+        verbose_msg "--config specified.  Overriding default for build flavor \"$opt_flavor\""
+    else
+        verbose_msg "No --config specified.  Using default for build flavor $opt_flavor"
+        config_dir="$(dirname "$0")"
+        CONFIG_FILE="$config_dir/$opt_flavor.conf"
+    fi
+    verbose_msg    # print a newline
+# fi
+
 # Find and read in the configuration
 
 # If there was a config file specified on the command line, use that
@@ -2442,9 +2485,9 @@ add_build_entry "opt_regina_dir=\"$opt_regina_dir\""
 add_build_entry "opt_regina_tarfile=\"$opt_regina_tarfile\""
 add_build_entry "opt_regina_url=\"$opt_regina_url\""
 
-add_build_entry "git_repo_hyperion=\"$git_repo_hyperion\""
-add_build_entry "git_branch_hyperion=\"$git_branch_hyperion\""
-add_build_entry "git_commit_hyperion=\"$git_commit_hyperion\""
+add_build_entry "git_repo_hercules=\"$git_repo_hercules\""
+add_build_entry "git_branch_hercules=\"$git_branch_hercules\""
+add_build_entry "git_commit_hercules=\"$git_commit_hercules\""
 add_build_entry "git_repo_extpkgs=\"$git_repo_extpkgs\""
 add_build_entry "git_branch_extpkgs=\"$git_branch_extpkgs\""
 
@@ -3600,6 +3643,12 @@ if ($opt_no_envscript ); then dostep_envscript=false;   fi
 if ($opt_no_bashrc    ); then dostep_bashrc=false;      fi
 
 verbose_msg "Configuration:"
+verbose_msg "FLAVOR               : $opt_flavor"
+verbose_msg "Config file          : $CONFIG_FILE"
+
+hercules_barename=$(basename "$git_repo_hercules" ".${git_repo_hercules##*.}")
+verbose_msg "REPO_NAME            : $hercules_barename"
+
 verbose_msg "OPT_BUILD_DIR        : $opt_build_dir"
 verbose_msg "OPT_INSTALL_DIR      : $opt_install_dir"
 
@@ -3607,20 +3656,20 @@ verbose_msg "OPT_REGINA_DIR       : $opt_regina_dir"
 verbose_msg "OPT_REGINA_TARFILE   : $opt_regina_tarfile"
 verbose_msg "OPT_REGINA_URL       : $opt_regina_url"
 
-if [ -z "$git_branch_hyperion" ] ; then
-    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hyperion [default branch]"
+if [ -z "$git_branch_hercules" ] ; then
+    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hercules [default branch]"
 else
-    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hyperion} [checkout $git_branch_hyperion]"
+    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hercules [checkout $git_branch_hercules]"
 fi
 
-if [ ! -z "$git_commit_hyperion" ] ; then
-    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hyperion} [checkout $git_commit_hyperion]"
+if [ ! -z "$git_commit_hercules" ] ; then
+    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hercules [checkout $git_commit_hercules]"
 fi
 
 if [ -z "$git_branch_extpkgs" ] ; then
     verbose_msg "GIT_REPO_EXTPKGS     : $git_repo_extpkgs [default branch]"
 else
-    verbose_msg "GIT_REPO_EXTPKGS     : $git_repo_extpkgs} [checkout $git_branch_extpkgs]"
+    verbose_msg "GIT_REPO_EXTPKGS     : $git_repo_extpkgs [checkout $git_branch_extpkgs]"
 fi
 
 if [ ! -z "$opt_configure" ] ; then
@@ -3658,6 +3707,7 @@ if [ "$version_distro" == "darwin" ]; then
     if [[ $opt_use_homebrew == true ]]; then
         if [[ $darwin_have_homebrew == false ]] ; then
             error_msg "--homebrew is specified, but Homebrew is not installed!"
+            error_msg "Try running prerequisites-macOS.sh"
             exit 1
         fi
     elif [[ $opt_use_macports == true ]]; then
@@ -3956,44 +4006,44 @@ else
     add_build_entry "cd \$opt_build_dir"
     cd $opt_build_dir
 
-    # Grab unmodified SDL-Hercules Hyperion repo
-    add_build_entry "rm -rf hyperion"
-    rm -rf hyperion
+    # Grab unmodified Hercules repo
+    add_build_entry "rm -rf $hercules_barename"
+    rm -rf $hercules_barename
 
-    if [ -z "$git_repo_hyperion" ] ; then
-        error_msg "git_repo_hyperion variable is not set!"
+    if [ -z "$git_repo_hercules" ] ; then
+        error_msg "git_repo_hercules variable is not set!"
         exit 1
     fi
 
-    if [ -z "$git_branch_hyperion" ] ; then
-        verbose_msg "git clone $git_repo_hyperion"
-        add_build_entry "git clone \$git_repo_hyperion"
+    if [ -z "$git_branch_hercules" ] ; then
+        verbose_msg "git clone $git_repo_hercules"
+        add_build_entry "git clone \$git_repo_hercules"
 
-        git clone $git_repo_hyperion
+        git clone $git_repo_hercules
         if [[ $? != 0 ]] ; then
             error_msg "git clone failed!"
             exit 1
         fi
     else
-        verbose_msg "git clone -b $git_branch_hyperion $git_repo_hyperion"
-        add_build_entry "git clone -b \$git_branch_hyperion \$git_repo_hyperion"
+        verbose_msg "git clone -b $git_branch_hercules $git_repo_hercules"
+        add_build_entry "git clone -b \$git_branch_hercules \$git_repo_hercules"
 
-        git clone -b "$git_branch_hyperion" "$git_repo_hyperion"
+        git clone -b "$git_branch_hercules" "$git_repo_hercules"
         if [[ $? != 0 ]] ; then
             error_msg "git clone failed!"
             exit 1
         fi
     fi
 
-    if [ ! -z "$git_commit_hyperion" ] ; then
-        verbose_msg "git checkout $git_commit_hyperion"
+    if [ ! -z "$git_commit_hercules" ] ; then
+        verbose_msg "git checkout $git_commit_hercules"
 
-        add_build_entry "pushd hyperion"
-        pushd hyperion
+        add_build_entry "pushd $hercules_barename"
+        pushd $hercules_barename
 
-        add_build_entry "git checkout \$git_commit_hyperion"
+        add_build_entry "git checkout \$git_commit_hercules"
 
-        git checkout "$git_commit_hyperion"
+        git checkout "$git_commit_hercules"
         if [[ $? != 0 ]] ; then
             error_msg "git checkout failed!"
             exit 1
@@ -4059,8 +4109,8 @@ if (! $dostep_bldlvlck); then
 else
     status_prompter "Step: util/bldlvlck:"
 
-    add_build_entry "cd \$opt_build_dir/hyperion"
-    cd $opt_build_dir/hyperion
+    add_build_entry "cd \$opt_build_dir/$hercules_barename"
+    cd $opt_build_dir/$hercules_barename
 
     # Check for required packages and minimum versions.
     # Inspect the output carefully and do not continue if there are
@@ -4126,7 +4176,7 @@ else
     # Mac Mini M1
     # arm64
 
-    # We do this to match the way it's done in SDL Hercules configure
+    # We do this to match the way it's done in Hercules configure
     target_cpu=$(uname -m)
     case "$target_cpu" in
 
@@ -4258,8 +4308,8 @@ verbose_msg "-----------------------------------------------------------------
 "
 
 add_build_entry # newline
-add_build_entry "cd \$opt_build_dir/hyperion"
-cd $opt_build_dir/hyperion
+add_build_entry "cd \$opt_build_dir/$hercules_barename"
+cd $opt_build_dir/$hercules_barename
 
 # FIXME filter out FreeBSD and Apple Darwin here also
 
@@ -4514,12 +4564,12 @@ echo
 
     add_build_entry # newline
     add_build_entry "# Do an out-of-source build"
-    add_build_entry "pushd \$opt_build_dir/hyperion"
+    add_build_entry "pushd \$opt_build_dir/$hercules_barename"
     add_build_entry "mkdir -p build"
     add_build_entry "cd build"
 
     # Do an out-of-source build
-    pushd $opt_build_dir/hyperion
+    pushd $opt_build_dir/$hercules_barename
     mkdir -p build
     cd build
 
@@ -4811,7 +4861,7 @@ else
     status_prompter "Step: create script to set environment variables [may require sudo]:"
 
     shell=$(/usr/bin/basename $(ps -p $$ -ocomm=))
-    cat <<FOE >"TEMP-hyperion-init-$shell.sh"
+    cat <<FOE >"TEMP-$hercules_barename-init-$shell.sh"
 #!/usr/bin/env bash
 #
 # Set up environment variables for Hercules
@@ -4840,7 +4890,7 @@ FOE
 # end of inline "here" file
 
 #if [[ "$built_regina_from_source" -eq 1 ]]; then
-#    cat <<FOE2 >>"$opt_install_dir/hyperion-init-$shell.sh"
+#    cat <<FOE2 >>"$opt_install_dir/$hercules_barename-init-$shell.sh"
 #newpath="$opt_build_dir/rexx/bin"
 #if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
 #  # export PATH="\${PATH:+"\$PATH:"}\$newpath"
@@ -4862,15 +4912,15 @@ FOE
 # end of inline "here" file
 #fi
 
-    chmod +x "TEMP-hyperion-init-$shell.sh"
+    chmod +x "TEMP-$hercules_barename-init-$shell.sh"
     if ($opt_usesudo); then
-        $HH_SUDOCMD mv "TEMP-hyperion-init-$shell.sh" "$opt_install_dir/hyperion-init-$shell.sh"
+        $HH_SUDOCMD mv "TEMP-$hercules_barename-init-$shell.sh" "$opt_install_dir/$hercules_barename-init-$shell.sh"
     else
-        mv "TEMP-hyperion-init-$shell.sh" "$opt_install_dir/hyperion-init-$shell.sh"
+        mv "TEMP-$hercules_barename-init-$shell.sh" "$opt_install_dir/$hercules_barename-init-$shell.sh"
     fi
 
-    source "$opt_install_dir/hyperion-init-$shell.sh"
-    verbose_msg "Created: $opt_install_dir/hyperion-init-$shell.sh"
+    source "$opt_install_dir/$hercules_barename-init-$shell.sh"
+    verbose_msg "Created: $opt_install_dir/$hercules_barename-init-$shell.sh"
 
 #   echo "To set the required environment variables, run:"
 #   echo "    source $opt_build_dir/hercules-setvars.sh"
@@ -4896,10 +4946,10 @@ if ($dostep_bashrc); then
             elif [ ! -f ~/.bashrc ]; then # Check for .bashrc existing first!
                 error_msg "Not adding environment variables to ~/.bashrc. File not found."
             else
-                # Add .../hyperion-init-bash.sh to ~/.bashrc if not already present
-                if grep -Fqe "$opt_install_dir/hyperion-init-$shell.sh" ~/.bashrc ; then
+                # Add .../$hercules_barename-init-bash.sh to ~/.bashrc if not already present
+                if grep -Fqe "$opt_install_dir/$hercules_barename-init-$shell.sh" ~/.bashrc ; then
                     note_msg "The same Hercules profile commands are already present in your ~/.bashrc. Skipping"
-                elif grep -Fqe "hyperion-init-$shell.sh" ~/.bashrc ; then
+                elif grep -Fqe "$hercules_barename-init-$shell.sh" ~/.bashrc ; then
                     # FIXME create beep() function
                     echo -ne '\a'; sleep 0.2; echo -ne '\a'
                     note_msg " "
@@ -4909,9 +4959,9 @@ if ($dostep_bashrc); then
                     verbose_msg "Adding Hercules profile commands to your ~/.bashrc"
                     cat <<-BASHRC >> ~/.bashrc
 
-# For SDL-Hyperion
-if [ -f $opt_install_dir/hyperion-init-$shell.sh ]; then
-    . $opt_install_dir/hyperion-init-$shell.sh
+# For Hercules
+if [ -f $opt_install_dir/$hercules_barename-init-$shell.sh ]; then
+    . $opt_install_dir/$hercules_barename-init-$shell.sh
 fi
 
 BASHRC
@@ -4926,12 +4976,12 @@ fi # if (! $dostep_bashrc)
 
 if (! $opt_no_install && ! $opt_no_bashrc); then
     if [ -f ~/.bashrc ]; then # Check for .bashrc existing first!
-      if [ -f $opt_install_dir/hyperion-init-$shell.sh ]; then
+      if [ -f $opt_install_dir/$hercules_barename-init-$shell.sh ]; then
         echo   # output a newline
         echo "To make this new Hercules immediately available, run:"
         echo "(note the '.', which will \"source\" the script)"
         echo   # output a newline
-        echo "  . $opt_install_dir/hyperion-init-$shell.sh"
+        echo "  . $opt_install_dir/$hercules_barename-init-$shell.sh"
       fi
     fi
 fi
