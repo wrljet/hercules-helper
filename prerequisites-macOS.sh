@@ -53,10 +53,28 @@ uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
           echo "Apple macOS version $version_str (Catalina) found"
       elif [[ $version_major -eq 11 ]]; then
           os_is_supported=true
-          echo "Apple macOS version $version_str (Big Sur) found"
+
+          if [[ "$(uname -m)" =~ ^arm64 ]]; then
+              echo "Apple macOS version $os_version_str (Big Sur) on ARM CPU found"
+          else
+              echo "Apple macOS version $os_version_str (Big Sur) found"
+          fi
       elif [[ $version_major -eq 12 ]]; then
           os_is_supported=true
-          echo "Apple macOS version $version_str (Monterey) found"
+
+          if [[ "$(uname -m)" =~ ^arm64 ]]; then
+              echo "Apple macOS version $os_version_str (Monterey) on ARM CPU found"
+          else
+              echo "Apple macOS version $os_version_str (Monterey) found"
+          fi
+      elif [[ $version_major -eq 13 ]]; then
+          os_is_supported=true
+
+          if [[ "$(uname -m)" =~ ^arm64 ]]; then
+              echo "Apple macOS version $os_version_str (Ventura) on ARM CPU found"
+          else
+              echo "Apple macOS version $os_version_str (Ventura) found"
+          fi
       else
           os_is_supported=false
           echo "Apple macOS version $version_major.$version_minor found, is unsupported"
