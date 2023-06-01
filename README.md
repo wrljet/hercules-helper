@@ -25,7 +25,7 @@ Note: by default, this will build the SDL-Hercules "develop"
 branch.  You may change this using the hercules-helper.conf
 config file.  Or use the --flavor= option.
 
-## hyperion-buildall.sh
+## hercules-buildall.sh
 
 This script will perform a complete build of Hercules and its external
 packages, plus Regina REXX (if no existing REXX is found), run all the
@@ -45,7 +45,7 @@ sudo apt install libregina3-dev
 ```
 
 ```
-Usage: hyperion-buildall.sh [OPTIONS]
+Usage: hercules-buildall.sh [OPTIONS]
 
 Perform a full build, test, and installation of Hercules 4 from GitHub sources
 
@@ -97,12 +97,12 @@ $ cd ~
 $ git clone https://github.com/wrljet/hercules-helper.git
 $ mkdir herctest && cd herctest
 $
-$ ~/hercules-helper/hyperion-buildall.sh --auto
+$ ~/hercules-helper/hercules-buildall.sh --auto
 ```
 
 Or for your first run, for finer control:
 ```
-$ ~/hercules-helper/hyperion-buildall.sh --verbose --prompts
+$ ~/hercules-helper/hercules-buildall.sh --verbose --prompts
 ```
 
 You may build Hercules from Jay Maynard's Aethra repo as well, adding:
