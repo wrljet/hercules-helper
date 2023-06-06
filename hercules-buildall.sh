@@ -3422,7 +3422,6 @@ verbose_msg    # print a newline
 # Detect type of system we're running on and display info
 detect_system
 detect_bitness
-verbose_msg    # print a newline
 
 if [ $os_is_supported != true ]; then
     error_msg "Your system ($os_version_pretty_name) is not (yet) supported!"
@@ -3551,7 +3550,6 @@ else
     # Test if the installation directory is writable, and if not,
     # ensure --sudo was specified
 
-mkdir -p "$opt_install_dir"
     mkdir -p "$opt_install_dir" 2>/dev/null
 
     if [[ $? != 0 ]] ; then
@@ -3644,7 +3642,6 @@ verbose_msg "CFLAGS           : $CFLAGS"
 verbose_msg "CPPFLAGS         : $CPPFLAGS"
 verbose_msg "LDFLAGS          : $LDFLAGS"
 verbose_msg "LD_LIBRARY_PATH  : ${LD_LIBRARY_PATH:-""}"
-verbose_msg # output a newline
 
 #-----------------------------------------------------------------------------
 
@@ -3666,6 +3663,7 @@ set_run_or_skip $dostep_envscript;   verbose_msg "$run_or_skip : Create script t
 set_run_or_skip $dostep_bashrc;      verbose_msg "$run_or_skip : Add setting environment variables from .bashrc"
 
 #-----------------------------------------------------------------------------
+verbose_msg    # print a newline
 verbose_msg "Build tools versions:"
 verbose_msg "  autoconf       : $(autoconf --version 2>&1 | head -n 1)"
 verbose_msg "  automake       : $(automake --version 2>&1 | head -n 1)"
@@ -3847,8 +3845,6 @@ verbose_msg "Adding results to $extra_file"
 find / -path /System/Volumes -prune -false -o -name hercules -type f \( -perm -u=x -o -perm -g=x -o -perm -o=x \) -exec test -x {} \; -print 2>/dev/null >>"$extra_file"
 log_extra_info ""
 
-verbose_msg    # print a newline
-
 if ($opt_no_packages  ); then dostep_packages=false;    fi
 if ($opt_no_rexx      ); then dostep_regina_rexx=false; fi
 if ($opt_no_gitclone  ); then dostep_gitclone=false;    fi
@@ -3866,48 +3862,6 @@ if [[ $os_version_id == freebsd* ]]; then dostep_setcap=false; fi
 
 if ($opt_no_envscript ); then dostep_envscript=false;   fi
 if ($opt_no_bashrc    ); then dostep_bashrc=false;      fi
-
-verbose_msg "Configuration:"
-verbose_msg "FLAVOR               : $opt_flavor"
-verbose_msg "Config file          : $CONFIG_FILE"
-
-hercules_barename=$(basename "$git_repo_hercules" ".${git_repo_hercules##*.}")
-verbose_msg "REPO_NAME            : $hercules_barename"
-
-verbose_msg "OPT_BUILD_DIR        : $opt_build_dir"
-verbose_msg "OPT_INSTALL_DIR      : $opt_install_dir"
-
-verbose_msg "OPT_REGINA_DIR       : $opt_regina_dir"
-verbose_msg "OPT_REGINA_TARFILE   : $opt_regina_tarfile"
-verbose_msg "OPT_REGINA_URL       : $opt_regina_url"
-
-if [ -z "$git_branch_hercules" ] ; then
-    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hercules [default branch]"
-else
-    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hercules [checkout $git_branch_hercules]"
-fi
-
-if [ ! -z "$git_commit_hercules" ] ; then
-    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hercules [checkout $git_commit_hercules]"
-fi
-
-if [ -z "$git_branch_extpkgs" ] ; then
-    verbose_msg "GIT_REPO_EXTPKGS     : $git_repo_extpkgs [default branch]"
-else
-    verbose_msg "GIT_REPO_EXTPKGS     : $git_repo_extpkgs [checkout $git_branch_extpkgs]"
-fi
-
-if [ ! -z "$opt_configure" ] ; then
-    verbose_msg "OPT_CONFIGURE        : $opt_configure"
-fi
-
-if [ ! -z "$opt_configure_optimization" ] ; then
-    verbose_msg "OPT_CONFIGURE_OPTIMIZATION : $opt_configure_optimization"
-fi
-
-if [ ! -z "$opt_cmake_defines" ] ; then
-    verbose_msg "OPT_CMAKE_DEFINES    : $opt_cmake_defines"
-fi
 
 #-----------------------------------------------------------------------------
 
@@ -3957,9 +3911,7 @@ else
     add_build_entry "mkdir -p \$opt_install_dir"
     mkdir -p $opt_install_dir
 
-    # Test if the installation directory is writable, and if not,
-    # ensure --sudo was specified
-
+    # FIXME this should never happen -- remove after fully testing
     if [[ $? != 0 ]] ; then
         error_msg "\'mkdir -p $opt_install_dir\' for installation directory failed!"
         error_msg "Did you forget the --sudo option?"
