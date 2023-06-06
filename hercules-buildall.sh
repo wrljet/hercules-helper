@@ -65,6 +65,7 @@ VERSION_STR=v0.9.14+
 # - improve handling of 'sudo' detection
 # - prompt to continue if 'sudo' will be required later
 # - rearrange some of the major steps to put 'sudo' warning sooner
+# - create 'extra-info...log' file to unclutter main output
 #
 # Updated: 31 MAY 2022
 # - rename main script to hercules-buildall.sh
@@ -1003,6 +1004,14 @@ set_run_or_skip()
 add_build_entry()
 {
     echo "$@" >>"$cmdsfile"
+}
+
+#------------------------------------------------------------------------------
+#                               log_extra_info
+#------------------------------------------------------------------------------
+log_extra_info()
+{
+    echo "$@" >>"$extra_file"
 }
 
 #------------------------------------------------------------------------------
@@ -2067,12 +2076,12 @@ detect_rexx()
         if [[ $cc_status -eq 0 ]]; then
             verbose_msg "cc_status = $cc_status"
             verbose_msg "rexxsaa.h is found in $CC search path"
-            trace_msg "$cc_find_h"
+            log_extra_info "$cc_find_h"
             rexxsaa_h_present=true
         else
             verbose_msg "cc_status = $cc_status"
             error_msg "rexxsaa.h is not found in $CC search path"
-            trace_msg "$cc_find_h"
+            log_extra_info "$cc_find_h"
             rexxsaa_h_present=false
         fi
     fi
@@ -2098,11 +2107,11 @@ detect_rexx()
         if [[ $cc_status -eq 0 ]]; then
             verbose_msg "cc_status = $cc_status"
             verbose_msg "rexx.h is found in $CC search path"
-            trace_msg "$cc_find_h"
+            log_extra_info "$cc_find_h"
         else
             verbose_msg "cc_status = $cc_status"
             error_msg "rexx.h is not found in $CC search path"
-            trace_msg "$cc_find_h"
+            log_extra_info "$cc_find_h"
         fi
     fi
 }
@@ -2338,7 +2347,7 @@ fi
 #-----------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-#                               the_works
+#                               The_Works
 #------------------------------------------------------------------------------
 function the_works {  # Put everthing in an I/O redirection
 
@@ -2359,6 +2368,24 @@ fi
 cmdsfile="$(pwd)/$cmdsfile.log"
 echo "Creating build cmds file: $cmdsfile"
 
+# Create filename for our log of extra diagnostic information
+extra_file="extra-info"
+extra_file="${extra_file%.*}-$current_time"
+
+if [[ -e $extra_file.log || -L $extra_file.log ]] ; then
+    i=1
+    while [[ -e $extra_file-$i.log || -L $extra_file-$i.log ]] ; do
+        let i++
+    done
+    extra_file=$extra_file-$i
+fi
+
+extra_file="$(pwd)/$extra_file.log"
+echo "Creating extra diagnostic info file: $extra_file"
+log_extra_info "Creating extra diagnostic info file: $extra_file"
+log_extra_info ""
+
+#------------------------------------------------------------------------------
 add_build_entry "#!/usr/bin/env bash"
 add_build_entry # newline
 
@@ -3661,6 +3688,7 @@ verbose_msg "  gcc presence   : $(which gcc 2>/dev/null || true)"
 verbose_msg "  g++ presence   : $(which g++ 2>/dev/null || true)"
 verbose_msg    # print a newline
 
+#-----------------------------------------------------------------------------
 # Check for older gcc on i686 systems, that is known to fail CBUC test
 
 as_awk_strverscmp='
@@ -3771,7 +3799,8 @@ if [[ "$(uname -m)" =~ ^(i686) && "$version_distro" == "debian" ]]; then
 fi
 
 #-----------------------------------------------------------------------------
-verbose_msg "looking for compiler files ... please wait ..."
+verbose_msg "Looking for compiler files ... please wait ..."
+verbose_msg "Adding results to $extra_file"
 
     # For NetBSD, gcc doesn't seem to know about /usr/local
     if [[ $os_version_id == netbsd* ]]; then
@@ -3804,16 +3833,19 @@ else
     which_cc1plus="$(find / -mount -name cc1plus -print 2>&1 | grep cc1plus | head -5)" || true
 fi
 
-verbose_msg "cc1 presence     : $which_cc1"
-verbose_msg "cc1plus presence : $which_cc1plus"
+log_extra_info "cc1 presence     : $which_cc1"
+log_extra_info "cc1plus presence : $which_cc1plus"
+log_extra_info ""
 
 verbose_msg    # print a newline
 
 #-----------------------------------------------------------------------------
 # Display existing Hercules binaries
-verbose_msg "looking for existing Hercules binaries ... please wait ..."
+verbose_msg "Looking for existing Hercules binaries ... please wait ..."
+verbose_msg "Adding results to $extra_file"
 
-find / -path /System/Volumes -prune -false -o -name hercules -type f \( -perm -u=x -o -perm -g=x -o -perm -o=x \) -exec test -x {} \; -print 2>/dev/null
+find / -path /System/Volumes -prune -false -o -name hercules -type f \( -perm -u=x -o -perm -g=x -o -perm -o=x \) -exec test -x {} \; -print 2>/dev/null >>"$extra_file"
+log_extra_info ""
 
 verbose_msg    # print a newline
 
@@ -3916,7 +3948,7 @@ fi
 
 #-----------------------------------------------------------------------------
 verbose_msg # output a newline
-verbose_msg "Step: Create installation directory"
+status_prompter "Step: Create installation directory"
 
 if ($opt_usesudo); then
     add_build_entry "$HH_SUDOCMD mkdir -p \$opt_install_dir"
@@ -3934,6 +3966,8 @@ else
         exit 1
     fi
 fi
+
+verbose_msg "Installation directory created: $opt_install_dir"
 
 #-----------------------------------------------------------------------------
 verbose_msg # output a newline
