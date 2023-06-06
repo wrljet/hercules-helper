@@ -62,6 +62,8 @@ VERSION_STR=v0.9.14+
 # Updated: 06 JUN 2022
 # - added/update copyright and license info
 # - make --auto the default
+# - improve handling of 'sudo' detection
+# - prompt to continue if 'sudo' will be required later
 #
 # Updated: 31 MAY 2022
 # - rename main script to hercules-buildall.sh
@@ -2515,9 +2517,6 @@ add_build_entry "opwd=\"$(pwd)\""
 #------------------------------------------------------------------------------
 prepare_packages()
 {
-  note_msg "Note: your sudo password may be requested"
-  echo    # print a newline
-
   # Look for Debian/Ubuntu/Mint
 
   if [ "$version_distro" == "debian"  ]; then
@@ -3756,6 +3755,59 @@ set_run_or_skip $dostep_install;     verbose_msg "$run_or_skip : Run make instal
 set_run_or_skip $dostep_setcap;      verbose_msg "$run_or_skip : setcap executables"
 set_run_or_skip $dostep_envscript;   verbose_msg "$run_or_skip : Create script to set environment variables"
 set_run_or_skip $dostep_bashrc;      verbose_msg "$run_or_skip : Add setting environment variables from .bashrc"
+
+#-----------------------------------------------------------------------------
+
+# If --sudo was specified, we'll just use sudo and be done with it.
+# Otherwise, we'll try to create the installation directory, and if
+# that fails, OR, if a set of certain options are listed, we'll
+# remind the user that sudo might be needed and/or asked for.
+
+HH_SUDO_WARNED=false
+HH_SUDO_REQUIRED=false
+
+if ($opt_usesudo); then
+    HH_SUDO_REQUIRED=true
+else
+    # Test if the installation directory is writable, and if not,
+    # ensure --sudo was specified
+
+mkdir -p "$opt_install_dir"
+    mkdir -p "$opt_install_dir" 2>/dev/null
+
+    if [[ $? != 0 ]] ; then
+        HH_SUDO_REQUIRED=true
+    fi
+
+    if [ ! -w "$opt_install_dir" ]; then
+        HH_SUDO_REQUIRED=true
+    fi
+fi
+
+if ($HH_SUDO_REQUIRED && ! $opt_usesudo); then
+    opt_usesudo=true
+    HH_SUDO_WARNED=true
+
+    note_msg "Note: based on the selected options, your sudo password will be required."
+    echo    # print a newline
+elif ( $dostep_packages ||
+       $dostep_install  ||
+       $dostep_setcap   ||
+       $dostep_envscript ); then
+
+    HH_SUDO_WARNED=true
+
+    note_msg "Note: based on the selected options, your sudo password may be required."
+    echo    # print a newline
+fi
+
+if ($opt_prompts && $HH_SUDO_WARNED); then
+    if confirm "Continue? [y/N]" ; then
+        echo    # print a newline
+    else
+        exit 1
+    fi
+fi
 
 #-----------------------------------------------------------------------------
 verbose_msg # output a newline
