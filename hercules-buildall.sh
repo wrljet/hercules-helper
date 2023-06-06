@@ -61,6 +61,7 @@ VERSION_STR=v0.9.14+
 #
 # Updated: 06 JUN 2022
 # - added/update copyright and license info
+# - make --auto the default
 #
 # Updated: 31 MAY 2022
 # - rename main script to hercules-buildall.sh
@@ -945,7 +946,7 @@ Options:
   -s,  --sudo         use \'sudo\' for installing
        --askpass      use \'sudo -A\' askpass helper
   -a,  --auto         run everything, with --verbose (but not --prompts),
-                      and create a full log file
+                      and create a full log file (this is the default)
        --homebrew     assume Homebrew package manager on MacOS
        --macports     assume MacPorts package manager on MacOS
        --force-pi     process for a Raspberry Pi
@@ -2124,7 +2125,7 @@ opt_override_prompts=false
 opt_override_beeps=false
 opt_override_usesudo=false
 opt_override_askpass=false
-opt_override_auto=false
+opt_override_auto=true
 
 opt_override_detect_only=false    # Run detection only and exit
 opt_override_no_packages=false    # Check for required system packages
