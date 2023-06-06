@@ -64,6 +64,7 @@ VERSION_STR=v0.9.14+
 # - make --auto the default
 # - improve handling of 'sudo' detection
 # - prompt to continue if 'sudo' will be required later
+# - rearrange some of the major steps to put 'sudo' warning sooner
 #
 # Updated: 31 MAY 2022
 # - rename main script to hercules-buildall.sh
@@ -3438,17 +3439,6 @@ if [[ $os_version_id == darwin* ]]; then
     opt_no_bldlvlck=true
 fi
 
-verbose_msg "Environment variables:"
-verbose_msg "Search Path      : ${PATH}"
-verbose_msg "SUDO_ASKPASS     : ${SUDO_ASKPASS:-""}"
-verbose_msg "CC               : $CC"
-verbose_msg "                 : $($CC --version | head -1)"
-verbose_msg "GCC              : ${GCC:-""}"
-verbose_msg "CFLAGS           : $CFLAGS"
-verbose_msg "CPPFLAGS         : $CPPFLAGS"
-verbose_msg "LDFLAGS          : $LDFLAGS"
-verbose_msg "LD_LIBRARY_PATH  : ${LD_LIBRARY_PATH:-""}"
-
 # Check for ability to create a core dump on MacOS
 if [ "$version_distro" == "darwin" ]; then
     verbose_msg "ulimit -c        : $(ulimit -c || true)"
@@ -3462,6 +3452,193 @@ if [ "$version_distro" == "darwin" ]; then
 fi
 
 verbose_msg    # print a newline
+
+if ($opt_no_packages  ); then dostep_packages=false;    fi
+if ($opt_no_rexx      ); then dostep_regina_rexx=false; fi
+if ($opt_no_gitclone  ); then dostep_gitclone=false;    fi
+if ($opt_no_bldlvlck  ); then dostep_bldlvlck=false;    fi
+if ($opt_no_extpkgs   ); then dostep_extpkgs=false;     fi
+if ($opt_no_autogen   ); then dostep_autogen=false; else dostep_autogen=true; fi
+if ($opt_no_configure ); then dostep_configure=false;   fi
+if ($opt_no_clean     ); then dostep_clean=false;       fi
+if ($opt_no_make      ); then dostep_make=false;        fi
+if ($opt_no_tests     ); then dostep_tests=false;       fi
+if ($opt_no_install   ); then dostep_install=false;     fi
+
+if ($opt_no_setcap    ); then dostep_setcap=false;      fi
+if [[ $os_version_id == freebsd* ]]; then dostep_setcap=false; fi
+
+if ($opt_no_envscript ); then dostep_envscript=false;   fi
+if ($opt_no_bashrc    ); then dostep_bashrc=false;      fi
+
+#-----------------------------------------------------------------------------
+
+if [[ $os_version_rpidesktop -eq 1 ]]; then
+    error_msg "Running on Raspberry Pi Desktop (for PC) is not supported!"
+    exit 1
+fi
+
+if [[ $os_version_wsl -eq 1 ]]; then
+    error_msg "Not supported on Windows WSL1!"
+    exit 1
+fi
+
+#-----------------------------------------------------------------------------
+# Check for --detect-only and exit
+
+if ($opt_detect_only); then
+    return 0
+fi
+
+if [ "$version_distro" == "darwin" ]; then
+    if [[ $opt_use_homebrew == true ]]; then
+        if [[ $darwin_have_homebrew == false ]] ; then
+            error_msg "--homebrew is specified, but Homebrew is not installed!"
+            error_msg "Try running prerequisites-macOS.sh"
+            exit 1
+        fi
+    elif [[ $opt_use_macports == true ]]; then
+        if [[ $darwin_have_macports == false ]] ; then
+            error_msg "--macports is specified, but MacPorts is not installed!"
+            exit 1
+        fi
+    else
+        error_msg "On MacOS, either --homebrew or --macports must be specified!"
+        exit 1
+    fi
+fi
+
+#-----------------------------------------------------------------------------
+
+# If --sudo was specified, we'll just use sudo and be done with it.
+# Otherwise, we'll try to create the installation directory, and if
+# that fails, OR, if a set of certain options are listed, we'll
+# remind the user that sudo might be needed and/or asked for.
+
+HH_SUDO_WARNED=false
+HH_SUDO_REQUIRED=false
+
+if ($opt_usesudo); then
+    HH_SUDO_REQUIRED=true
+else
+    # Test if the installation directory is writable, and if not,
+    # ensure --sudo was specified
+
+mkdir -p "$opt_install_dir"
+    mkdir -p "$opt_install_dir" 2>/dev/null
+
+    if [[ $? != 0 ]] ; then
+        HH_SUDO_REQUIRED=true
+    fi
+
+    if [ ! -w "$opt_install_dir" ]; then
+        HH_SUDO_REQUIRED=true
+    fi
+fi
+
+if ($HH_SUDO_REQUIRED && ! $opt_usesudo); then
+    opt_usesudo=true
+    HH_SUDO_WARNED=true
+
+    note_msg "Note: based on the selected options, your sudo password will be required."
+    echo    # print a newline
+elif ( $dostep_packages ||
+       $dostep_install  ||
+       $dostep_setcap   ||
+       $dostep_envscript ); then
+
+    HH_SUDO_WARNED=true
+
+    note_msg "Note: based on the selected options, your sudo password may be required."
+    echo    # print a newline
+fi
+
+if ($opt_prompts && $HH_SUDO_WARNED); then
+    if confirm "Continue? [y/N]" ; then
+        echo    # print a newline
+    else
+        exit 1
+    fi
+fi
+
+#-----------------------------------------------------------------------------
+verbose_msg "Configuration:"
+verbose_msg "FLAVOR               : $opt_flavor"
+verbose_msg "Config file          : $CONFIG_FILE"
+
+hercules_barename=$(basename "$git_repo_hercules" ".${git_repo_hercules##*.}")
+verbose_msg "REPO_NAME            : $hercules_barename"
+
+verbose_msg "OPT_BUILD_DIR        : $opt_build_dir"
+verbose_msg "OPT_INSTALL_DIR      : $opt_install_dir"
+
+verbose_msg "OPT_REGINA_DIR       : $opt_regina_dir"
+verbose_msg "OPT_REGINA_TARFILE   : $opt_regina_tarfile"
+verbose_msg "OPT_REGINA_URL       : $opt_regina_url"
+
+if [ -z "$git_branch_hercules" ] ; then
+    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hercules [default branch]"
+else
+    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hercules [checkout $git_branch_hercules]"
+fi
+
+if [ ! -z "$git_commit_hercules" ] ; then
+    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hercules [checkout $git_commit_hercules]"
+fi
+
+if [ -z "$git_branch_extpkgs" ] ; then
+    verbose_msg "GIT_REPO_EXTPKGS     : $git_repo_extpkgs [default branch]"
+else
+    verbose_msg "GIT_REPO_EXTPKGS     : $git_repo_extpkgs [checkout $git_branch_extpkgs]"
+fi
+
+if [ ! -z "$opt_configure" ] ; then
+    verbose_msg "OPT_CONFIGURE        : $opt_configure"
+fi
+
+if [ ! -z "$opt_configure_optimization" ] ; then
+    verbose_msg "OPT_CONFIGURE_OPTIMIZATION : $opt_configure_optimization"
+fi
+
+if [ ! -z "$opt_cmake_defines" ] ; then
+    verbose_msg "OPT_CMAKE_DEFINES    : $opt_cmake_defines"
+fi
+
+verbose_msg # output a newline
+
+#-----------------------------------------------------------------------------
+verbose_msg "Environment variables:"
+verbose_msg "Search Path      : ${PATH}"
+verbose_msg "SUDO_ASKPASS     : ${SUDO_ASKPASS:-""}"
+verbose_msg "CC               : $CC"
+verbose_msg "                 : $($CC --version | head -1)"
+verbose_msg "GCC              : ${GCC:-""}"
+verbose_msg "CFLAGS           : $CFLAGS"
+verbose_msg "CPPFLAGS         : $CPPFLAGS"
+verbose_msg "LDFLAGS          : $LDFLAGS"
+verbose_msg "LD_LIBRARY_PATH  : ${LD_LIBRARY_PATH:-""}"
+verbose_msg # output a newline
+
+#-----------------------------------------------------------------------------
+
+verbose_msg    # print a newline
+verbose_msg "Performing Steps:"
+set_run_or_skip $dostep_packages;    verbose_msg "$run_or_skip : Check for required system packages"
+set_run_or_skip $dostep_regina_rexx; verbose_msg "$run_or_skip : Include REXX support, build Regina REXX if needed"
+set_run_or_skip $dostep_gitclone;    verbose_msg "$run_or_skip : Git clone Hercules and external packages"
+set_run_or_skip $dostep_bldlvlck;    verbose_msg "$run_or_skip : Run bldlvlck"
+set_run_or_skip $dostep_extpkgs;     verbose_msg "$run_or_skip : Build Hercules external packages"
+set_run_or_skip $dostep_autogen;     verbose_msg "$run_or_skip : Run autogen"
+set_run_or_skip $dostep_configure;   verbose_msg "$run_or_skip : Run configure"
+set_run_or_skip $dostep_clean;       verbose_msg "$run_or_skip : Run make clean"
+set_run_or_skip $dostep_make;        verbose_msg "$run_or_skip : Run make (compile and link)"
+set_run_or_skip $dostep_tests;       verbose_msg "$run_or_skip : Run make check"
+set_run_or_skip $dostep_install;     verbose_msg "$run_or_skip : Run make install"
+set_run_or_skip $dostep_setcap;      verbose_msg "$run_or_skip : setcap executables"
+set_run_or_skip $dostep_envscript;   verbose_msg "$run_or_skip : Create script to set environment variables"
+set_run_or_skip $dostep_bashrc;      verbose_msg "$run_or_skip : Add setting environment variables from .bashrc"
+
+#-----------------------------------------------------------------------------
 verbose_msg "Build tools versions:"
 verbose_msg "  autoconf       : $(autoconf --version 2>&1 | head -n 1)"
 verbose_msg "  automake       : $(automake --version 2>&1 | head -n 1)"
@@ -3733,78 +3910,6 @@ if [ "$version_distro" == "darwin" ]; then
         fi
     else
         error_msg "On MacOS, either --homebrew or --macports must be specified!"
-        exit 1
-    fi
-fi
-
-#-----------------------------------------------------------------------------
-
-verbose_msg    # print a newline
-verbose_msg "Performing Steps:"
-set_run_or_skip $dostep_packages;    verbose_msg "$run_or_skip : Check for required system packages"
-set_run_or_skip $dostep_regina_rexx; verbose_msg "$run_or_skip : Include REXX support, build Regina REXX if needed"
-set_run_or_skip $dostep_gitclone;    verbose_msg "$run_or_skip : Git clone Hercules and external packages"
-set_run_or_skip $dostep_bldlvlck;    verbose_msg "$run_or_skip : Run bldlvlck"
-set_run_or_skip $dostep_extpkgs;     verbose_msg "$run_or_skip : Build Hercules external packages"
-set_run_or_skip $dostep_autogen;     verbose_msg "$run_or_skip : Run autogen"
-set_run_or_skip $dostep_configure;   verbose_msg "$run_or_skip : Run configure"
-set_run_or_skip $dostep_clean;       verbose_msg "$run_or_skip : Run make clean"
-set_run_or_skip $dostep_make;        verbose_msg "$run_or_skip : Run make (compile and link)"
-set_run_or_skip $dostep_tests;       verbose_msg "$run_or_skip : Run make check"
-set_run_or_skip $dostep_install;     verbose_msg "$run_or_skip : Run make install"
-set_run_or_skip $dostep_setcap;      verbose_msg "$run_or_skip : setcap executables"
-set_run_or_skip $dostep_envscript;   verbose_msg "$run_or_skip : Create script to set environment variables"
-set_run_or_skip $dostep_bashrc;      verbose_msg "$run_or_skip : Add setting environment variables from .bashrc"
-
-#-----------------------------------------------------------------------------
-
-# If --sudo was specified, we'll just use sudo and be done with it.
-# Otherwise, we'll try to create the installation directory, and if
-# that fails, OR, if a set of certain options are listed, we'll
-# remind the user that sudo might be needed and/or asked for.
-
-HH_SUDO_WARNED=false
-HH_SUDO_REQUIRED=false
-
-if ($opt_usesudo); then
-    HH_SUDO_REQUIRED=true
-else
-    # Test if the installation directory is writable, and if not,
-    # ensure --sudo was specified
-
-mkdir -p "$opt_install_dir"
-    mkdir -p "$opt_install_dir" 2>/dev/null
-
-    if [[ $? != 0 ]] ; then
-        HH_SUDO_REQUIRED=true
-    fi
-
-    if [ ! -w "$opt_install_dir" ]; then
-        HH_SUDO_REQUIRED=true
-    fi
-fi
-
-if ($HH_SUDO_REQUIRED && ! $opt_usesudo); then
-    opt_usesudo=true
-    HH_SUDO_WARNED=true
-
-    note_msg "Note: based on the selected options, your sudo password will be required."
-    echo    # print a newline
-elif ( $dostep_packages ||
-       $dostep_install  ||
-       $dostep_setcap   ||
-       $dostep_envscript ); then
-
-    HH_SUDO_WARNED=true
-
-    note_msg "Note: based on the selected options, your sudo password may be required."
-    echo    # print a newline
-fi
-
-if ($opt_prompts && $HH_SUDO_WARNED); then
-    if confirm "Continue? [y/N]" ; then
-        echo    # print a newline
-    else
         exit 1
     fi
 fi
