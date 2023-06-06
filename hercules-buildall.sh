@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 
-# Complete Hercules builder
-# Updated: 31 MAY 2023
+# This file is part of the Hercules-Helper project.
+#
+# (C) Copyright William R. Lewis, 2020-2023
+#
+# This software is released under the terms of the MIT License.
+#
+# https://github.com/wrljet/hercules-helper/blob/master/LICENSE
+
+# Updated: 05 JUN 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -9,7 +16,7 @@ VERSION_STR=v0.9.14+
 # or:
 #   wget https://github.com/wrljet/hercules-helper/archive/master.zip
 #
-# Please report errors in this to me so everyone can benefit.
+# Please report errors in this project to me so everyone can benefit.
 #
 # Bill Lewis  bill@wrljet.com
 
@@ -51,6 +58,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 06 JUN 2022
+# - added/update copyright and license info
 #
 # Updated: 31 MAY 2022
 # - rename main script to hercules-buildall.sh
