@@ -61,6 +61,7 @@ VERSION_STR=v0.9.14+
 #
 # Updated: 08 JUN 2022
 # - support adding to Zsh profile
+# - don't ask y/N for sudo if --sudo option is present
 #
 # Updated: 06 JUN 2022
 # - added/update copyright and license info
@@ -3581,7 +3582,7 @@ elif ( $dostep_packages ||
     echo    # print a newline
 fi
 
-if ($opt_prompts && $HH_SUDO_WARNED); then
+if ($opt_prompts && $HH_SUDO_WARNED && ! $opt_usesudo); then
     if confirm "Continue? [y/N]" ; then
         echo    # print a newline
     else
