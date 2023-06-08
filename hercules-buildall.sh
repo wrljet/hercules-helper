@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 06 JUN 2023
+# Updated: 08 JUN 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -58,6 +58,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 08 JUN 2022
+# - support adding to Zsh profile
 #
 # Updated: 06 JUN 2022
 # - added/update copyright and license info
@@ -5020,9 +5023,13 @@ if (! $dostep_install || ! $dostep_envscript); then
 else
     status_prompter "Step: create script to set environment variables [may require sudo]:"
 
-    shell=$(/usr/bin/basename $(ps -p $$ -ocomm=))
+    # shell=$(/usr/bin/basename $(ps -p $$ -ocomm=))
+    # ps on macOS adds a - to login shells
+    # foo=$(ps -p $$ -ocomm=)
+    # shell="${foo//-/}"
+    shell="$(basename "$SHELL")"
+
     cat <<FOE >"TEMP-$hercules_barename-init-$shell.sh"
-#!/usr/bin/env bash
 #
 # Set up environment variables for Hercules
 #
@@ -5089,53 +5096,55 @@ fi
 if ($dostep_bashrc); then
   verbose_msg "-----------------------------------------------------------------
 "
-    status_prompter "Step: add 'source' environment variables to shell profile:"
+    # shell=$(/usr/bin/basename $(ps -p $$ -ocomm=))
+    # ps on macOS adds a - to login shells
+    # foo=$(ps -p $$ -ocomm=)
+    # shell="${foo//-/}"
+    shell="$(basename "$SHELL")"
+    profile_name=".$(basename "$SHELL")rc"
+
+    status_prompter "Step: add 'source' environment variables to $profile_name profile:"
 
     if true; then # available for future system specific inclusion
+        # Only do this for Bash and Zsh
+        if [[ $shell != "bash" && $shell != "zsh" ]]; then
+            error_msg "Login shell ($shell) is not yet supported.  Unable to create profile commands."
 
-        if true; then
-            # shell=$(/usr/bin/basename $(ps -p $$ -ocomm=))
-            # ps on macOS adds a - to login shells
-            foo=$(ps -p $$ -ocomm=)
-            shell="${foo//-/}"
-
-            # Only do this for Bash
-            if [[ $shell != bash ]]; then
-                error_msg "Login shell is not Bash.  Unable to create profile commands."
-
-            elif [ ! -f ~/.bashrc ]; then # Check for .bashrc existing first!
-                error_msg "Not adding environment variables to ~/.bashrc. File not found."
+        elif [[ $shell == "bash" && ! -f ~/.bashrc ]]; then # Check for .bashrc existing first!
+            error_msg "Not adding environment variables to ~/.bashrc. File not found."
+        elif [[ $shell == "zsh" && ! -f ~/.zshrc ]]; then # Check for .zshrc existing first!
+            error_msg "Not adding environment variables to ~/.ashrc. File not found."
+        else
+            # Add .../$hercules_barename-init-bash.sh to ~/.bashrc if not already present
+            if grep -Fqe "$opt_install_dir/$hercules_barename-init-$shell.sh" ~/$profile_name ; then
+                note_msg "The same Hercules profile commands are already present in your ~/$profile_name. Skipping"
+            elif grep -Fqe "$hercules_barename-init-$shell.sh" ~/$profile_name ; then
+                # FIXME create beep() function
+                echo -ne '\a'; sleep 0.2; echo -ne '\a'
+                note_msg " "
+                error_msg "Different Hercules profile commands are already present in your ~/$profile_name! Skipping"
+                note_msg " "
             else
-                # Add .../$hercules_barename-init-bash.sh to ~/.bashrc if not already present
-                if grep -Fqe "$opt_install_dir/$hercules_barename-init-$shell.sh" ~/.bashrc ; then
-                    note_msg "The same Hercules profile commands are already present in your ~/.bashrc. Skipping"
-                elif grep -Fqe "$hercules_barename-init-$shell.sh" ~/.bashrc ; then
-                    # FIXME create beep() function
-                    echo -ne '\a'; sleep 0.2; echo -ne '\a'
-                    note_msg " "
-                    error_msg "Different Hercules profile commands are already present in your ~/.bashrc! Skipping"
-                    note_msg " "
-                else
-                    verbose_msg "Adding Hercules profile commands to your ~/.bashrc"
-                    cat <<-BASHRC >> ~/.bashrc
+                verbose_msg "Adding Hercules profile commands to your ~/$profile_name"
+                cat <<-BASHRC >> ~/$profile_name
 
 # For Hercules
 if [ -f $opt_install_dir/$hercules_barename-init-$shell.sh ]; then
-    . $opt_install_dir/$hercules_barename-init-$shell.sh
+. $opt_install_dir/$hercules_barename-init-$shell.sh
 fi
 
 BASHRC
 # end of inline "here" file
-                fi # if commands not already present
-            fi # if bash
-        fi # if true
+            fi # if commands not already present
+        fi # if bash
     fi # if true
 fi # if (! $dostep_bashrc)
      
 #-----------------------------------------------------------------------------
 
 if (! $opt_no_install && ! $opt_no_bashrc); then
-    if [ -f ~/.bashrc ]; then # Check for .bashrc existing first!
+    if [[ $shell == "bash" && -f ~/.bashrc || 
+          $shell == "zsh"  && -f ~/.zshrc     ]]; then # Check for profile existing first!
       if [ -f $opt_install_dir/$hercules_barename-init-$shell.sh ]; then
         echo   # output a newline
         echo "To make this new Hercules immediately available, run:"
