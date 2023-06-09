@@ -134,14 +134,19 @@ Hercules will be "installed" (unless you include the ---no-install option), defa
 into ~/herctest/herc4x
 
 To set the required environment variables after installation, a script will be added
-to ~/herctest/herc4x/hyperion-init-bash.sh.  This will be "sourced" from ~/.bashrc.
-(currently this is for Bash only)
+to ~/herctest/herc4x/hyperion-init-bash.sh.  This will be "sourced" from ~/.bashrc, or
+~/.zshrc, depending on your shell.  (currently this is for Bash and Zsh only)
 
 To make the newly created Hercules available immediately in the current shell
-or terminal session, simply source this script with the '.' command:
+or terminal session, simply source this script with the '.' command.  For example:
 
 ```
 . ~/herctest/herc4x/hyperion-init-bash.sh
+```
+  or
+
+```
+. ~/herctest/herc4x/hyperion-init-zsh.sh
 ```
 
 If anything seems to go wrong, please stop and ask questions at that point.
