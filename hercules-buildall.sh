@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 08 JUN 2023
+# Updated: 11 JUN 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -59,11 +59,21 @@ VERSION_STR=v0.9.14+
 
 # Changelog:
 #
-# Updated: 08 JUN 2022
+# Updated: 11 JUN 2023
+# - correct wording describing adding env vars to shell profile
+# - correct year in dates in recent ChangeLog entries
+#
+# Updated: 10 JUN 2023
+# - fix typos in config files
+#
+# Updated: 09 JUN 2023
+# - add info about Zsh profile to the README
+#
+# Updated: 08 JUN 2023
 # - support adding to Zsh profile
 # - don't ask y/N for sudo if --sudo option is present
 #
-# Updated: 06 JUN 2022
+# Updated: 06 JUN 2023
 # - added/update copyright and license info
 # - make --auto the default
 # - improve handling of 'sudo' detection
@@ -71,25 +81,25 @@ VERSION_STR=v0.9.14+
 # - rearrange some of the major steps to put 'sudo' warning sooner
 # - create 'extra-info...log' file to unclutter main output
 #
-# Updated: 31 MAY 2022
+# Updated: 31 MAY 2023
 # - rename main script to hercules-buildall.sh
 # - print deprecation msg from old hyperion-buildall.sh
 #
-# Updated: 30 MAY 2022
+# Updated: 30 MAY 2023
 # - accommodate building from non-Hyperion named repos
 # - add --flavor= switch, to select aethra.conf vs. sdl-hyperion.conf, etc.
 #
-# Updated: 11 MAY 2022
+# Updated: 11 MAY 2023
 # - improve warning messages when not adding profile commands
 #
-# Updated: 08 MAY 2022
+# Updated: 08 MAY 2023
 # - search for and list existing Hercules binaries
 #
-# Updated: 17 APR 2022
+# Updated: 17 APR 2023
 # - add detection for aarch64 linuxkit
 # - add detection for Raspberry Pi 400 1.1 [c03131]
 #
-# Updated: 11 APR 2022
+# Updated: 11 APR 2023
 # - improve unfinished support for OpenBSD (tested with 7.3)
 #   correct # of CPUs detection
 #   skip 'setcap'
@@ -3664,7 +3674,8 @@ set_run_or_skip $dostep_tests;       verbose_msg "$run_or_skip : Run make check"
 set_run_or_skip $dostep_install;     verbose_msg "$run_or_skip : Run make install"
 set_run_or_skip $dostep_setcap;      verbose_msg "$run_or_skip : setcap executables"
 set_run_or_skip $dostep_envscript;   verbose_msg "$run_or_skip : Create script to set environment variables"
-set_run_or_skip $dostep_bashrc;      verbose_msg "$run_or_skip : Add setting environment variables from .bashrc"
+shell="$(basename "$SHELL")"
+set_run_or_skip $dostep_bashrc;      verbose_msg "$run_or_skip : Add setting environment variables to $shell profile"
 
 #-----------------------------------------------------------------------------
 verbose_msg    # print a newline
