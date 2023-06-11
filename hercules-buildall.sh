@@ -62,6 +62,7 @@ VERSION_STR=v0.9.14+
 # Updated: 11 JUN 2023
 # - correct wording describing adding env vars to shell profile
 # - correct year in dates in recent ChangeLog entries
+# - add minor clarification to "Build tools versions:" message
 #
 # Updated: 10 JUN 2023
 # - fix typos in config files
@@ -3679,7 +3680,7 @@ set_run_or_skip $dostep_bashrc;      verbose_msg "$run_or_skip : Add setting env
 
 #-----------------------------------------------------------------------------
 verbose_msg    # print a newline
-verbose_msg "Build tools versions:"
+verbose_msg "Existing build tools versions:"
 verbose_msg "  autoconf       : $(autoconf --version 2>&1 | head -n 1)"
 verbose_msg "  automake       : $(automake --version 2>&1 | head -n 1)"
 
