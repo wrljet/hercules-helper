@@ -3620,13 +3620,13 @@ verbose_msg "OPT_REGINA_TARFILE   : $opt_regina_tarfile"
 verbose_msg "OPT_REGINA_URL       : $opt_regina_url"
 
 if [ -z "$git_branch_hercules" ] ; then
-    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hercules [default branch]"
+    verbose_msg "GIT_REPO_HERCULES    : $git_repo_hercules [default branch]"
 else
-    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hercules [checkout $git_branch_hercules]"
+    verbose_msg "GIT_REPO_HERCULES    : $git_repo_hercules [checkout $git_branch_hercules]"
 fi
 
 if [ ! -z "$git_commit_hercules" ] ; then
-    verbose_msg "GIT_REPO_HYPERION    : $git_repo_hercules [checkout $git_commit_hercules]"
+    verbose_msg "GIT_REPO_HERCULES    : $git_repo_hercules [checkout $git_commit_hercules]"
 fi
 
 if [ -z "$git_branch_extpkgs" ] ; then
