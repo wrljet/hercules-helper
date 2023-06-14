@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 12 JUN 2023
+# Updated: 14 JUN 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -58,6 +58,11 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 14 JUN 2023
+# - move search for existing binaries to helper-find-existing-binaries.sh
+#   for performance reasons. This can be extremely slow on some systems.
+# - loosen up the tests for existing env var scripts in the shell profile
 #
 # Updated: 12 JUN 2023
 # - correct typo in default config git branch
@@ -3857,12 +3862,6 @@ log_extra_info ""
 verbose_msg    # print a newline
 
 #-----------------------------------------------------------------------------
-# Display existing Hercules binaries
-verbose_msg "Looking for existing Hercules binaries ... please wait ..."
-verbose_msg "Adding results to $extra_file"
-
-find / -path /System/Volumes -prune -false -o -name hercules -type f \( -perm -u=x -o -perm -g=x -o -perm -o=x \) -exec test -x {} \; -print 2>/dev/null >>"$extra_file"
-log_extra_info ""
 
 if ($opt_no_packages  ); then dostep_packages=false;    fi
 if ($opt_no_rexx      ); then dostep_regina_rexx=false; fi
@@ -5132,15 +5131,19 @@ if ($dostep_bashrc); then
             error_msg "Not adding environment variables to ~/.ashrc. File not found."
         else
             # Add .../$hercules_barename-init-bash.sh to ~/.bashrc if not already present
-            if grep -Fqe "$opt_install_dir/$hercules_barename-init-$shell.sh" ~/$profile_name ; then
+            if grep -Eqe "^\. $opt_install_dir/$hercules_barename-init-$shell.sh" ~/$profile_name ; then
                 note_msg "The same Hercules profile commands are already present in your ~/$profile_name. Skipping"
-            elif grep -Fqe "$hercules_barename-init-$shell.sh" ~/$profile_name ; then
-                # FIXME create beep() function
-                echo -ne '\a'; sleep 0.2; echo -ne '\a'
-                note_msg " "
-                error_msg "Different Hercules profile commands are already present in your ~/$profile_name! Skipping"
-                note_msg " "
             else
+		if grep -Fqe "$hercules_barename-init-$shell.sh" ~/$profile_name ; then
+		    # FIXME create beep() function
+		    echo -ne '\a'; sleep 0.2; echo -ne '\a'
+		    note_msg " "
+		    note_msg "Different Hercules profile commands are already present in your ~/$profile_name"
+		    note_msg "Please examine your ~/$profile_name carefully"
+		    note_msg " "
+		    echo   # output a newline
+                fi
+
                 verbose_msg "Adding Hercules profile commands to your ~/$profile_name"
                 cat <<-BASHRC >> ~/$profile_name
 
