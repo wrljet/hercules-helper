@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 27 JUN 2023
+# Updated: 28 JUN 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -58,6 +58,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 28 JUN 2023
+# - corrections to default config files
 #
 # Updated: 27 JUN 2023
 # - run 'sudo ldconfig' after installation, if --sudo is in effect
