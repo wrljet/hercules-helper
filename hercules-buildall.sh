@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 14 JUN 2023
+# Updated: 27 JUN 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -58,6 +58,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 27 JUN 2023
+# - run 'sudo ldconfig' after installation, if --sudo is in effect
 #
 # Updated: 14 JUN 2023
 # - move search for existing binaries to helper-find-existing-binaries.sh
@@ -4959,6 +4962,31 @@ else
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
         error_msg "Make install failed!"
         exit 1
+    fi
+
+    # sudo ldconfig
+    if ($opt_usesudo); then
+        if [[ "$version_distro" == "debian" ||
+              "$version_distro" == "openSUSE" ||
+              "$version_distro" == "almalinux" ||
+              "$version_distro" == "rockylinux" ||
+              "$version_distro" == "fedora" ]];
+        then
+            verbose_msg    # output a newline
+            verbose_msg "sudo ldconfig"
+            add_build_entry "# ldconfig"
+            add_build_entry "\$HH_SUDOCMD ldconfig"
+            $HH_SUDOCMD ldconfig || true
+        fi
+
+        if [[ "$version_distro" == "slackware" ]];
+        then
+            verbose_msg    # output a newline
+            verbose_msg "sudo ldconfig"
+            add_build_entry "# ldconfig"
+            add_build_entry "\$HH_SUDOCMD /sbin/ldconfig"
+            $HH_SUDOCMD /sbin/ldconfig || true
+        fi
     fi
 
     verbose_msg "-----------------------------------------------------------------
