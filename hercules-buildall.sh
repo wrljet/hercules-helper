@@ -59,6 +59,9 @@ VERSION_STR=v0.9.14+
 
 # Changelog:
 #
+# Updated: 08 JUL 2023
+# - add support for macOS 14 Sonoma
+#
 # Updated: 28 JUN 2023
 # - corrections to default config files
 #
@@ -1861,6 +1864,14 @@ detect_system()
                 echo "Apple macOS version $os_version_str (Ventura) on ARM CPU found"
             else
                 echo "Apple macOS version $os_version_str (Ventura) found"
+            fi
+        elif [[ $version_major -eq 14 ]]; then
+            os_is_supported=true
+
+            if [[ "$(uname -m)" =~ ^arm64 ]]; then
+                echo "Apple macOS version $os_version_str (Sonoma) on ARM CPU found"
+            else
+                echo "Apple macOS version $os_version_str (Sonoma) found"
             fi
         else
             os_is_supported=false
