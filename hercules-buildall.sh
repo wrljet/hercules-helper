@@ -61,6 +61,7 @@ VERSION_STR=v0.9.14+
 #
 # Updated: 19 AUG 2023
 # - don't assume ARM is a Raspberry Pi in the Regina patch
+# - prompt to quit if 'sudo' is missing and we'll probably need it
 #
 # Updated: 08 JUL 2023
 # - add support for macOS 14 Sonoma
@@ -3490,16 +3491,34 @@ if [ -z $which_sudo ]; then
 
             error_msg "Neither 'sudo' or 'doas' are installed."
             echo    # print a new line
-            read -p "Hit return to exit" -n 1 -r
-            echo    # print a new line
-            exit 1
+            # read -p "Hit return to exit" -n 1 -r
+
+            if ($opt_prompts); then
+                if confirm "Continue anyway? [y/N]" ; then
+                    echo "OK"
+                else
+                    exit 1
+                fi
+            else
+                echo "Giving up"
+                exit 1
+            fi
         fi
     else
         error_msg "'sudo' is not installed."
         echo    # print a new line
-        read -p "Hit return to exit" -n 1 -r
-        echo    # print a new line
-        exit 1
+        # read -p "Hit return to exit" -n 1 -r
+
+        if ($opt_prompts); then
+            if confirm "Continue anyway? [y/N]" ; then
+                echo "OK"
+            else
+                exit 1
+            fi
+        else
+            echo "Giving up"
+            exit 1
+        fi
     fi
 fi
 
