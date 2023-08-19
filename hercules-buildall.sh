@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 28 JUN 2023
+# Updated: 19 AUG 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -58,6 +58,9 @@ VERSION_STR=v0.9.14+
 #-----------------------------------------------------------------------------
 
 # Changelog:
+#
+# Updated: 19 AUG 2023
+# - don't assume ARM is a Raspberry Pi in the Regina patch
 #
 # Updated: 08 JUL 2023
 # - add support for macOS 14 Sonoma

@@ -15,7 +15,7 @@
     elif test "$bitflag" = "64"; then
 -      CFLAGS="${CFLAGS} -m64"
 -      LDFLAGS="${LDFLAGS} -m64"
-+      echo "Skipping -m64 on Raspberry Pi"
++      echo "Skipping -m64 on this CPU"
 +# WRL CFLAGS="${CFLAGS} -m64"
 +# WRL LDFLAGS="${LDFLAGS} -m64"
     else
