@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 19 AUG 2023
+# Updated: 11 SEP 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -2494,6 +2494,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
   if [[ $os_version_id == alpine* ]]; then
       declare -a alpine_packages=( \
           "git" "wget" "bash" \
+          "libcap" "libc6-compat" "musl-locales" "procps" \
           "build-base" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
           "bzip2" "libbz2" \
           "zlib" "zlib-dev"

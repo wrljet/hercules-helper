@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 11 SEP 2023
+# - add libcap, libc6-compat, musl-locales, and procps for Alpine
+#
 # Updated: 19 AUG 2023
 # - don't assume ARM is a Raspberry Pi in the Regina patch
 # - prompt to quit if 'sudo' is missing and we'll probably need it
