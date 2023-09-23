@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 23 SEP 2023
+# - add support for Orange OS (Arch based), on Orange Pi Zero 2W board
+#
 # Updated: 11 SEP 2023
 # - add libcap, libc6-compat, musl-locales, and procps for Alpine
 #

@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 11 SEP 2023
+# Updated: 22 SEP 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -711,9 +711,31 @@ detect_system()
             error_msg "Alpine Linux is not yet supported!"
         fi
 
+        # Look for Orange OS
+
+# Linux opizero2w 6.1.31-1 #1 SMP Thu Sep  7 18:21:15 CST 2023 aarch64 GNU/Linux
+# VERSION_ID       : archarm
+# VERSION_ID_LIKE  : arch
+# VERSION_PRETTY   : Orange OS
+# VERSION_STR      :
+# /etc/orangepi-os-version
+# opizero2w - xfce - 23.09-linux6.1.31
+
+        if [[ $os_is_supported != true && $os_version_id == arch* && $os_version_pretty_name == Orange* ]];
+        then
+            version_distro="arch"
+            os_version_str=$(awk -F= '$1=="DISTRIB_RELEASE" { gsub(/"/, "", $2); print $2 ;}' /etc/orangepi-os-version)
+            version_major=$(echo $os_version_str | cut -f1 -d.)
+            version_minor=$(echo $os_version_str | cut -f2 -d.)
+
+            verbose_msg "OS               : $version_distro variant"
+            verbose_msg "OS Version       : $version_major"
+            os_is_supported=true
+        fi
+
         # Look for Manjaro
 
-        if [[ $os_version_id == arch* || $os_version_id == manjaro* ]];
+        if [[ $os_is_supported != true && ($os_version_id == arch* || $os_version_id == manjaro*) ]];
         then
             version_distro="arch"
             os_version_str=$(awk -F= '$1=="DISTRIB_RELEASE" { gsub(/"/, "", $2); print $2 ;}' /etc/lsb-release)
@@ -3490,6 +3512,7 @@ else
     if [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
       if [[ ( ! -z "$RPI_MODEL" && "$RPI_MODEL" =~ "Raspberry" ) ||
             ( $opt_force_pi == true ) ||
+            ( "$os_version_pretty_name" == Orange* ) ||
             ( "$(uname -r)" =~ "linuxkit" ) ||
             ( "$(uname -r)" =~ "rockchip64" ) ||
             ( "$(uname -a)" =~ "Linux g6sbc01" ) ||
