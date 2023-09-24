@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 24 SEP 2023
+# - add support for Oracle Linux (tested with 8.8)
+#
 # Updated: 23 SEP 2023
 # - add support for Orange OS (Arch based), on Orange Pi Zero 2W board
 #

@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 22 SEP 2023
+# Updated: 24 SEP 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -627,6 +627,18 @@ detect_system()
 # PLATFORM_ID="platform:el9"
 # PRETTY_NAME="Red Hat Enterprise Linux 9.1 (Plow)"
 
+# /etc/os-release
+#
+# NAME="Oracle Linux Server"
+# VERSION="8.8"
+# ID="ol"
+# ID_LIKE="fedora"
+# VARIANT="Server"
+# VARIANT_ID="server"
+# VERSION_ID="8.8"
+# PLATFORM_ID="platform:el8"
+# PRETTY_NAME="Oracle Linux Server 8.8"
+
     verbose_msg "System detection:"
 
     RPI_MODEL=""
@@ -918,6 +930,34 @@ detect_system()
               os_is_supported=true
             fi
         fi
+
+        # Look for Oracle
+# NAME="Oracle Linux Server"
+# VERSION="8.8"
+# ID="ol"
+# ID_LIKE="fedora"
+# VARIANT="Server"
+# VARIANT_ID="server"
+# VERSION_ID="8.8"
+# PLATFORM_ID="platform:el8"
+# PRETTY_NAME="Oracle Linux Server 8.8"
+
+# cat /etc/redhat-release
+# Red Hat Enterprise Linux release 8.8 (Ootpa)
+
+        if [[ $os_version_id_like == fedora* && $os_version_pretty_name == Oracle* ]]; then
+            verbose_msg "We have an Oracle Linux system"
+
+            os_version_id="oracle"
+            version_distro="redhat"
+            version_major=$(echo $os_version_str | cut -f1 -d'.')
+            verbose_msg "VERSION_MAJOR    : $version_major"
+
+            if [[ $version_major -ge 8 ]]; then
+              os_is_supported=true
+            fi
+        fi
+
 #######################################################
 
         # Look for Intel Clear Linux
@@ -2218,7 +2258,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
   fi
 
 #-----------------------------------------------------------------------------
-  # CentOS, Alma, or Rocky Linux
+  # CentOS, Alma, Rocky, or Oracle Linux
 
 # To update/add packages on RedHat requires some fiddling around.
 #
@@ -2231,10 +2271,11 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
   if [[ $os_version_id == rhel* ||
         $os_version_id == almalinux* ||
-        $os_version_id == rocky* ]];
+        $os_version_id == rocky* ||
+        $os_version_id == oracle* ]];
       then
       if [[ $version_major -ge 8 ]]; then
-          echo "RedHat, Alma, or Rocky Linux version 8 or later found"
+          echo "RedHat, Alma, Rocky, or Oracle Linux version 8 or later found"
 
           declare -a almalinux_packages=( \
               "git" "wget" "time" \
