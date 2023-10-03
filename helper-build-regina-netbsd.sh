@@ -61,11 +61,11 @@ It will install locally.
     patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.9.3.patch"
 
     CFLAGS="-Wno-error=implicit-function-declaration" ./configure --enable-64bit --prefix=$WORK_DIR/rexx
-    make clean
-    make
+    gmake clean
+    gmake
 
 # install
-    make install
+    gmake install
     cd ..
 
 # these must be added to the bash profile

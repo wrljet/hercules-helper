@@ -1,6 +1,6 @@
---- configure	2011-12-31 03:50:28.000000000 -0500
-+++ /home/pi/regina-3.6-configure-wrl	2021-07-15 17:31:14.305143568 -0400
-@@ -3445,7 +3445,7 @@
+--- configure.old	2023-10-03 16:59:13.282425399 -0400
++++ configure	2023-10-03 17:00:44.280695056 -0400
+@@ -3445,12 +3445,12 @@
        ;;
     *linux*|*kfreebsd*-gnu*)
        mach="`uname -m`"
@@ -9,6 +9,12 @@
           bitflag="64"
           osis64bit=yes
        fi
+       ;;
+-   *-freebsd*)
++   *-freebsd* | *-openbsd* | *-netbsd*)
+       mach="`uname -m`"
+       if test "$mach" = "amd64"; then
+          bitflag="64"
 @@ -3568,8 +3568,9 @@
        CFLAGS="${CFLAGS} -m32"
        LDFLAGS="${LDFLAGS} -m32"
