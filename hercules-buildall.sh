@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 24 SEP 2023
+# Updated: 19 OCT 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -505,6 +505,7 @@ function check_pi_version()
     [b03140]="CM4       1.0     2GB     Sony UK"
     [c03140]="CM4       1.0     4GB     Sony UK"
     [d03140]="CM4       1.0     8GB     Sony UK"
+    [d04170]="5B        1.0     8GB            "
   )
 
     verbose_msg "Raspberry Pi     : ${RPI_REVISIONS[$RPI_REVCODE]} ($RPI_REVCODE)"
