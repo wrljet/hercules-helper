@@ -1,8 +1,8 @@
-Package: hyperion-4.4
+Package: hyperion-4.7-dev
 Version: 4.4.0.0-SDL-gbf377f63
 Architecture: amd64
 Maintainer: Bill Lewis <bill@wrljet.com>
-Depends: libbz2-1.0,zlib1g
+Depends: libbz2-1.0,zlib1g,libcap2-bin
 Installed-Size: 73000
 Section: utils
 Priority: optional
