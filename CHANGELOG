@@ -7,6 +7,8 @@
 # Updated: 14 NOV 2023
 # - fix defaults for Regina in config files to not overwrite options
 # - add new sdl-hyperion-freebsd-14.conf to use Regina 3.9.3
+# - use -Wno-incompatible-funtion-pointer-types to Clang 16
+#   Regina configure.
 #
 # Updated: 19 OCT 2023
 # - add support for Raspberry Pi 5 Model B Rev 1.0

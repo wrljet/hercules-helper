@@ -3533,7 +3533,9 @@ else
 #         "$(uname -m)" =~ (^arm64|^aarch64) ]];
 #   then
 #       regina_configure_cmd="CFLAGS=\"-Wno-error=implicit-function-declaration\" ./configure"
-        regina_configure_cmd="CFLAGS=\"$CFLAGS -Wno-error=implicit-function-declaration\" ./configure"
+        # regina_configure_cmd="CFLAGS=\"$CFLAGS -Wno-error=implicit-function-declaration\" ./configure"
+        # Added -Wno-incompatible-function-pointers for FreeBSD 14 and Clang 16
+        regina_configure_cmd="CFLAGS=\"$CFLAGS -Wno-error=implicit-function-declaration -Wno-incompatible-function-pointer-types\" ./configure"
     fi
 
     # FIXME on macOS on Apple M1 build Regina with a separate helper
