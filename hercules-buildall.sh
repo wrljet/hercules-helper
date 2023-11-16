@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 14 NOV 2023
+# Updated: 16 NOV 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -135,7 +135,8 @@ git_branch_extpkgs=${git_extpkgs_extpkgs:-""}
 # Regina download
 opt_regina_dir=${opt_regina_dir:-"Regina-REXX-3.6"}
 opt_regina_tarfile=${opt_regina_tarfile:-"Regina-REXX-3.6.tar.gz"}
-opt_regina_url=${opt_regina_url:-"http://www.wrljet.com/ibm360/Regina-REXX-3.6.tar.gz"}
+opt_regina_url=${opt_regina_url:-"https://gist.github.com/wrljet/053c3bab74910d42f8775841fcc6fd3f/raw/fe7d723509356ebb77d1eb4593f15dda941949da/Regina-REXX-3.6.tar.gz"}
+# opt_regina_url=${opt_regina_url:-"https://gist.github.com/wrljet/dd19076064da7c3dea1aa9614fc37511/raw/877f2a1b3cd207be7e0bf617af85057783cf68c6/Regina-REXX-3.9.3.tar.gz"}
 
 opt_configure=${opt_configure:-""}
 opt_configure_optimization=${opt_configure_optimization:-""}
@@ -2038,14 +2039,14 @@ prepare_packages()
   if [ "$version_distro" == "debian"  ]; then
       if [ "$os_name" = "GNU" ]; then
           declare -a debian_packages=( \
-            "git" "wget" "time" "ncat" \
+            "git" "wget" "curl" "time" "ncat" \
             "build-essential" "cmake" \
             "autoconf" "automake" "flex" "gawk" "m4" "libltdl-dev" "libtool-bin" \
             "libbz2-dev" "zlib1g-dev"
           )
       else
           declare -a debian_packages=( \
-            "git" "wget" "time" "ncat" \
+            "git" "wget" "curl" "time" "ncat" \
             "build-essential" "cmake" \
             "autoconf" "automake" "flex" "gawk" "m4" "libltdl-dev" "libtool-bin" \
             "libcap2-bin" \
@@ -2145,7 +2146,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
   if [ "$version_distro" == "elbrus"  ]; then
       declare -a elbrus_packages=( \
-          "git" "wget" "time" \
+          "git" "wget" "curl" "time" \
           "build-essential" "cmake" \
           "autoconf" "automake" "flex" "gawk" "m4" "libtool" \
           "libcap" \
@@ -2180,7 +2181,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
   if [ "$version_distro" == "arch"  ]; then
       declare -a arch_packages=( \
-          "git" "wget" "time" \
+          "git" "wget" "curl" "time" \
           "base-devel" "make" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
           "bzip2" "zlib"
       )
@@ -2230,7 +2231,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           echo "Fedora version 34 or later found"
 
           declare -a fedora_packages=( \
-              "git" "wget" "time" \
+              "git" "wget" "curl" "time" \
               "gcc" "make" "flex" "gawk" "m4" \
               "autoconf" "automake" "libtool-ltdl-devel" "libtool" \
               "cmake"
@@ -2279,7 +2280,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           echo "RedHat, Alma, Rocky, or Oracle Linux version 8 or later found"
 
           declare -a almalinux_packages=( \
-              "git" "wget" "time" \
+              "git" "wget" "curl" "time" \
               "gcc" "make" "flex" "gawk" "m4" \
               "autoconf" "automake" "libtool-ltdl-devel" "libtool" \
               "cmake" \
@@ -2326,7 +2327,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           echo "Mageia version 8 or later found"
 
           declare -a mageia_packages=( \
-              "git" "wget" \
+              "git" "wget" "curl" \
               "gcc" "make" "flex" "gawk" "m4" \
               "autoconf" "automake" "lib64ltdl-devel" "libtool" \
               "cmake"
@@ -2365,7 +2366,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
           if [[ $version_major -eq 7 ]]; then
               declare -a centos_packages=( \
-                  "git" "wget" \
+                  "git" "wget" "curl" \
                   "gcc" "make" "flex" "gawk" "m4" \
                   "autoconf" "automake" "libtool-ltdl-devel" \
                   "bzip2-devel" "zlib-devel"
@@ -2374,7 +2375,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
           if [[ $version_major -ge 8 ]]; then
               declare -a centos_packages=( \
-                  "git" "wget" "time" \
+                  "git" "wget" "curl" "time" \
                   "gcc" "make" "flex" "gawk" "m4" \
                   "autoconf" "automake" "libtool-ltdl-devel" \
                   "cmake" \
@@ -2528,7 +2529,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
   # Intel Clear Linux (supported from 35130 onward)
   if [[ $os_version_id == clear-linux-os* ]]; then
       declare -a clear_packages=( \
-          "git" "wget" \
+          "git" "wget" "curl" \
           "dev-utils" "perl-basic" \
           "c-basic" "flex" "os-core" \
           "devpkg-bzip2" \
@@ -2557,7 +2558,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
   if [[ $os_version_id == alpine* ]]; then
       declare -a alpine_packages=( \
-          "git" "wget" "bash" \
+          "git" "wget" "curl" "bash" \
           "libcap" "libc6-compat" "musl-locales" "procps" \
           "build-base" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
           "bzip2" "libbz2" \
@@ -2592,7 +2593,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
   if [[ $os_version_id == darwin* ]]; then
       declare -a darwin_packages=( \
-          "wget"    \
+          "wget" "curl"    \
           "autoconf" "automake" "libtool" \
           "cmake"   \
           "gsed"
@@ -2672,7 +2673,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
   if [[ $os_version_id == netbsd* ]]; then
       declare -a netbsd_packages=( \
-          "git" "wget" \
+          "git" "wget" "curl" \
           "gmake" "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
           "libtool" "bzip2" "zlib"
       )
@@ -2704,7 +2705,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           echo "FreeBSD version 12 or later found"
 
           declare -a freebsd_packages=( \
-              "git" "wget" \
+              "git" "wget" "curl" \
               "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
               "bzip2" \
               "gmake" "libltdl" "libtool"
@@ -2743,7 +2744,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           echo "OpenBSD version 7 or later found"
 
           declare -a openbsd_packages=( \
-              "git" "wget" \
+              "git" "wget" "curl" \
               "autoconf-2.71" "automake-1.16.3" "cmake" "flex" "gawk" "m4" \
               "bzip2" \
               "gmake" "libltdl" "libtool"
@@ -2783,7 +2784,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           echo "Slackware (version ?? or later) found"
 
           declare -a slackware_packages=( \
-              "git" "wget" \
+              "git" "wget" "curl" \
               "autoconf" "automake" "cmake" "flex" "gawk" "m4" \
               "bzip2" \
               "make" "libtool"
@@ -3471,10 +3472,10 @@ else
     rm -f "$opt_regina_tarfile"
     rm -rf "$opt_regina_dir"
 
-    add_build_entry "wget \$opt_regina_url"
-    wget "$opt_regina_url"
+    add_build_entry "curl -LJO \$opt_regina_url"
+    curl -LJO "$opt_regina_url"
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
-        error_msg "wget $opt_regina_url failed!"
+        error_msg "curl -LJO $opt_regina_url failed!"
         exit 1
     fi
 
