@@ -109,6 +109,10 @@ TRACE=${TRACE:-false}  # If TRACE variable not set or null, default to FALSE
 # Overall working build diretory is the current directory
 opt_build_dir=${opt_build_dir:-$(pwd)}
 
+# Custom build message
+# n.b. the version number will be tacked on the end
+opt_custom_build_msg=${opt_custom_buid_msg:-"Built for you with Hercules-Helper"}
+
 # Prefix (target) directory
 opt_install_dir=${opt_install_dir:-$(pwd)/herc4x}
 
@@ -2015,6 +2019,7 @@ add_build_entry "# LDFLAGS=\"$LDFLAGS\""
 add_build_entry "# LD_LIBRARY_PATH=\"${LD_LIBRARY_PATH:-""}\""
 
 add_build_entry # newline
+add_build_entry "opt_custom_build_msg=\"$opt_custom_build_msg\""
 add_build_entry "opt_build_dir=\"$opt_build_dir/hyperion\""
 add_build_entry "opt_install_dir=\"$opt_install_dir\""
 add_build_entry "opt_regina_dir=\"$opt_regina_dir\""
@@ -3099,6 +3104,8 @@ fi
 verbose_msg "Configuration:"
 verbose_msg "FLAVOR               : $opt_flavor"
 verbose_msg "Config file          : $CONFIG_FILE"
+
+verbose_msg "CUSTOM_BUILD_MSG     : \"$opt_custom_build_msg\""
 
 hercules_barename=$(basename "$git_repo_hercules" ".${git_repo_hercules##*.}")
 verbose_msg "REPO_NAME            : $hercules_barename"
@@ -4246,7 +4253,7 @@ $frecord_gcc_switches_option ../configure \
     $config_opt_optimization \
     --enable-extpkgs=$opt_build_dir/extpkgs \
     --prefix=$opt_install_dir \
-    --enable-custom="Built using Hercules-Helper (version: $hercules_helper_version)" \
+    --enable-custom="$opt_custom_build_msg (version: $hercules_helper_version)" \
     $enable_regina_option \
     $enable_oorexx_option \
     $enable_ipv6_option \

@@ -6,6 +6,9 @@
 #
 # Updated: 17 NOV 2023
 # - add regina-links.txt with URLs to the Gists
+# - make the --enable-custom configure option configurable
+#   using new opt_custom_build_msg to config options
+# - fix some little things in the config files
 #
 # Updated: 16 NOV 2023
 # - move Regina-REXX source tarballs to GitHub Gists
