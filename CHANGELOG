@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 17 NOV 2023
+# - add regina-links.txt with URLs to the Gists
+#
 # Updated: 16 NOV 2023
 # - move Regina-REXX source tarballs to GitHub Gists
 #   don't rely on wrljet.com for these
