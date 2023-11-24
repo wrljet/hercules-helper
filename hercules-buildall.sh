@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 17 NOV 2023
+# Updated: 23 NOV 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -376,6 +376,7 @@ Options:
        --homebrew     assume Homebrew package manager on MacOS
        --macports     assume MacPorts package manager on MacOS
        --force-pi     process for a Raspberry Pi
+       --prefix       installation dir prefix for configure
 
 Sub-functions (in order of operation):
        --detect-only  run detection only and exit
@@ -1817,6 +1818,11 @@ case $key in
   --force-pi)
     opt_force_pi=true
     shift # past argument
+    ;;
+
+  --prefix=*)
+    opt_install_dir="${1#*--prefix=}"
+    shift # past --prexix=xxx option
     ;;
 
   -*|--*)  # unknown option

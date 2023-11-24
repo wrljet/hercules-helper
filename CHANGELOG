@@ -4,6 +4,10 @@
 
 # Changelog:
 #
+# Updated: 23 NOV 2023
+# - add --prefix command line switch to set install dir for configure
+#   this is a shortcut to avoid using a local config file
+#
 # Updated: 17 NOV 2023
 # - add regina-links.txt with URLs to the Gists
 # - make the --enable-custom configure option configurable
