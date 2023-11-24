@@ -5,11 +5,10 @@
 # Changelog:
 #
 # Updated: 23 NOV 2023
-# - display number of CPUs before running 'make check'
-#
-# Updated: 23 NOV 2023
 # - add --prefix command line switch to set install dir for configure
 #   this is a shortcut to avoid using a local config file
+# - display number of CPUs before running 'make check'
+# - set MACOSX_DEPLOYMENT_TARGET= for macOS Xcode-tools / Clang
 #
 # Updated: 17 NOV 2023
 # - add regina-links.txt with URLs to the Gists

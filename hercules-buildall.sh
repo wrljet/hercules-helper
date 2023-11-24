@@ -4335,6 +4335,13 @@ fi
 
 nprocs=$(($nprocs>4 ? 4: $nprocs))
 
+# For macOS we set the deployment target to match the running OS
+if [[ $os_version_id == darwin* ]]; then
+    macOS_deployment="MACOSX_DEPLOYMENT_TARGET=$version_major.$version_minor"
+else
+    macOS_deployment=" "
+fi
+
 # For FreeBSD, OpenBSD, and NetBSD, the BSD make acts up, so we'll use gmake.
 
 if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ||
@@ -4342,8 +4349,8 @@ if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ||
     make_clean_cmd="gmake clean"
     make_cmd="time gmake -j $nprocs 2>&1"
 else
-    make_clean_cmd="make clean"
-    make_cmd="time make -j $nprocs 2>&1"
+    make_clean_cmd="$macOS_deployment make clean"
+    make_cmd="time $macOS_deployment make -j $nprocs 2>&1"
 fi
 
 # make clean
