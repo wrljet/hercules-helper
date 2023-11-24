@@ -4320,13 +4320,16 @@ cd build
 
 if [[ $os_version_multicore_with_low_memory == true ]]; then
     nprocs="1"
+    nprocs_real=$nprocs
 elif [[ $os_version_id == freebsd* || $os_version_id == netbsd* || $os_version_id == openbsd* ||
         $os_version_id == darwin* ]];
 then
     nprocs="$(sysctl -n hw.ncpu 2>/dev/null || echo 1)"
+    nprocs_real=$nprocs
     nprocs=$(( $nprocs * 3 / 2))
 else
     nprocs="$(nproc 2>/dev/null || echo 1)"
+    nprocs_real=$nprocs
     nprocs=$(( $nprocs * 3 / 2))
 fi
 
@@ -4398,7 +4401,8 @@ else
     # conditions such as on a Raspberry Pi 3B, and skip the 'mainsize' test.
 
     verbose_msg "********************"
-    verbose_msg "Memory size = $os_version_memory_size"
+    verbose_msg "Memory size    = $os_version_memory_size"
+    verbose_msg "Number of CPUS = $nprocs_real"
     verbose_msg "********************"
     verbose_msg    # output a newline
 
