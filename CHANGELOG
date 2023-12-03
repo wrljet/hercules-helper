@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 03 DEC 2023
+# - switch defaults from SDL-Hercules-390 to Hercules-Aethra
+#
 # Updated: 23 NOV 2023
 # - add --prefix command line switch to set install dir for configure
 #   this is a shortcut to avoid using a local config file

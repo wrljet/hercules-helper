@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 23 NOV 2023
+# Updated: 03 DEC 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -1923,8 +1923,8 @@ echo    # print a newline
 
     # Check for a valid "flavor"
     if [ -z "$opt_flavor" ]; then
-        verbose_msg "--flavor= is not specified.  Assuming build style: SDL-Hyperion"
-        opt_flavor="sdl-hyperion"
+        verbose_msg "--flavor= is not specified.  Assuming build style: Hercules-Aethra"
+        opt_flavor="aethra"
     elif [ "$opt_flavor" == "sdl-hyperion" ]; then
         verbose_msg "--flavor=sdl-hyperion specified.  Build style: SDL-Hyperion"
     elif [ "$opt_flavor" == "aethra" ]; then
