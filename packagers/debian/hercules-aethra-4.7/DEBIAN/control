@@ -1,0 +1,12 @@
+Package: hercules-aethra-4.7-dev
+Version: 4.4.0.0-Aethra-gbf377f63
+Architecture: any
+Maintainer: Bill Lewis <bill@wrljet.com>
+Depends: libbz2-1.0,zlib1g,libcap2-bin
+Installed-Size: 73000
+Section: utils
+Priority: optional
+Homepage: https://hercules-aethra.github.io/html
+Tags: hercules aethra
+Description: The Aethra version of Hercules 4.x (Hyperion), built with Hercules-Helper
+ The Hercules 4.x (Hyperion) System/370, ESA/390, and z/Architecture Emulator
