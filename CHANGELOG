@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 06 DEC 2023
+# - fix path in dpkg postinst script
+#
 # Updated: 04 DEC 2023
 # - initial work on Hercules-Aethra Debian packager
 #
