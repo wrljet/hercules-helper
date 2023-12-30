@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 03 DEC 2023
+# Updated: 29 DEC 2023
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -140,7 +140,9 @@ git_branch_extpkgs=${git_extpkgs_extpkgs:-""}
 opt_regina_dir=${opt_regina_dir:-"Regina-REXX-3.6"}
 opt_regina_tarfile=${opt_regina_tarfile:-"Regina-REXX-3.6.tar.gz"}
 opt_regina_url=${opt_regina_url:-"https://gist.github.com/wrljet/053c3bab74910d42f8775841fcc6fd3f/raw/fe7d723509356ebb77d1eb4593f15dda941949da/Regina-REXX-3.6.tar.gz"}
-# opt_regina_url=${opt_regina_url:-"https://gist.github.com/wrljet/dd19076064da7c3dea1aa9614fc37511/raw/877f2a1b3cd207be7e0bf617af85057783cf68c6/Regina-REXX-3.9.3.tar.gz"}
+# opt_regina_dir="Regina-REXX-3.9.3"
+# opt_regina_tarfile="Regina-REXX-3.9.3.tar.gz"
+# opt_regina_url="https://gist.github.com/wrljet/dd19076064da7c3dea1aa9614fc37511/raw/e842479d63fae7af79d4aec467b8fdb148ca196a/Regina-REXX-3.9.3.tar.gz"
 
 opt_configure=${opt_configure:-""}
 opt_configure_optimization=${opt_configure_optimization:-""}
@@ -3573,6 +3575,7 @@ else
             ( "$os_version_pretty_name" == Orange* ) ||
             ( "$(uname -r)" =~ "linuxkit" ) ||
             ( "$(uname -r)" =~ "rockchip64" ) ||
+            ( "$(uname -r)" =~ "danctnix" ) ||
             ( "$(uname -a)" =~ "Linux g6sbc01" ) ||
             ( "$(uname -a)" =~ "Linux penguin" ) ]]; then
 

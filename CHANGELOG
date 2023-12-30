@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 29 DEC 2023
+# - correct Regina REXX build on Pine64
+#
 # Updated: 06 DEC 2023
 # - fix path in dpkg postinst script
 #
