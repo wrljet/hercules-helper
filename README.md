@@ -21,7 +21,7 @@ These scripts will prompt for your sudo password where required.
 
 Report errors in this to me so everyone can benefit.
 
-Note: by default, this will build the SDL-Hercules "develop"
+Note: by default, this will build the Hercules-Aethra flavor, "develop"
 branch.  You may change this using the hercules-helper.conf
 config file.  Or use the --flavor= option.
 
