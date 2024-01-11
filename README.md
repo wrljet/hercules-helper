@@ -54,7 +54,7 @@ Options:
   -t,  --trace        print every command (set -x)
   -v,  --verbose      print lots of messages
   -p,  --prompts      print a prompt before each major step
-       --flavor=      specify major flavor: aethra, sdl-hyperion, etc.
+       --flavor=      specify major flavor: aethra, sdl-hyperion
        --config=FILE  specify config file containing options
   -s,  --sudo         use \'sudo\' for installing
   -a,  --auto         run everything, with --verbose and --prompts,
@@ -105,14 +105,19 @@ Or for your first run, for finer control:
 $ ~/hercules-helper/hercules-buildall.sh --verbose --prompts
 ```
 
-You may build Hercules from Jay Maynard's Aethra repo as well, adding:
+You may build Hercules from either Fish's SDL-Hercules-390 or Jay Maynard's Aethra repo
+using the --flavor= switch.
 
 ```
 --flavor=aethra
 ```
+or
+```
+--flavor=sdl-hyperion
+```
 
-SDL-Hercules is still used by default if --flavor isn't specified.
---flavor will select from a canned config that is tailored to the Aethra repo.
+Aethra is used by default if --flavor isn't specified.
+--flavor will select from a canned config for the repo selected.
 Some directory and filenames will be altered to "aethra" vs "hyperion"
 
 You can still use the --config= to point to a local config for fine tuning.
