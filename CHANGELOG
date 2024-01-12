@@ -6,6 +6,7 @@
 #
 # Updated: 12 JAN 2024
 # - fix type in README
+# - add support for Devuan Linux
 #
 # Updated: 29 DEC 2023
 # - correct Regina REXX build on Pine64

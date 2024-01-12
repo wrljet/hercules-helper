@@ -771,6 +771,7 @@ detect_system()
         # Look for Debian/Ubuntu/Mint
 
         if [[ $os_version_id == debian*    || $os_version_id == ubuntu*     || \
+              $os_version_id == devuan*    ||                                  \
               $os_version_id == linuxmint* || $os_version_id == peppermint* || \
               $os_version_id == raspbian*  || $os_version_id == neon*       || \
               $os_version_id == pop*       || $os_version_id == zorin* ]];
@@ -2094,15 +2095,15 @@ prepare_packages()
           note_msg "/etc/apt/sources.list contains a CD-ROM reference!"
       fi
 
-      verbose_msg "sudo apt update ... may take a while ..."
-      output=$($HH_SUDOCMD apt update 2>&1)
+      verbose_msg "sudo apt-get update ... may take a while ..."
+      output=$($HH_SUDOCMD apt-get update 2>&1)
       found_apt_cdrom_error=$?
 
       echo "$output" | grep -iqe "Err:. cdrom:"
       found_apt_cdrom_error=$?
 
       if [ $found_apt_cdrom_error -eq 0 ]; then
-          error_msg "\'apt update\' returned a CD-ROM error!"
+          error_msg "\'apt-get update\' returned a CD-ROM error!"
           verbose_msg "
 It appears you have installed from a CD/DVD that is still required to
 supply information about packages.  Please see this URL for information
@@ -2128,7 +2129,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               echo "is already installed"
           else
               echo "is missing, installing"
-              $HH_SUDOCMD apt -y install $package 2>&1
+              $HH_SUDOCMD apt-get -y install $package 2>&1
               echo "-----------------------------------------------------------------"
           fi
       done
