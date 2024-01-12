@@ -1,8 +1,11 @@
 # This file is part of the Hercules-Helper project.
 #
-# (C) Copyright William R. Lewis, 2020-2023
+# (C) Copyright William R. Lewis, 2020-2024
 
 # Changelog:
+#
+# Updated: 12 JAN 2024
+# - fix type in README
 #
 # Updated: 29 DEC 2023
 # - correct Regina REXX build on Pine64

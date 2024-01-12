@@ -135,7 +135,7 @@ If packages need to be installed you may be asked to supply your sudo password.
 You will be prompted a number of times between the major steps, to give you a chance
 to see the results of the last step, and to clue you into what will be happening next.
 
-Hercules will be "installed" (unless you include the ---no-install option), defaulting
+Hercules will be "installed" (unless you include the --no-install option), defaulting
 into ~/herctest/herc4x
 
 To set the required environment variables after installation, a script will be added
