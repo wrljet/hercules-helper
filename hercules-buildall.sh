@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 12 JAN 2024
+# Updated: 21 JAN 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -728,8 +728,7 @@ detect_system()
             verbose_msg "OS               : $version_distro variant"
             verbose_msg "OS Version       : $version_major"
 
-            os_is_supported=false
-            error_msg "Alpine Linux is not yet supported!"
+            os_is_supported=true
         fi
 
         # Look for Orange OS
