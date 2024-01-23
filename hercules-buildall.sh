@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 21 JAN 2024
+# Updated: 22 JAN 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -2585,7 +2585,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           echo "-----------------------------------------------------------------"
           echo "Checking for package: $package"
 
-          is_installed=$(apk list --installed | grep "$package")
+          is_installed=$(apk list --installed | grep -E "^$package*")
           status=$?
 
           # install if missing
@@ -4400,6 +4400,7 @@ else
     status_prompter "Step: tests:"
     verbose_msg "Be patient, this can take a while with no output."
     verbose_msg    # output a newline
+    verbose_msg "If you check top/htop and nothing seems to be happening, try hitting Return."
 
     if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ]]; then
         make_check_cmd="gmake check"
