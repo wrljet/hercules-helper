@@ -5,6 +5,7 @@
 # Changelog:
 #
 # Updated: 02 MAR 2024
+# - Allow either '--flavor=sdl-hyperion' or '--flavor=sdl-hercules'
 # - Improve wording of "source" message and end of processing
 # - Make that message display in color
 #

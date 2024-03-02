@@ -1929,6 +1929,9 @@ echo    # print a newline
         opt_flavor="aethra"
     elif [ "$opt_flavor" == "sdl-hyperion" ]; then
         verbose_msg "--flavor=sdl-hyperion specified.  Build style: SDL-Hyperion"
+    elif [ "$opt_flavor" == "sdl-hercules" ]; then
+        verbose_msg "--flavor=sdl-hercules specified.  Build style: SDL-Hyperion"
+        opt_flavor="sdl-hyperion"
     elif [ "$opt_flavor" == "aethra" ]; then
         verbose_msg "--flavor=aethra specified.  Build style: Hercules Aethra"
     else
