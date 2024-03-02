@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 22 JAN 2024
+# Updated: 02 MAR 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -4707,11 +4707,13 @@ if (! $opt_no_install && ! $opt_no_bashrc); then
     if [[ $shell == "bash" && -f ~/.bashrc || 
           $shell == "zsh"  && -f ~/.zshrc     ]]; then # Check for profile existing first!
       if [ -f $opt_install_dir/$hercules_barename-init-$shell.sh ]; then
-        echo   # output a newline
-        echo "To make this new Hercules immediately available, run:"
-        echo "(note the '.', which will \"source\" the script)"
-        echo   # output a newline
-        echo "  . $opt_install_dir/$hercules_barename-init-$shell.sh"
+        note_msg   # output a newline
+        note_msg "To make this new Hercules immediately available,"
+        note_msg "without restarting your terminal session, run:"
+        note_msg   # output a newline
+        note_msg "(note the '.', which will \"source\" the script)"
+        note_msg   # output a newline
+        note_msg "  . $opt_install_dir/$hercules_barename-init-$shell.sh"
       fi
     fi
 fi

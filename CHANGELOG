@@ -4,6 +4,10 @@
 
 # Changelog:
 #
+# Updated: 02 MAR 2024
+# - Improve wording of "source" message and end of processing
+# - Make that message display in color
+#
 # Updated: 22 JAN 2024
 # - Improvements to Alpine support
 #
