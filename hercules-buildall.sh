@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 02 MAR 2024
+# Updated: 04 MAR 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -3325,8 +3325,8 @@ if [[ "$(uname -m)" =~ ^(i686) && "$version_distro" == "debian" ]]; then
 fi
 
 #-----------------------------------------------------------------------------
-verbose_msg "Looking for compiler files ... please wait ..."
-verbose_msg "Adding results to $extra_file"
+# verbose_msg "Looking for compiler files ... please wait ..."
+# verbose_msg "Adding results to $extra_file"
 
     # For NetBSD, gcc doesn't seem to know about /usr/local
     if [[ $os_version_id == netbsd* ]]; then
@@ -3334,34 +3334,34 @@ verbose_msg "Adding results to $extra_file"
         export LDFLAGS="$LDFLAGS -L/usr/lib -L/usr/local/lib"
     fi
 
-if [[ $os_version_wsl -eq 2 ]]; then
-    # echo "Windows WSL2 host system found"
-    # Don't run a search on /mnt because it takes forever
-    which_cc1=$(find / -path /mnt -prune -o -name cc1 -print 2>&1 | grep cc1 | head -5)
-    which_cc1plus=$(find / -path /mnt -prune -o -name cc1plus -print 2>&1 | grep cc1plus | head -5)
-elif [[ $os_version_id == netbsd* ]]; then
-    which_cc1=$(find / -xdev -name cc1 -print 2>&1 | grep cc1 | head -5)
-    which_cc1plus=$(find / -xdev -name cc1plus -print 2>&1 | grep cc1plus | head -5)
-elif [[ $os_version_id == darwin* ]]; then
-    # On macOS these two find commands can trigger:
-    # "Terminal wants to access your contacts"
-    # This looks scary, and we don't want to be suspected of being malware
-    # so we'll skip these checks.  They are mostly for debugging anyways.
-
-    which_cc1="skipped on macOS"
-    which_cc1plus="skipped on macOS"
-elif [[ $os_version_id == elbrus* ]]; then
-    verbose_msg "Limited file search on Elbrus Linux"
-    which_cc1="skipped on Elbrus Linux"
-    which_cc1plus="skipped on Elbrus Linux"
-else
-    which_cc1="$(find / -mount -name cc1 -print 2>&1 | grep cc1 | head -5)" || true
-    which_cc1plus="$(find / -mount -name cc1plus -print 2>&1 | grep cc1plus | head -5)" || true
-fi
-
-log_extra_info "cc1 presence     : $which_cc1"
-log_extra_info "cc1plus presence : $which_cc1plus"
-log_extra_info ""
+# if [[ $os_version_wsl -eq 2 ]]; then
+#     # echo "Windows WSL2 host system found"
+#     # Don't run a search on /mnt because it takes forever
+#     which_cc1=$(find / -path /mnt -prune -o -name cc1 -print 2>&1 | grep cc1 | head -5)
+#     which_cc1plus=$(find / -path /mnt -prune -o -name cc1plus -print 2>&1 | grep cc1plus | head -5)
+# elif [[ $os_version_id == netbsd* ]]; then
+#     which_cc1=$(find / -xdev -name cc1 -print 2>&1 | grep cc1 | head -5)
+#     which_cc1plus=$(find / -xdev -name cc1plus -print 2>&1 | grep cc1plus | head -5)
+# elif [[ $os_version_id == darwin* ]]; then
+#     # On macOS these two find commands can trigger:
+#     # "Terminal wants to access your contacts"
+#     # This looks scary, and we don't want to be suspected of being malware
+#     # so we'll skip these checks.  They are mostly for debugging anyways.
+# 
+#     which_cc1="skipped on macOS"
+#     which_cc1plus="skipped on macOS"
+# elif [[ $os_version_id == elbrus* ]]; then
+#     verbose_msg "Limited file search on Elbrus Linux"
+#     which_cc1="skipped on Elbrus Linux"
+#     which_cc1plus="skipped on Elbrus Linux"
+# else
+#     which_cc1="$(find / -mount -name cc1 -print 2>&1 | grep cc1 | head -5)" || true
+#     which_cc1plus="$(find / -mount -name cc1plus -print 2>&1 | grep cc1plus | head -5)" || true
+# fi
+# 
+# log_extra_info "cc1 presence     : $which_cc1"
+# log_extra_info "cc1plus presence : $which_cc1plus"
+# log_extra_info ""
 
 verbose_msg    # print a newline
 

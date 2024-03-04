@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 04 MAR 2024
+# - Remove the long-running process looking for various compiler files
+#
 # Updated: 02 MAR 2024
 # - Allow either '--flavor=sdl-hyperion' or '--flavor=sdl-hercules'
 # - Improve wording of "source" message and end of processing
