@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 10 MAR 2024
+# - Add support for Sparky Linux
+#
 # Updated: 04 MAR 2024
 # - Remove the long-running process looking for various compiler files
 #

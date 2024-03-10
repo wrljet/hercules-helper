@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 04 MAR 2024
+# Updated: 10 MAR 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -773,7 +773,8 @@ detect_system()
               $os_version_id == devuan*    ||                                  \
               $os_version_id == linuxmint* || $os_version_id == peppermint* || \
               $os_version_id == raspbian*  || $os_version_id == neon*       || \
-              $os_version_id == pop*       || $os_version_id == zorin* ]];
+              $os_version_id == pop*       || $os_version_id == zorin*      || \
+	      $os_version_id == sparky*    ]];
         then
             version_distro="debian"
             version_major=$(echo $os_version_str | cut -f1 -d.)
