@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 # helper-build-ncat.sh
-
+#
+# Helper to build ncat
+#
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
 # or:
@@ -10,8 +12,10 @@
 # Please report errors in this to me so everyone can benefit.
 #
 # Bill Lewis  bill@wrljet.com
-
+#
 #-----------------------------------------------------------------------------
+#
+# This works for me, but should be considered just an example
 
 msg="$(basename "$0"):
 
@@ -19,30 +23,28 @@ This script will download, build and install ncat.
 
 Your sudo password will be required.
 "
+echo "$msg"
+echo "which ncat"
+which ncat
+echo #
+read -p "Ctrl+C to abort here, or hit return to continue"
 
-    echo "$msg"
+#-----------------------------------------------------------------------------
+mkdir -p ~/tools
+pushd ~/tools
 
-    echo "which ncat"
-    which ncat
-    echo #
+wget "https://nmap.org/dist/nmap-7.91.tar.bz2"
+bzip2 -cd nmap-7.91.tar.bz2 | tar xvf -
+cd nmap-7.91/
 
-    read -p "Ctrl+C to abort here, or hit return to continue"
+./configure
+make
+sudo make install
+hash -r
 
-    mkdir -p ~/tools
-    pushd ~/tools
+# cd someplace else so we don't find a cmake in the same directory
+cd ..
+ncat --version
 
-    wget "https://nmap.org/dist/nmap-7.91.tar.bz2"
-    bzip2 -cd nmap-7.91.tar.bz2 | tar xvf -
-    cd nmap-7.91/
-
-    ./configure
-    make
-    sudo make install
-    hash -r
-
-    # cd someplace else so we don't find a cmake in the same directory
-    cd ..
-    ncat --version
-
-    popd
+popd
 

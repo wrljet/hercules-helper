@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
-# NOT YET READY FOR USE!
-
+# helper-build-regina-netbsd.sh
+#
+# Helper to build Regina REXX on NetBSD
+#
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
 # or:
@@ -10,9 +12,23 @@
 # Please report errors in this to me so everyone can benefit.
 #
 # Bill Lewis  bill@wrljet.com
+#
+#-----------------------------------------------------------------------------
+#
+# This works for me, but should be considered just an example
+
+# NOT YET READY FOR USE!
+
+msg="$(basename "$0"):
+
+This script will build and install Regina REXX on NetBSD.
+
+Your sudo password will be required.
+"
+echo "$msg"
+read -p "Ctrl+C to abort here, or hit return to continue"
 
 #-----------------------------------------------------------------------------
-
 # 'realpath' doesn't exist on MacOS or BSDs
 # SCRIPT_PATH=$(dirname $(realpath -s $0))
 

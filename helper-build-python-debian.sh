@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 # helper-build-python-debian.sh
-
+#
+# Helper to build Python 3.9.5 on Debian based Linux
+#
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
 # or:
@@ -10,8 +12,10 @@
 # Please report errors in this to me so everyone can benefit.
 #
 # Bill Lewis  bill@wrljet.com
-
+#
 #-----------------------------------------------------------------------------
+#
+# This works for me, but should be considered just an example
 
 msg="$(basename "$0"):
 
@@ -20,36 +24,35 @@ and install Python 3.9.5.
 
 Your sudo password will be required.
 "
+echo "$msg"
+echo "which -a python3"
+which -a python3
+echo #
+echo "python3 -V"
+python3 -V
 
-    echo "$msg"
+read -p "Ctrl+C to abort here, or hit return to continue"
 
-    echo "which -a python3"
-    which -a python3
-    echo #
-    echo "python3 -V"
-    python3 -V
+#-----------------------------------------------------------------------------
+# sudo apt-get install openssl openssl-dev libssl-dev
+sudo apt-get install openssl libssl-dev
 
-    read -p "Ctrl+C to abort here, or hit return to continue"
+mkdir -p ~/tools
+pushd ~/tools
 
-  # sudo apt-get install openssl openssl-dev libssl-dev
-    sudo apt-get install openssl libssl-dev
+wget "https://www.python.org/ftp/python/3.9.5/Python-3.9.5.tgz"
+tar xfz Python-3.9.5.tgz 
+cd Python-3.9.5/
 
-    mkdir -p ~/tools
-    pushd ~/tools
+./configure
+make
+sudo make install
+hash -r
 
-    wget "https://www.python.org/ftp/python/3.9.5/Python-3.9.5.tgz"
-    tar xfz Python-3.9.5.tgz 
-    cd Python-3.9.5/
+# cd someplace else so we don't find a cmake in the same directory
+cd ..
+which -a python3
+python3 -V
 
-    ./configure
-    make
-    sudo make install
-    hash -r
-
-    # cd someplace else so we don't find a cmake in the same directory
-    cd ..
-    which -a python3
-    python3 -V
-
-    popd
+popd
 
