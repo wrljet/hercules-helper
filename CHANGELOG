@@ -9,6 +9,7 @@
 # - Make the various build helpers more uniform (part 1)
 # - No longer default to Aethra.  --flavor= must be specified.
 #   There was too much confusion having a default flavor.
+# - Don't display message for Bash versions < 4.
 #
 # Updated: 10 MAR 2024
 # - Add support for Sparky Linux

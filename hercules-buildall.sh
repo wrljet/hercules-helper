@@ -72,10 +72,8 @@ fi
 # Instructions on updating Bash on macOS Mojave 10.14
 # https://itnext.io/upgrading-bash-on-macos-7138bd1066ba
 
-if ((BASH_VERSINFO[0] < 4))
+if ((BASH_VERSINFO[0] >= 4))
 then
-    echo "Bash version < v4"
-else
     shopt -s globstar
 fi
 
