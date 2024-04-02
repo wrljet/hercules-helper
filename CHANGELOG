@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 02 APR 2024
+# - Fix macOS version detection issue that crept in a while back
+#
 # Updated: 10 MAR 2024
 # - Add support for Sparky Linux
 #

@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 10 MAR 2024
+# Updated: 02 APR 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -1288,18 +1288,23 @@ detect_system()
 
         if [[ $version_major -eq 10 && $version_minor -eq 12 ]]; then
             os_is_supported=true
+            os_version_pretty_name="macOS Sierra"
             echo "Apple macOS version $os_version_str (Sierra) found"
         elif [[ $version_major -eq 10 && $version_minor -eq 13 ]]; then
             os_is_supported=true
+            os_version_pretty_name="macOS High Sierra"
             echo "Apple macOS version $os_version_str (High Sierra) found"
         elif [[ $version_major -eq 10 && $version_minor -eq 14 ]]; then
             os_is_supported=true
+            os_version_pretty_name="macOS Mojave"
             echo "Apple macOS version $os_version_str (Mojave) found"
         elif [[ $version_major -eq 10 && $version_minor -eq 15 ]]; then
             os_is_supported=true
+            os_version_pretty_name="macOS Catalina"
             echo "Apple macOS version $os_version_str (Catalina) found"
         elif [[ $version_major -eq 11 ]]; then
             os_is_supported=true
+            os_version_pretty_name="macOS Big Sur"
 
             if [[ "$(uname -m)" =~ ^arm64 ]]; then
                 echo "Apple macOS version $os_version_str (Big Sur) on ARM CPU found"
@@ -1308,6 +1313,7 @@ detect_system()
             fi
         elif [[ $version_major -eq 12 ]]; then
             os_is_supported=true
+            os_version_pretty_name="macOS Monterey"
 
             if [[ "$(uname -m)" =~ ^arm64 ]]; then
                 echo "Apple macOS version $os_version_str (Monterey) on ARM CPU found"
@@ -1316,6 +1322,7 @@ detect_system()
             fi
         elif [[ $version_major -eq 13 ]]; then
             os_is_supported=true
+            os_version_pretty_name="macOS Ventura"
 
             if [[ "$(uname -m)" =~ ^arm64 ]]; then
                 echo "Apple macOS version $os_version_str (Ventura) on ARM CPU found"
@@ -1324,6 +1331,7 @@ detect_system()
             fi
         elif [[ $version_major -eq 14 ]]; then
             os_is_supported=true
+            os_version_pretty_name="macOS Sonoma"
 
             if [[ "$(uname -m)" =~ ^arm64 ]]; then
                 echo "Apple macOS version $os_version_str (Sonoma) on ARM CPU found"
