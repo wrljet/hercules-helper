@@ -1934,8 +1934,9 @@ echo    # print a newline
 
     # Check for a valid "flavor"
     if [ -z "$opt_flavor" ]; then
-        verbose_msg "--flavor= is not specified.  Assuming build style: Hercules-Aethra"
-        opt_flavor="aethra"
+        error_msg "--flavor= is not specified.  You must specify either:"
+        error_msg "--flavor=aethra or --flavor=sdl-hyperion"
+        exit 1
     elif [ "$opt_flavor" == "sdl-hyperion" ]; then
         verbose_msg "--flavor=sdl-hyperion specified.  Build style: SDL-Hyperion"
     elif [ "$opt_flavor" == "sdl-hercules" ]; then
