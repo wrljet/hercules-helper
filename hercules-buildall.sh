@@ -1456,6 +1456,7 @@ detect_bitness()
 
 detect_regina()
 {
+    echo    # print a newline
     verbose_msg -n "Checking for Regina-REXX... " # no newline!
 
     version_regina=0
@@ -1463,7 +1464,9 @@ detect_regina()
     which_regina=$(which regina) || true
     which_status=$?
 
+    # echo
     # echo "(which rexx) status: $which_status"
+    # echo "(which rexx)       : $which_regina"
 
     if [ -z $which_regina ]; then
         verbose_msg "nope"
@@ -1472,7 +1475,11 @@ detect_regina()
         # regina -v
         # REXX-Regina_3.6 5.00 31 Dec 2011
         # regina: REXX-Regina_3.9.3 5.00 5 Oct 2019 (32 bit)
+        # regina: REXX-Regina_3.9.5(MT) 5.00 25 Jun 2022 (64 bit)
 
+        # echo $(regina -v 2>&1)
+        # echo $(regina -v 2>&1 | grep "Regina")
+        # echo $(regina -v 2>&1 | grep "Regina" | sed "s#^regina: ##")
         regina_v=$(regina -v 2>&1 | grep "Regina" | sed "s#^regina: ##")
         if [ -z "$regina_v" ]; then
             verbose_msg "nope"
@@ -1505,6 +1512,7 @@ detect_regina()
 
 detect_oorexx()
 {
+    echo    # print a newline
     verbose_msg -n "Checking for ooRexx... " # no newline!
 
     version_oorexx=0
@@ -1556,7 +1564,7 @@ detect_rexx()
     which_rexx=$(which rexx) || true
     which_status=$?
 
-    verbose_msg "REXX presence    : $which_rexx"
+    verbose_msg "REXX via (\$PATH):  $which_rexx"
     # echo "(which rexx) status: $which_status"
 
     detect_regina
@@ -1577,12 +1585,12 @@ detect_rexx()
 
         cc_find_h=$(echo "#include \"rexxsaa.h\"" | $CC $CPPFLAGS $CFLAGS -dI -E -x c - 2>&1 | grep "rexxsaa.h" )
         if [[ $cc_status -eq 0 ]]; then
-            verbose_msg "cc_status = $cc_status"
+            verbose_msg "compiler exit status = $cc_status"
             verbose_msg "rexxsaa.h is found in $CC search path"
             log_extra_info "$cc_find_h"
             rexxsaa_h_present=true
         else
-            verbose_msg "cc_status = $cc_status"
+            verbose_msg "compiler exit status = $cc_status"
             error_msg "rexxsaa.h is not found in $CC search path"
             log_extra_info "$cc_find_h"
             rexxsaa_h_present=false
@@ -1608,11 +1616,11 @@ detect_rexx()
         cc_find_h=$(echo "#include \"rexx.h\"" | cc $CPPFLAGS $CFLAGS -dI -E -x c - 2>&1 | grep "rexx.h" )
 
         if [[ $cc_status -eq 0 ]]; then
-            verbose_msg "cc_status = $cc_status"
+            verbose_msg "compiler exit status = $cc_status"
             verbose_msg "rexx.h is found in $CC search path"
             log_extra_info "$cc_find_h"
         else
-            verbose_msg "cc_status = $cc_status"
+            verbose_msg "compiler exit status = $cc_status"
             error_msg "rexx.h is not found in $CC search path"
             log_extra_info "$cc_find_h"
         fi
@@ -3178,6 +3186,17 @@ verbose_msg "CPPFLAGS         : $CPPFLAGS"
 verbose_msg "LDFLAGS          : $LDFLAGS"
 verbose_msg "LD_LIBRARY_PATH  : ${LD_LIBRARY_PATH:-""}"
 
+# If we're on macOS, DYLD_* environment variables are purged when
+# launching protected processes.  So we'll just set it up here to
+# the usual suspects.
+
+if [ "$version_distro" == "darwin" ]; then
+    if [ -z "${DYLD_LIBRARY_PATH:-""}" ] ; then
+        export DYLD_LIBRARY_PATH="/usr/local/lib"
+    fi
+    verbose_msg "DYLD_LIBRARY_PATH: ${DYLD_LIBRARY_PATH:-""}"
+fi
+
 #-----------------------------------------------------------------------------
 
 verbose_msg    # print a newline
@@ -3370,8 +3389,8 @@ fi
 # log_extra_info "cc1 presence     : $which_cc1"
 # log_extra_info "cc1plus presence : $which_cc1plus"
 # log_extra_info ""
-
-verbose_msg    # print a newline
+#
+# verbose_msg    # print a newline
 
 #-----------------------------------------------------------------------------
 
