@@ -2,7 +2,7 @@
 
 # helper-build-oorexx-macos.sh
 #
-# Helper to build ooRexx on macOS
+# Helper to build ooRexx on Linux and macOS
 #
 # The most recent version of this project can be obtained with:
 #   git clone https://github.com/wrljet/hercules-helper.git
@@ -17,23 +17,31 @@
 #
 # This works for me, but should be considered just an example
 #
-# WRL 02 APR 2024
+# Updated: 04 APR 2024 WRL
+
+#-----------------------------------------------------------------------------
+set -e # Stop on errors
+
+uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
+
+if [ "$uname_system" == "Linux" ]; then
+    opt_rexx_work_dir=${opt_rexx_work_dir:-"./ooRexx"}
+    opt_rexx_install_dir=${opt_rexx_install_dir:-"/usr/local/ooRexx"}
+fi
+
+if [ "$uname_system" == "Darwin" ]; then
+    opt_rexx_work_dir=${opt_rexx_work_dir:-"./ooRexx"}
+    opt_rexx_install_dir=${opt_rexx_install_dir:-"$HOME/Applications/ooRexx"}
+fi
 
 msg="$(basename "$0"):
 
-This script will build and install ooRexx on macOS.
+This script will build ooRexx 5 (from SVN trunk) into $opt_rexx_install_dir
 
 Your sudo password will be required.
 "
 echo "$msg"
-read -p "Ctrl+C to abort here, or hit return to continue"
-
-#-----------------------------------------------------------------------------
-# Stop on errors
-set -e
-
-opt_rexx_work_dir=${opt_rexx_work_dir:-"./ooRexx"}
-opt_rexx_install_dir=${opt_rexx_install_dir:-"$HOME/Applications/ooRexx"}
+read -r -p "Ctrl+C to abort here, or hit return to continue" response
 
 #------------------------------------------------------------------------------
 #                              confirm
@@ -57,40 +65,43 @@ confirm() {
 #                              main
 #------------------------------------------------------------------------------
 
-echo "This script will build ooRexx 5 (SVN trunk) on macOS"
-echo
-read -r -p "Hit return to continue, or Ctrl+C to quit..." response
+# Some things need to be split between macOS, Linux, etc
 
-echo
-echo "Checking for Xcode command line tools ..."
-xcode-select -p 1>/dev/null 2>/dev/null
-if [[ $? == 2 ]] ; then
-    darwin_need_prereqs=true
-else
-    echo "    Xcode command line tools appear to be installed"
+if [ "$uname_system" == "Linux" ]; then
+    pwd > /dev/null
+fi
 
-    if (cc --version 2>&1 | head -n 1 | grep -Fiqe "xcrun: error: invalid active developer path"); then
-        error_msg "    But the C compiler does not work"
-        echo "$(cc --version 2>&1)"
+if [ "$uname_system" == "Darwin" ]; then
+    echo "Checking for Xcode command line tools ..."
+    xcode-select -p 1>/dev/null 2>/dev/null
+    if [[ $? == 2 ]] ; then
+        darwin_need_prereqs=true
+    else
+        echo "    Xcode command line tools appear to be installed"
+
+        if (cc --version 2>&1 | head -n 1 | grep -Fiqe "xcrun: error: invalid active developer path"); then
+            error_msg "    But the C compiler does not work"
+            echo "$(cc --version 2>&1)"
+            exit 1
+        fi
+    fi
+
+    echo "Checking for Homebrew package manager ..."
+    which -s brew
+    if [[ $? != 0 ]] ; then
+        darwin_need_prereqs=true
+        echo "    Homebrew is not installed"
+    else
+        darwin_need_prereqs=false
+        echo "    Homebrew is already installed"
+    fi
+
+    if ( $darwin_need_prereqs == true ) ; then
+        echo   # output a newline
+        echo "Please run prerequisites-macOS.sh from Hercules-Helper first"
+        echo   # output a newline
         exit 1
     fi
-fi
-
-echo "Checking for Homebrew package manager ..."
-which -s brew
-if [[ $? != 0 ]] ; then
-    darwin_need_prereqs=true
-    echo "    Homebrew is not installed"
-else
-    darwin_need_prereqs=false
-    echo "    Homebrew is already installed"
-fi
-
-if ( $darwin_need_prereqs == true ) ; then
-    echo   # output a newline
-    echo "Please run prerequisites-macOS.sh from Hercules-Helper first"
-    echo   # output a newline
-    exit 1
 fi
 
 # All this assumes it's running in $opt_rexx_dir directory,
@@ -103,15 +114,21 @@ pushd $opt_rexx_work_dir >/dev/null
 
 # Install required packages
 
-echo
-echo "---"
-echo "Step: Updating Brew and installing required packages"
-echo
-read -r -p "Hit return to continue..." response
+if [ "$uname_system" == "Linux" ]; then
+    echo
+fi
 
-brew update
-brew install cmake svn
-brew upgrade
+if [ "$uname_system" == "Darwin" ]; then
+    echo "---"
+    echo "Step: Updating Homebrew and installing required packages"
+    echo "      cmake svn"
+    echo
+    read -r -p "Hit return to continue..." response
+
+    brew update
+    brew install cmake svn
+    brew upgrade
+fi
 
 #-----------------------------------------------------------------------------
 
@@ -121,12 +138,11 @@ brew upgrade
 
 # Clone the project repos
 
-echo
 echo "---"
 echo
 echo "Step: Cloning project repos..."
 echo
-echo "This will overwrite any existing oorexx-code directory!"
+note_msg "This will overwrite any existing oorexx-code directory!"
 echo
 read -r -p "Hit return to continue..." response
 
@@ -146,7 +162,8 @@ read -r -p "Hit return to continue..." response
     mkdir -p oorexx-build
     pushd oorexx-build >/dev/null
 
-    cmake ../oorexx-code
+    cmake ../oorexx-code -DCMAKE_INSTALL_PREFIX=$opt_rexx_install_dir
+
     make clean
     make
 
@@ -170,13 +187,10 @@ echo "Step: Creating script to set up ooRexx environment variables..."
 echo
 read -r -p "Hit return to continue..." response
 
-    export PATH=$opt_rexx_install_dir/bin:$PATH
-    export CFLAGS="-I$opt_rexx_install_dir/include/"
-    export LDFLAGS="-Wl,-rpath,$opt_rexx_install_dir/lib"
-
 # Create sourceable script to set environment variables
 
     cat <<FOE >"helper-setvars-oorexx.sh"
+#!/usr/bin/env bash
 #
 # Set up environment variables for ooRexx
 #
@@ -187,25 +201,28 @@ read -r -p "Hit return to continue..." response
 set +u
 
 newpath="$opt_rexx_install_dir/bin"
-if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
+if [ -d "\$newpath" ] && [[ ! \${PATH} =~ "\$newpath" ]]; then
   # export PATH="\${PATH:+"\$PATH:"}\$newpath"
     export PATH="\$newpath\${PATH:+":\$PATH"}"
 fi
+echo "PATH: \$PATH"
 
-#   export CFLAGS="-I$opt_rexx_install_dir/include/"
+#   export CFLAGS="-I $opt_rexx_install_dir/include/"
 #   export LDFLAGS="-Wl,-rpath,$opt_rexx_install_dir/lib"
 
 newpath="$opt_rexx_install_dir/include"
-if [ -d "\$newpath" ] && [[ ":\$CFLAGS:" != *":\$newpath:"* ]]; then
+if [ -d "\$newpath" ] && [[ ! \${CFLAGS} =~ "\$newpath" ]]; then
   # export CFLAGS="\${CFLAGS:+"\$CFLAGS:"}\$newpath"
-    export CFLAGS="-I\$newpath\${CFLAGS:+":\$CFLAGS"}"
+    export CFLAGS="-I \$newpath\${CFLAGS:+" \$CFLAGS"}"
 fi
+echo "CFLAGS: \$CFLAGS"
 
 newpath="$opt_rexx_install_dir/lib"
-if [ -d "\$newpath" ] && [[ ":\$LDFLAGS:" != *":\$newpath:"* ]]; then
+if [ -d "\$newpath" ] && [[ ! \${LDFLAGS} =~ "\$newpath" ]]; then
   # export LDFLAGS="\${LDFLAGS:+"\$LDFLAGS:"}\$newpath"
-    export LDFLAGS="-Wl,-rpath,\$newpath\${LDFLAGS:+":\$LDFLAGS"}"
+    export LDFLAGS="-Wl,-rpath,\$newpath\${LDFLAGS:+" \$LDFLAGS"}"
 fi
+echo "LDFLAGS: \$LDFLAGS"
 
 FOE
 # end of inline "here" file
@@ -221,6 +238,8 @@ echo "Step: Quickie test for ooRexx..."
 echo
 read -r -p "Hit return to continue..." response
 
+    echo
+    . ./helper-setvars-oorexx.sh
     echo
     hash -r
     echo "which rexx"
