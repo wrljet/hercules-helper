@@ -17,10 +17,19 @@
 #
 # This works for me, but should be considered just an example
 #
-# Updated: 04 APR 2024 WRL
+# Updated: 11 APR 2024 WRL
+
+#-----------------------------------------------------------------------------
+set -e # Stop on errors
 
 #-----------------------------------------------------------------------------
 # Configuration
+
+# SVN Regina 3.9.5
+opt_regina_dir="Regina-REXX-3.9.5"
+opt_regina_svn_url="https://svn.code.sf.net/p/regina-rexx/code/"
+opt_regina_svn_revision="113"
+opt_regina_install_dir="/usr/local/regina"
 
 # Regina download
 # opt_regina_dir=${opt_regina_dir:-"Regina-REXX-3.6"}
@@ -30,31 +39,8 @@
 # opt_regina_tarfile="Regina-REXX-3.9.3.tar.gz"
 # opt_regina_url="https://gist.github.com/wrljet/dd19076064da7c3dea1aa9614fc37511/raw/e842479d63fae7af79d4aec467b8fdb148ca196a/Regina-REXX-3.9.3.tar.gz"
 
-# SVN Regina 3.9.5
-opt_regina_dir="Regina-REXX-3.9.5"
-opt_regina_svn_url="https://svn.code.sf.net/p/regina-rexx/code/"
-opt_regina_svn_revision="113"
-opt_regina_install_dir="/usr/local/regina"
-
 #-----------------------------------------------------------------------------
-msg="$(basename "$0"):
-
-This script will download, build and install Regina-REXX 3.9.5
-into $opt_regina_install_dir
-
-Your sudo password will be required.
-"
-echo "$msg"
-echo "which -a regina: $(which -a regina)"
-echo #
-read -p "Ctrl+C to abort here, or hit return to continue"
-
-#-----------------------------------------------------------------------------
-# Stop on errors
-set -e
-
-#-----------------------------------------------------------------------------
-# Find and read in the helper functions
+# Find and read in our helper functions
 
 fns_dir="$(dirname "$0")"
 fns_file="$fns_dir/helper-fns.sh"
@@ -69,6 +55,81 @@ fi
 # FIXME: this doesn't work if this script is running off a symlink
 SCRIPT_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")
 SCRIPT_DIR="$(dirname $SCRIPT_PATH)"
+
+#------------------------------------------------------------------------------
+#                              main
+#------------------------------------------------------------------------------
+
+msg="$(basename "$0"):
+
+This script will download, build and install Regina-REXX 3.9.5
+into $opt_regina_install_dir
+
+Your sudo password will be required.
+"
+echo "$msg"
+echo "which -a regina: $(which -a regina)"
+echo #
+read -p "Ctrl+C to abort here, or hit return to continue"
+
+#-----------------------------------------------------------------------------
+# Some things need to be split between macOS, Linux, etc
+
+if [ "$uname_system" == "Linux" ]; then
+    pwd > /dev/null
+fi
+
+if [ "$uname_system" == "Darwin" ]; then
+    echo "Checking for Xcode command line tools ..."
+    xcode-select -p 1>/dev/null 2>/dev/null
+    if [[ $? == 2 ]] ; then
+        darwin_need_prereqs=true
+    else
+        echo "    Xcode command line tools appear to be installed"
+
+        if (cc --version 2>&1 | head -n 1 | grep -Fiqe "xcrun: error: invalid active developer path"); then
+            error_msg "    But the C compiler does not work"
+            echo "$(cc --version 2>&1)"
+            exit 1
+        fi
+    fi
+
+    echo "Checking for Homebrew package manager ..."
+    which -s brew
+    if [[ $? != 0 ]] ; then
+        darwin_need_prereqs=true
+        echo "    Homebrew is not installed"
+    else
+        darwin_need_prereqs=false
+        echo "    Homebrew is already installed"
+    fi
+
+    if ( $darwin_need_prereqs == true ) ; then
+        echo   # output a newline
+        echo "Please run prerequisites-macOS.sh from Hercules-Helper first"
+        echo   # output a newline
+        exit 1
+    fi
+fi
+
+#-----------------------------------------------------------------------------
+# Install required packages
+
+if [ "$uname_system" == "Linux" ]; then
+    echo
+fi
+
+if [ "$uname_system" == "Darwin" ]; then
+    echo "---"
+    echo "Step: Updating Homebrew and installing required packages"
+    echo "      cmake svn"
+    echo
+    read -r -p "Hit return to continue..." response
+
+    brew update
+    brew install curl
+    brew upgrade
+fi
 
 #-----------------------------------------------------------------------------
 # Building Regina REXX
@@ -180,10 +241,6 @@ echo "Step: Set up environment variables..."
 echo
 read -r -p "Hit return to continue..." response
 
-echo
-echo "Required environment variables:"
-echo
-
 # Create sourceable script to set environment variables
 
 echo
@@ -230,7 +287,7 @@ echo "LDFLAGS: \$LDFLAGS"
 
 uname_system="\$( (uname -s) 2>/dev/null)" || uname_system="unknown"
 
-if [ "\$uname_system" == "Linux" ]; then
+if [[ "\$uname_system" == "Linux" ]]; then
     newpath="$opt_regina_install_dir/lib"
     if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
       # export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}\$newpath"
@@ -239,7 +296,7 @@ if [ "\$uname_system" == "Linux" ]; then
     echo "LD_LIBRARY_PATH: \$LD_LIBRARY_PATH"
 fi
 
-if [ "\$uname_system" == "Darwin" ]; then
+if [[ "\$uname_system" == "Darwin" ]]; then
     newpath="$opt_regina_install_dir/lib"
     if [ -d "\$newpath" ] && [[ ":\$DYLD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
       # export DYLD_LIBRARY_PATH="\${DYLD_LIBRARY_PATH:+"\$DYLD_LIBRARY_PATH:"}\$newpath"
@@ -253,6 +310,24 @@ FOE
 
 chmod +x helper-setvars-regina.sh
 
+echo
+. ./helper-setvars-regina.sh
+
+echo
+echo "Required environment variables:"
+echo
+echo "PATH: $PATH"
+echo "CFLAGS: $CFLAGS"
+echo "LDFLAGS: $LDFLAGS"
+uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
+if [ "$uname_system" == "Linux" ]; then
+    echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+fi
+
+if [ "$uname_system" == "Darwin" ]; then
+    echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
+fi
+
 # Test the installation
 echo
 echo "---"
@@ -260,8 +335,6 @@ echo "Step: Test the installation..."
 echo
 read -r -p "Hit return to continue..." response
 
-echo
-. ./helper-setvars-regina.sh
 echo
 hash -r
 echo "which -a regina: $(which -a regina)"

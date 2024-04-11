@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# helper-build-oorexx-macos.sh
+# helper-build-oorexx.sh
 #
 # Helper to build ooRexx on Linux and macOS
 #
@@ -17,10 +17,13 @@
 #
 # This works for me, but should be considered just an example
 #
-# Updated: 04 APR 2024 WRL
+# Updated: 11 APR 2024 WRL
 
 #-----------------------------------------------------------------------------
 set -e # Stop on errors
+
+#-----------------------------------------------------------------------------
+# Configuration
 
 uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
 
@@ -29,10 +32,33 @@ if [ "$uname_system" == "Linux" ]; then
     opt_rexx_install_dir=${opt_rexx_install_dir:-"/usr/local/ooRexx"}
 fi
 
+# Installation directory:
+#  ~/Applications/ooRexx5 (the Applications directory in your home folder)
 if [ "$uname_system" == "Darwin" ]; then
     opt_rexx_work_dir=${opt_rexx_work_dir:-"./ooRexx"}
     opt_rexx_install_dir=${opt_rexx_install_dir:-"$HOME/Applications/ooRexx"}
 fi
+
+#-----------------------------------------------------------------------------
+# Find and read in our helper functions
+
+fns_dir="$(dirname "$0")"
+fns_file="$fns_dir/helper-fns.sh"
+
+if test -f "$fns_file" ; then
+    source "$fns_file"
+else
+    echo "Helper functions script file $fns_file not found!"
+    exit 1
+fi
+
+# FIXME: this doesn't work if this script is running off a symlink
+SCRIPT_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")
+SCRIPT_DIR="$(dirname $SCRIPT_PATH)"
+
+#------------------------------------------------------------------------------
+#                              main
+#------------------------------------------------------------------------------
 
 msg="$(basename "$0"):
 
@@ -44,27 +70,6 @@ echo "$msg"
 read -r -p "Ctrl+C to abort here, or hit return to continue" response
 
 #------------------------------------------------------------------------------
-#                              confirm
-#------------------------------------------------------------------------------
-confirm() {
-    echo -ne '\a'
-
-    # call with a prompt string or use a default
-    read -r -p "${1:-Are you sure? [y/N]} " response
-    case "$response" in 
-        [yY][eE][sS]|[yY])
-            true
-            ;; 
-        *)     
-            false
-            ;; 
-    esac
-}
-
-#------------------------------------------------------------------------------
-#                              main
-#------------------------------------------------------------------------------
-
 # Some things need to be split between macOS, Linux, etc
 
 if [ "$uname_system" == "Linux" ]; then
@@ -104,12 +109,6 @@ if [ "$uname_system" == "Darwin" ]; then
     fi
 fi
 
-# All this assumes it's running in $opt_rexx_dir directory,
-
-mkdir -p $opt_rexx_work_dir
-pushd $opt_rexx_work_dir >/dev/null
-
-#-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 
 # Install required packages
@@ -132,9 +131,10 @@ fi
 
 #-----------------------------------------------------------------------------
 
+# All this assumes it's running in $opt_rexx_dir directory,
 
-# Installation directory:
-#  ~/Applications/ooRexx5 (the Applications directory in your home folder)
+mkdir -p $opt_rexx_work_dir
+pushd $opt_rexx_work_dir >/dev/null
 
 # Clone the project repos
 
@@ -147,8 +147,8 @@ echo
 read -r -p "Hit return to continue..." response
 
     rm -rf oorexx-code
-echo "svn checkout svn://svn.code.sf.net/p/oorexx/code-0/main/trunk oorexx-code"
-    svn checkout svn://svn.code.sf.net/p/oorexx/code-0/main/trunk oorexx-code
+echo "svn checkout --quiet svn://svn.code.sf.net/p/oorexx/code-0/main/trunk oorexx-code"
+    svn checkout --quiet svn://svn.code.sf.net/p/oorexx/code-0/main/trunk oorexx-code
 
 # Building ooRexx
 
