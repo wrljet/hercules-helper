@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 02 APR 2024
+# Updated: 11 APR 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -3192,8 +3192,13 @@ verbose_msg "LD_LIBRARY_PATH  : ${LD_LIBRARY_PATH:-""}"
 
 if [ "$version_distro" == "darwin" ]; then
     if [ -z "${DYLD_LIBRARY_PATH:-""}" ] ; then
+        echo "macOS: Adding /usr/local/lib to DYLD_LIBRARY_PATH"
         export DYLD_LIBRARY_PATH="/usr/local/lib"
     fi
+
+    echo "macOS: Adding LD_LIBRARY_PATH to DYLD_LIBRARY_PATH"
+    export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$LD_LIBRARY_PATH"
+
     verbose_msg "DYLD_LIBRARY_PATH: ${DYLD_LIBRARY_PATH:-""}"
 fi
 

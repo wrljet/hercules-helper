@@ -4,6 +4,11 @@
 
 # Changelog:
 #
+# Updated: 11 APR 2024
+# - on macOS, tack LD_LIBRARY_PATH onto DYLD_LIBRARY_PATH
+#   This is because macOS for security reasons doesn't pass
+#   the shell's DYLD_LIBRARY_PATH into the next level shell.
+#
 # Updated: 02 APR 2024
 # - Fix macOS version detection issue that crept in a while back
 # - Make the various build helpers more uniform (part 1)
