@@ -217,7 +217,18 @@ if [ -d "\$newpath" ] && [[ ! \${CFLAGS} =~ "\$newpath" ]]; then
 fi
 echo "CFLAGS: \$CFLAGS"
 
-newpath="$opt_rexx_install_dir/lib"
+# echo "ls /usr/local/ooRexx ="
+# echo "\$(ls -l /usr/local/ooRexx)"
+# echo "find: \$(find /usr/local/ooRexx -maxdepth 1 -type d -name 'lib*')"
+
+# Find lib path under ooRexx
+# newpath="/usr/local/ooRexx/lib"
+newpath="/usr/local/ooRexx"
+# echo "newpath base = \$newpath"
+newpath="\$(find \$newpath -maxdepth 1 -type d -name 'lib*')"
+# echo "newpath from find = \$newpath"
+# echo "old LDFLAGS = \$LDFLAGS"
+
 if [ -d "\$newpath" ] && [[ ! \${LDFLAGS} =~ "\$newpath" ]]; then
   # export LDFLAGS="\${LDFLAGS:+"\$LDFLAGS:"}\$newpath"
     export LDFLAGS="-Wl,-rpath,\$newpath\${LDFLAGS:+" \$LDFLAGS"}"
