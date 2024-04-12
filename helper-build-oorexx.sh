@@ -223,7 +223,7 @@ echo "CFLAGS: \$CFLAGS"
 
 # Find lib path under ooRexx
 # newpath="/usr/local/ooRexx/lib"
-newpath="/usr/local/ooRexx"
+newpath="$opt_rexx_install_dir"
 # echo "newpath base = \$newpath"
 newpath="\$(find \$newpath -maxdepth 1 -type d -name 'lib*')"
 # echo "newpath from find = \$newpath"
