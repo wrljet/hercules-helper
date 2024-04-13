@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 13 APR 2024
+# - Don't try to add LD_LIBRARY_PATH if it's not present
+#
 # Updated: 11 APR 2024
 # - on macOS, tack LD_LIBRARY_PATH onto DYLD_LIBRARY_PATH
 #   This is because macOS for security reasons doesn't pass
