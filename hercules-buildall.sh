@@ -3196,8 +3196,10 @@ if [ "$version_distro" == "darwin" ]; then
         export DYLD_LIBRARY_PATH="/usr/local/lib"
     fi
 
-    echo "macOS: Adding LD_LIBRARY_PATH to DYLD_LIBRARY_PATH"
-    export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$LD_LIBRARY_PATH"
+    if [ -z "${LD_LIBRARY_PATH:-""}" ] ; then
+        echo "macOS: Adding LD_LIBRARY_PATH to DYLD_LIBRARY_PATH"
+        export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$LD_LIBRARY_PATH"
+    fi
 
     verbose_msg "DYLD_LIBRARY_PATH: ${DYLD_LIBRARY_PATH:-""}"
 fi
