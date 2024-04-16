@@ -5,6 +5,11 @@
 # Changelog:
 #
 # Updated: 16 APR 2024
+# - Allow new OS/Builds via opt_prompts/--prompts [Rudi]
+#   When system detection fails, or system is known to not
+#   be supported, prompt and allow processing to coninue.
+#
+# Updated: 16 APR 2024
 # - on macOS, use external helper script to build Regina
 #   Because of recent macOS Xcode-Tools and Clang not being too happy
 #   with the Regina 3.6 we had been building, we check for macOS
