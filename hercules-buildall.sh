@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 13 APR 2024
+# Updated: 16 APR 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -3516,196 +3516,210 @@ elif [[  $version_oorexx -ge 4 ]]; then
 else
     status_prompter "Step: Build Regina Rexx [used for test scripts]:"
 
-    # Remove any existing Regina, download and untar
-    add_build_entry # newline
-    add_build_entry "# Build Regina-REXX"
-    add_build_entry "rm -f \$opt_regina_tarfile"
-    add_build_entry "rm -rf \$opt_regina_dir"
-    rm -f "$opt_regina_tarfile"
-    rm -rf "$opt_regina_dir"
+    # Because of recent macOS Xcode-Tools and Clang not being too happy
+    # with the Regina 3.6 we had been building here, we check for macOS
+    # and call the external build helper instead of doing it all by hand
+    # here.
 
-    add_build_entry "curl -LJO \$opt_regina_url"
-    curl -LJO "$opt_regina_url"
-    if [ ${PIPESTATUS[0]} -ne 0 ]; then
-        error_msg "curl -LJO $opt_regina_url failed!"
-        exit 1
-    fi
+    if [[ $os_version_id == darwin* ]]; then
+        helper_file="$fns_dir/helper-build-regina.sh"
 
-    add_build_entry "tar xfz \$opt_regina_tarfile"
-    tar xfz "$opt_regina_tarfile"
-    if [ ${PIPESTATUS[0]} -ne 0 ]; then
-        error_msg "tar failed!"
-        exit 1
-    fi
-
-    add_build_entry "cd \$opt_regina_dir"
-    cd "$opt_regina_dir"
-
-    if [[ "$(uname -m)" =~ ^i686 ]]; then
-        regina_configure_cmd="./configure --enable-32bit"
-    elif [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
-        # If it's an arm64 CPU, and not FreeBSD, enable 64-bit
-        # This should work on Raspberry Pi with both FreeBSD and the Pi OSes
-        if [[ $os_version_id == freebsd* ]]; then
-            regina_configure_cmd="./configure"
+        if test -f "$helper_file" ; then
+            source "$helper_file"
         else
-            regina_configure_cmd="./configure --enable-64bit"
+            echo "Regina buidl helper script file ( $helper_file ) not found!"
+            exit 1
         fi
     else
-        # regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx"
-        regina_configure_cmd="./configure"
-    fi
+        # Remove any existing Regina, download and untar
+        add_build_entry # newline
+        add_build_entry "# Build Regina-REXX"
+        add_build_entry "rm -f \$opt_regina_tarfile"
+        add_build_entry "rm -rf \$opt_regina_dir"
+        rm -f "$opt_regina_tarfile"
+        rm -rf "$opt_regina_dir"
 
-    if [[ "$version_distro" == "debian" ||
-          "$version_distro" == "openSUSE" ||
-          "$version_distro" == "fedora" ]];
-    then
-        regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib"
-    fi
+        add_build_entry "curl -LJO \$opt_regina_url"
+        curl -LJO "$opt_regina_url"
+        if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            error_msg "curl -LJO $opt_regina_url failed!"
+            exit 1
+        fi
 
-    if [[ "$version_distro" == "almalinux"  ||
-          "$version_distro" == "rockylinux" ||
-          "$version_distro" == "redhat"     ]]; then
-        regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib64"
-    fi
+        add_build_entry "tar xfz \$opt_regina_tarfile"
+        tar xfz "$opt_regina_tarfile"
+        if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            error_msg "tar failed!"
+            exit 1
+        fi
 
-    # For FreeBSD and OpenBSD, Clang doesn't seem to know about /usr/local
-    if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ]]; then
-        export CFLAGS="$CFLAGS -I/usr/local/include"
-        export LDFLAGS="$LDFLAGS -L/usr/lib -L/usr/local/lib"
-    fi
+        add_build_entry "cd \$opt_regina_dir"
+        cd "$opt_regina_dir"
 
-    # For NetBSD, gcc doesn't seem to know about /usr/local
-    if [[ $os_version_id == netbsd* ]]; then
-        export CFLAGS="$CFLAGS -I/usr/local/include"
-        export LDFLAGS="$LDFLAGS -L/usr/lib -L/usr/local/lib"
-    fi
+        if [[ "$(uname -m)" =~ ^i686 ]]; then
+            regina_configure_cmd="./configure --enable-32bit"
+        elif [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
+            # If it's an arm64 CPU, and not FreeBSD, enable 64-bit
+            # This should work on Raspberry Pi with both FreeBSD and the Pi OSes
+            if [[ $os_version_id == freebsd* ]]; then
+                regina_configure_cmd="./configure"
+            else
+                regina_configure_cmd="./configure --enable-64bit"
+            fi
+        else
+            # regina_configure_cmd="./configure --prefix=$opt_build_dir/rexx"
+            regina_configure_cmd="./configure"
+        fi
 
-    if (cc --version | grep -Fiqe "clang"); then
-#   if [[ $os_version_id == darwin* &&
-#         "$(uname -m)" =~ (^arm64|^aarch64) ]];
-#   then
-#       regina_configure_cmd="CFLAGS=\"-Wno-error=implicit-function-declaration\" ./configure"
-        # regina_configure_cmd="CFLAGS=\"$CFLAGS -Wno-error=implicit-function-declaration\" ./configure"
-        # Added -Wno-incompatible-function-pointers for FreeBSD 14 and Clang 16
-        regina_configure_cmd="CFLAGS=\"$CFLAGS -Wno-error=implicit-function-declaration -Wno-incompatible-function-pointer-types\" ./configure"
-    fi
+        if [[ "$version_distro" == "debian" ||
+              "$version_distro" == "openSUSE" ||
+              "$version_distro" == "fedora" ]];
+        then
+            regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib"
+        fi
 
-    # FIXME on macOS on Apple M1 build Regina with a separate helper
-    # before running this script!
+        if [[ "$version_distro" == "almalinux"  ||
+              "$version_distro" == "rockylinux" ||
+              "$version_distro" == "redhat"     ]]; then
+            regina_configure_cmd="$regina_configure_cmd --libdir=/usr/lib64"
+        fi
 
-    # If this is a RPIOS 64-bit, aarch64 Chromebook, RISC-V, or ppc64le:
-    #   for Regina 3.9.3:
-    #     we need to patch configure
+        # For FreeBSD and OpenBSD, Clang doesn't seem to know about /usr/local
+        if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ]]; then
+            export CFLAGS="$CFLAGS -I/usr/local/include"
+            export LDFLAGS="$LDFLAGS -L/usr/lib -L/usr/local/lib"
+        fi
+
+        # For NetBSD, gcc doesn't seem to know about /usr/local
+        if [[ $os_version_id == netbsd* ]]; then
+            export CFLAGS="$CFLAGS -I/usr/local/include"
+            export LDFLAGS="$LDFLAGS -L/usr/lib -L/usr/local/lib"
+        fi
+
+        if (cc --version | grep -Fiqe "clang"); then
+    #   if [[ $os_version_id == darwin* &&
+    #         "$(uname -m)" =~ (^arm64|^aarch64) ]];
+    #   then
+    #       regina_configure_cmd="CFLAGS=\"-Wno-error=implicit-function-declaration\" ./configure"
+            # regina_configure_cmd="CFLAGS=\"$CFLAGS -Wno-error=implicit-function-declaration\" ./configure"
+            # Added -Wno-incompatible-function-pointers for FreeBSD 14 and Clang 16
+            regina_configure_cmd="CFLAGS=\"$CFLAGS -Wno-error=implicit-function-declaration -Wno-incompatible-function-pointer-types\" ./configure"
+        fi
+
+        # If this is a RPIOS 64-bit, aarch64 Chromebook, RISC-V, or ppc64le:
+        #   for Regina 3.9.3:
+        #     we need to patch configure
+        #
+        #   for Regina 3.6:
+        #     we need to patch configure
+        #     and supply a more modern config.{guess,sub}
+
+        # For Chromebook:
+        # uname -a
+        # Linux penguin 5.10 ...
+
+        if [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
+          if [[ ( ! -z "$RPI_MODEL" && "$RPI_MODEL" =~ "Raspberry" ) ||
+                ( $opt_force_pi == true ) ||
+                ( "$os_version_pretty_name" == Orange* ) ||
+                ( "$(uname -r)" =~ "linuxkit" ) ||
+                ( "$(uname -r)" =~ "rockchip64" ) ||
+                ( "$(uname -r)" =~ "danctnix" ) ||
+                ( "$(uname -a)" =~ "Linux g6sbc01" ) ||
+                ( "$(uname -a)" =~ "Linux penguin" ) ]]; then
+
+            if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
+              verbose_msg "Patching Regina 3.9.3 source for aarch64"
+              patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.9.3.patch"
+              verbose_msg    # output a newline
+            elif [[ "$opt_regina_dir" =~ "3.6" ]]; then
+              verbose_msg "Patching Regina 3.6 source for aarch64"
+              patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.6.patch"
+              verbose_msg "Replacing config.{guess,sub}"
+              cp "$SCRIPT_DIR/patches/config.guess" ./common/
+              cp "$SCRIPT_DIR/patches/config.sub" ./common/
+              verbose_msg    # output a newline
+            else
+              error_msg "Don't know how to build your Regina on your aarch64!"
+              exit 1
+            fi
+          fi
+        fi
+
+        if [[ "$(uname -m)" =~ (^riscv64|^ppc64) ]]; then
+            if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
+              verbose_msg "Patching Regina 3.9.3"
+              patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.9.3.patch"
+              verbose_msg    # output a newline
+            elif [[ "$opt_regina_dir" =~ "3.6" ]]; then
+              verbose_msg "Patching Regina 3.6 source"
+              patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.6.patch"
+              verbose_msg "Replacing config.{guess,sub}"
+              cp "$SCRIPT_DIR/patches/config.guess" ./common/
+              cp "$SCRIPT_DIR/patches/config.sub" ./common/
+              verbose_msg    # output a newline
+            else
+              error_msg "Don't know how to build your Regina!"
+              exit 1
+            fi
+        fi
+
+        verbose_msg $regina_configure_cmd
+        verbose_msg    # output a newline
+        add_build_entry # newline
+        add_build_entry "$regina_configure_cmd"
+        eval "$regina_configure_cmd"
+
+        if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            error_msg "configure failed!"
+            exit 1
+        fi
+
+        add_build_entry "time make"
+        time make
+
+        note_msg "sudo required to install Regina REXX in the default system directories"
+        verbose_msg    # output a newline
+        add_build_entry "\$HH_SUDOCMD time make install"
+        $HH_SUDOCMD time make install
+
+        # Check to see if the above 'sudo' or the 'make install' failed
+        if [[ $? != 0 ]] ; then
+            error_msg "Regina installation failed!"
+            exit 1
+        fi
+
+        if [[ "$version_distro" == "debian" ||
+              "$version_distro" == "openSUSE" ||
+              "$version_distro" == "almalinux" ||
+              "$version_distro" == "rockylinux" ||
+              "$version_distro" == "fedora" ]];
+        then
+            verbose_msg "sudo ldconfig (for libregina.so)"
+            add_build_entry "# ldconfig (for libregina.so)"
+            add_build_entry "\$HH_SUDOCMD ldconfig"
+            $HH_SUDOCMD ldconfig
+        fi
+
+        if [[ "$version_distro" == "slackware" ]];
+        then
+            verbose_msg "sudo /sbin/ldconfig (for libregina.so)"
+            add_build_entry "# ldconfig (for libregina.so)"
+            add_build_entry "\$HH_SUDOCMD /sbin/ldconfig"
+            $HH_SUDOCMD /sbin/ldconfig
+        fi
+
+    #   export PATH=$opt_build_dir/rexx/bin:$PATH
     #
-    #   for Regina 3.6:
-    #     we need to patch configure
-    #     and supply a more modern config.{guess,sub}
+    #   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$opt_build_dir/rexx/lib
+    #   newpath="$opt_install_dir/rexx/lib"
+    #   if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
+    #       export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
+    #   fi
+    #
+    #   export CPPFLAGS=-I$opt_build_dir/rexx/include
 
-    # For Chromebook:
-    # uname -a
-    # Linux penguin 5.10 ...
-
-    if [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
-      if [[ ( ! -z "$RPI_MODEL" && "$RPI_MODEL" =~ "Raspberry" ) ||
-            ( $opt_force_pi == true ) ||
-            ( "$os_version_pretty_name" == Orange* ) ||
-            ( "$(uname -r)" =~ "linuxkit" ) ||
-            ( "$(uname -r)" =~ "rockchip64" ) ||
-            ( "$(uname -r)" =~ "danctnix" ) ||
-            ( "$(uname -a)" =~ "Linux g6sbc01" ) ||
-            ( "$(uname -a)" =~ "Linux penguin" ) ]]; then
-
-        if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
-          verbose_msg "Patching Regina 3.9.3 source for aarch64"
-          patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.9.3.patch"
-          verbose_msg    # output a newline
-        elif [[ "$opt_regina_dir" =~ "3.6" ]]; then
-          verbose_msg "Patching Regina 3.6 source for aarch64"
-          patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.6.patch"
-          verbose_msg "Replacing config.{guess,sub}"
-          cp "$SCRIPT_DIR/patches/config.guess" ./common/
-          cp "$SCRIPT_DIR/patches/config.sub" ./common/
-          verbose_msg    # output a newline
-        else
-          error_msg "Don't know how to build your Regina on your aarch64!"
-          exit 1
-        fi
-      fi
     fi
-
-    if [[ "$(uname -m)" =~ (^riscv64|^ppc64) ]]; then
-        if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
-          verbose_msg "Patching Regina 3.9.3"
-          patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.9.3.patch"
-          verbose_msg    # output a newline
-        elif [[ "$opt_regina_dir" =~ "3.6" ]]; then
-          verbose_msg "Patching Regina 3.6 source"
-          patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.6.patch"
-          verbose_msg "Replacing config.{guess,sub}"
-          cp "$SCRIPT_DIR/patches/config.guess" ./common/
-          cp "$SCRIPT_DIR/patches/config.sub" ./common/
-          verbose_msg    # output a newline
-        else
-          error_msg "Don't know how to build your Regina!"
-          exit 1
-        fi
-    fi
-
-    verbose_msg $regina_configure_cmd
-    verbose_msg    # output a newline
-    add_build_entry # newline
-    add_build_entry "$regina_configure_cmd"
-    eval "$regina_configure_cmd"
-
-    if [ ${PIPESTATUS[0]} -ne 0 ]; then
-        error_msg "configure failed!"
-        exit 1
-    fi
-
-    add_build_entry "time make"
-    time make
-
-    note_msg "sudo required to install Regina REXX in the default system directories"
-    verbose_msg    # output a newline
-    add_build_entry "\$HH_SUDOCMD time make install"
-    $HH_SUDOCMD time make install
-
-    # Check to see if the above 'sudo' or the 'make install' failed
-    if [[ $? != 0 ]] ; then
-        error_msg "Regina installation failed!"
-        exit 1
-    fi
-
-    if [[ "$version_distro" == "debian" ||
-          "$version_distro" == "openSUSE" ||
-          "$version_distro" == "almalinux" ||
-          "$version_distro" == "rockylinux" ||
-          "$version_distro" == "fedora" ]];
-    then
-        verbose_msg "sudo ldconfig (for libregina.so)"
-        add_build_entry "# ldconfig (for libregina.so)"
-        add_build_entry "\$HH_SUDOCMD ldconfig"
-        $HH_SUDOCMD ldconfig
-    fi
-
-    if [[ "$version_distro" == "slackware" ]];
-    then
-        verbose_msg "sudo /sbin/ldconfig (for libregina.so)"
-        add_build_entry "# ldconfig (for libregina.so)"
-        add_build_entry "\$HH_SUDOCMD /sbin/ldconfig"
-        $HH_SUDOCMD /sbin/ldconfig
-    fi
-
-#   export PATH=$opt_build_dir/rexx/bin:$PATH
-#
-#   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$opt_build_dir/rexx/lib
-#   newpath="$opt_install_dir/rexx/lib"
-#   if [ -d "\$newpath" ] && [[ ":\$LD_LIBRARY_PATH:" != *":\$newpath:"* ]]; then
-#       export LD_LIBRARY_PATH="\$newpath\${LD_LIBRARY_PATH:+":\$LD_LIBRARY_PATH"}"
-#   fi
-#
-#   export CPPFLAGS=-I$opt_build_dir/rexx/include
 
     verbose_msg    # output a newline
     verbose_msg "which rexx: $(which rexx)"

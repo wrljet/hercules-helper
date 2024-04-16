@@ -4,6 +4,12 @@
 
 # Changelog:
 #
+# Updated: 16 APR 2024
+# - on macOS, use external helper script to build Regina
+#   Because of recent macOS Xcode-Tools and Clang not being too happy
+#   with the Regina 3.6 we had been building, we check for macOS
+#   and call the external build helper instead of doing it all by hand.
+#
 # Updated: 13 APR 2024
 # - Don't try to add LD_LIBRARY_PATH if it's not present
 #
