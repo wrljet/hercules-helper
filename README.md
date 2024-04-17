@@ -53,22 +53,28 @@ Options:
   -h,  --help         print this help
   -t,  --trace        print every command (set -x)
   -v,  --verbose      print lots of messages
+       --version      prints version info and exits
+       --flavor=      specify major flavor: aethra, sdl-hyperion, etc.
+       --beeps        beep at each prompt
   -p,  --prompts      print a prompt before each major step
-       --flavor=      specify major flavor: aethra, sdl-hyperion
        --config=FILE  specify config file containing options
   -s,  --sudo         use \'sudo\' for installing
-  -a,  --auto         run everything, with --verbose and --prompts,
-                      and creating a full log file
+       --askpass      use \'sudo -A\' askpass helper
+  -a,  --auto         run everything, with --verbose (but not --prompts),
+                      and create a full log file (this is the default)
        --homebrew     assume Homebrew package manager on MacOS
        --macports     assume MacPorts package manager on MacOS
+       --force-pi     process for a Raspberry Pi (even if not auto-detected)
+       --prefix       installation dir prefix for configure
 
 Sub-functions (in order of operation):
        --detect-only  run detection only and exit
        --no-packages  skip installing required packages
-       --no-rexx      skip building Regina REXX
+       --no-rexx      skip building Regina REXX, and no REXX support in Hercules
        --no-gitclone  skip \'git clone\' steps
        --no-bldlvlck  skip \'util/bldlvlck\' steps
        --no-extpkgs   skip building Hercules external packages
+       --autogen      run \'autoreconf\' and \'autogen\'
        --no-autogen   skip running \'autogen\'
        --no-configure skip running \'configure\'
        --no-clean     skip running \'make clean\'
@@ -84,6 +90,9 @@ Email bug reports, questions, etc. to <bill@wrljet.com>
 
 To use, create a build directory and cd to it, then run this script.
 First timers, it is recommended to use the --auto option.
+
+Note, while it works, it is not recommended to build directly into
+the directory you've cloned Hercules-Helper into.
 
 _In these examples below, it assumes you cloned the repo into your
 home directory, i.e. ~/hercules-helper.  And, that you are using
@@ -103,6 +112,12 @@ $ ~/hercules-helper/hercules-buildall.sh --auto
 Or for your first run, for finer control:
 ```
 $ ~/hercules-helper/hercules-buildall.sh --verbose --prompts
+```
+
+To control where Hercules is installed, use the --prefix= switch.
+Such as:
+```
+--prefix=/usr/local/hercules
 ```
 
 You may build Hercules from either Fish's SDL-Hercules-390 or Jay Maynard's Aethra repo
