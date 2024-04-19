@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 19 APR 2024
+# - Remove backslashed quotes from help output
+#
 # Updated: 16 APR 2024
 # - Allow new OS/Builds via opt_prompts/--prompts [Rudi]
 #   When system detection fails, or system is known to not

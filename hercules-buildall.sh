@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 16 APR 2024
+# Updated: 19 APR 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -369,8 +369,8 @@ Options:
        --beeps        beep at each prompt
        --flavor=      specify major flavor: aethra, sdl-hyperion, etc.
        --config=FILE  specify config file containing options
-  -s,  --sudo         use \'sudo\' for installing
-       --askpass      use \'sudo -A\' askpass helper
+  -s,  --sudo         use 'sudo' for installing
+       --askpass      use 'sudo -A' askpass helper
   -a,  --auto         run everything, with --verbose (but not --prompts),
                       and create a full log file (this is the default)
        --homebrew     assume Homebrew package manager on MacOS
@@ -382,17 +382,17 @@ Sub-functions (in order of operation):
        --detect-only  run detection only and exit
        --no-packages  skip installing required packages
        --no-rexx      skip building Regina REXX, no REXX support in Hercules
-       --no-gitclone  skip \'git clone\' steps
-       --no-bldlvlck  skip \'util/bldlvlck\' steps
+       --no-gitclone  skip 'git clone' steps
+       --no-bldlvlck  skip 'util/bldlvlck' steps
        --no-extpkgs   skip building Hercules external packages
-       --autogen      run \'autoreconf\' and \'autogen\'
-       --no-autogen   skip running \'autogen\'
-       --no-configure skip running \'configure\'
-       --no-clean     skip running \'make clean\'
-       --no-make      skip running \'make\'
-       --no-tests     skip running \'make check\'
-       --no-install   skip \'make install\' after building
-       --no-setcap    skip running \'setcap\'
+       --autogen      run 'autoreconf' and 'autogen'
+       --no-autogen   skip running 'autogen'
+       --no-configure skip running 'configure'
+       --no-clean     skip running 'make clean'
+       --no-make      skip running 'make'
+       --no-tests     skip running 'make check'
+       --no-install   skip 'make install' after building
+       --no-setcap    skip running 'setcap'
        --no-envscript skip creating script to set environment variables
        --no-bashrc    skip modifying .bashrc to set environment variables
 
