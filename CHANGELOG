@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 24 APR 2024
+# - Fix so --detect-only can be used alone
+#
 # Updated: 19 APR 2024
 # - Remove backslashed quotes from help output
 #

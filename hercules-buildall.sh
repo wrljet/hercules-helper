@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 19 APR 2024
+# Updated: 24 APR 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -1930,7 +1930,7 @@ echo    # print a newline
 
 # Process --flavor
 
-#if (! $opt_detect_only); then
+if (! $opt_override_detect_only); then
     opt_flavor=${opt_flavor:-}
 
     # Using 'tr' here so this works on Bash 3.2
@@ -1963,7 +1963,7 @@ echo    # print a newline
         CONFIG_FILE="$config_dir/$opt_flavor.conf"
     fi
     verbose_msg    # print a newline
-# fi
+fi
 
 # Find and read in the configuration
 
