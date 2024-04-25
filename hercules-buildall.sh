@@ -1914,16 +1914,20 @@ pushd "$(dirname "$0")" >/dev/null;
     which_git=$(which git 2>/dev/null) || true
     which_status=$?
 
+    # Add hercules-helper version to the build description, etc.
     if [ -z $which_git ]; then
         echo "git is not installed"
-        hercules_helper_version="unknown"
+        hercules_helper_version="-unknown-"
     else
-        add_build_entry "# Created by Hercules-Helper version: "
-        add_build_entry "# $SCRIPT_DIR/$(basename $0): $(git describe --long --tags --dirty --always 2>/dev/null)"
-        echo "Script version: $SCRIPT_DIR/$(basename $0): $(git describe --long --tags --dirty --always 2>/dev/null)"
-
-        # add hercules-helper version to the build description
         hercules_helper_version="$(git describe --long --tags --dirty --always 2>/dev/null)"
+
+        if [ $? -ne 0 ]; then
+            hercules_helper_version="-unknown-"
+        fi
+
+        add_build_entry "# Created by Hercules-Helper: "
+        add_build_entry "# $SCRIPT_DIR/$(basename $0): $hercules_helper_version)"
+        echo "Script version: $SCRIPT_DIR/$(basename $0): $hercules_helper_version"
     fi
 popd > /dev/null;
 echo    # print a newline

@@ -5,6 +5,7 @@
 # Changelog:
 #
 # Updated: 25 APR 2024
+# - Display "-unknown-" for script version if not from a git repo
 # - Fix problem scp-ing to system that auto sets Hercules environment
 #   "scp: Ensure the remote shell produces no output for non-interactive ..."
 #
