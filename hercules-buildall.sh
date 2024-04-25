@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 24 APR 2024
+# Updated: 25 APR 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -4665,7 +4665,12 @@ else
 # LD_LIBRARY_PATH is often empty, and we don't want to error out on that
 set +u
 
-echo "Setting environment variables for Hercules"
+# We shouldn't be producing any output in non-interactive shells.
+# This can cause scp, etc. to fail.
+
+if [ ! -z "\${PS1}" ]; then
+    echo "Setting environment variables for Hercules"
+fi
 
 newpath="$opt_install_dir/bin"
 if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then

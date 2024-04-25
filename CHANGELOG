@@ -4,7 +4,12 @@
 
 # Changelog:
 #
+# Updated: 25 APR 2024
+# - Fix problem scp-ing to system that auto sets Hercules environment
+#   "scp: Ensure the remote shell produces no output for non-interactive ..."
+#
 # Updated: 24 APR 2024
+# - Fix so --detect-only can be used alone
 # - Fix so --detect-only can be used alone
 #
 # Updated: 19 APR 2024
