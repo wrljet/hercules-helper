@@ -2888,7 +2888,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
 #-----------------------------------------------------------------------------
   if [ $os_is_supported != true ]; then
-    error_msg "Your system ( $os_version_pretty ) is not (yet) supported!"
+    error_msg "Your system ( $os_version_pretty_name ) is not (yet) supported!"
         if ($opt_prompts); then
              if confirm "Continue anyway? [y/N]" ; then
                     echo "OK"
