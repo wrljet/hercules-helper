@@ -975,7 +975,7 @@ detect_system()
 #VERSION_STR      : 2023
 
 
-        if [[ $os_version_id == rhel* ]]; then
+        if [[ $os_version_id == amzn* ]]; then
             verbose_msg "We have an Amazon Linux System"
 
             # cat /etc/redhat-release
