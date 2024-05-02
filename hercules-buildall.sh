@@ -966,6 +966,34 @@ detect_system()
             fi
         fi
 
+                # Look for Amazon
+# NAME="Amazon Linux"
+#OS Type          : Linux
+#VERSION_ID       : amzn
+#VERSION_ID_LIKE  : fedora
+#VERSION_PRETTY   : Amazon Linux 2023.4.20240429
+#VERSION_STR      : 2023
+
+
+        if [[ $os_version_id == rhel* ]]; then
+            verbose_msg "We have an Amazon Linux System"
+
+            # cat /etc/redhat-release
+            # Red Hat Enterprise Linux release 9.1 (Plow)
+            amzn_vers=$(cat /etc/amazon-linux-release) || true
+
+            amzn_vers="${amzn_vers#*release }"
+            amzn_vers="${amzn_vers/-/.}"
+
+            version_distro="redhat"
+            version_major=$(echo $amzn_vers | cut -f1 -d'.')
+            verbose_msg "VERSION_MAJOR    : $version_major"
+
+            if [[ $version_major -ge 9 ]]; then
+              os_is_supported=true
+            fi
+        fi
+
 #######################################################
 
         # Look for Intel Clear Linux
@@ -3646,6 +3674,7 @@ else
                 ( "$os_version_pretty_name" == Orange* ) ||
                 ( "$(uname -r)" =~ "linuxkit" ) ||
                 ( "$(uname -r)" =~ "rockchip64" ) ||
+                ( "$(uname -r)" =~ "amzn" ) ||
                 ( "$(uname -r)" =~ "danctnix" ) ||
                 ( "$(uname -a)" =~ "Linux g6sbc01" ) ||
                 ( "$(uname -a)" =~ "Linux penguin" ) ]]; then
