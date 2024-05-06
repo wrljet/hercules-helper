@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 25 APR 2024
+# Updated: 05 MAY 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -965,6 +965,33 @@ detect_system()
               os_is_supported=true
             fi
         fi
+
+#######################################################
+# Look for Amazon
+# NAME="Amazon Linux"
+#OS Type          : Linux
+#VERSION_ID       : amzn
+#VERSION_ID_LIKE  : fedora
+#VERSION_PRETTY   : Amazon Linux 2023.4.20240429
+#VERSION_STR      : 2023
+
+
+       if [[ $os_version_id == amzn* ]]; then
+           verbose_msg "We have an Amazon Linux System"
+
+           amzn_vers=$(cat /etc/amazon-linux-release) || true
+
+           amzn_vers="${amzn_vers#*release }"
+           amzn_vers="${amzn_vers/-/.}"
+
+           version_distro="redhat"
+           version_major=$(echo $amzn_vers | cut -f1 -d'.')
+           verbose_msg "VERSION_MAJOR    : $version_major"
+
+           if [[ $version_major -ge 2023 ]]; then
+             os_is_supported=true
+           fi
+       fi
 
 #######################################################
 
@@ -2356,6 +2383,42 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
   fi
 
 #-----------------------------------------------------------------------------
+  # Amazon
+
+  if [[ $os_version_id == amzn* ]]; then
+      if [[ $version_major -ge 2023 ]]; then
+          echo "Amazon Linux version 2023 or later found"
+
+          declare -a amazon_packages=( \
+              "git" "wget" "curl" "time" \
+              "gcc" "make" "flex" "gawk" "m4" \
+              "autoconf" "automake" "libtool-ltdl-devel" "libtool" \
+              "cmake"
+              "bzip2-devel" "zlib-devel"
+              )
+
+          for package in "${amazon_packages[@]}"; do
+              echo "-----------------------------------------------------------------"
+
+              dnf list installed $package
+              status=$?
+
+              # install if missing
+              if [ $status -eq 0 ]; then
+                  echo "package $package is already installed"
+              else
+                  echo "installing package: $package"
+                  $HH_SUDOCMD dnf -y install $package
+              fi
+          done
+      else
+          error_msg "Amazon earlier than 2023 found, and not supported"
+          exit 1
+      fi
+    return
+  fi
+
+#-----------------------------------------------------------------------------
   # Mageia v8
 
   if [[ $os_version_id == mageia* ]]; then
@@ -3646,6 +3709,7 @@ else
                 ( "$os_version_pretty_name" == Orange* ) ||
                 ( "$(uname -r)" =~ "linuxkit" ) ||
                 ( "$(uname -r)" =~ "rockchip64" ) ||
+                ( "$(uname -r)" =~ "amzn" ) ||
                 ( "$(uname -r)" =~ "danctnix" ) ||
                 ( "$(uname -a)" =~ "Linux g6sbc01" ) ||
                 ( "$(uname -a)" =~ "Linux penguin" ) ]]; then

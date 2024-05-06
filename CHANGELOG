@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 05 MAY 2024
+# - Add support for Amazon Linux (thanks to Gregory Rudolph)
+#
 # Updated: 25 APR 2024
 # - Display "-unknown-" for script version if not from a git repo
 # - Fix problem scp-ing to system that auto sets Hercules environment
