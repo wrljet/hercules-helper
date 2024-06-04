@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 05 MAY 2024
+# Updated: 04 JUN 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -772,7 +772,7 @@ detect_system()
               $os_version_id == linuxmint* || $os_version_id == peppermint* || \
               $os_version_id == raspbian*  || $os_version_id == neon*       || \
               $os_version_id == pop*       || $os_version_id == zorin*      || \
-	      $os_version_id == sparky*    ]];
+              $os_version_id == sparky*    ]];
         then
             version_distro="debian"
             version_major=$(echo $os_version_str | cut -f1 -d.)
@@ -1229,6 +1229,7 @@ detect_system()
 # CPU:  0.2% user,  0.0% nice,  0.2% system,  0.2% interrupt, 99.4% idle
 # Mem: 14M Active, 1636K Inact, 78M Wired, 47M Buf, 813M Free
 
+        os_version_pretty_name="FreeBSD"
         version_distro="freebsd"
         os_version_id="freebsd"
 
@@ -1460,7 +1461,7 @@ detect_bitness()
           ;;
        FreeBSD|OpenBSD|NetBSD)
           mach="`uname -m`"
-          if test "$mach" = "amd64" -o "$mach" = "sparc64" ; then
+          if test "$mach" = "amd64" -o "$mach" = "arm64" -o "$mach" = "sparc64" ; then
              os_bitflag="64"
              os_osis64bit=yes
           fi
@@ -3646,7 +3647,7 @@ else
         elif [[ "$(uname -m)" =~ (^arm64|^aarch64) ]]; then
             # If it's an arm64 CPU, and not FreeBSD, enable 64-bit
             # This should work on Raspberry Pi with both FreeBSD and the Pi OSes
-            if [[ $os_version_id == freebsd* ]]; then
+            if [[ $os_version_id == freebsd* && $os_bitflag == "32" ]]; then
                 regina_configure_cmd="./configure"
             else
                 regina_configure_cmd="./configure --enable-64bit"
@@ -3688,7 +3689,7 @@ else
     #       regina_configure_cmd="CFLAGS=\"-Wno-error=implicit-function-declaration\" ./configure"
             # regina_configure_cmd="CFLAGS=\"$CFLAGS -Wno-error=implicit-function-declaration\" ./configure"
             # Added -Wno-incompatible-function-pointers for FreeBSD 14 and Clang 16
-            regina_configure_cmd="CFLAGS=\"$CFLAGS -Wno-error=implicit-function-declaration -Wno-incompatible-function-pointer-types\" ./configure"
+            regina_configure_cmd="CFLAGS=\"$CFLAGS -Wno-error=implicit-function-declaration -Wno-incompatible-function-pointer-types\" $regina_configure_cmd"
         fi
 
         # If this is a RPIOS 64-bit, aarch64 Chromebook, RISC-V, or ppc64le:
@@ -3707,6 +3708,7 @@ else
           if [[ ( ! -z "$RPI_MODEL" && "$RPI_MODEL" =~ "Raspberry" ) ||
                 ( $opt_force_pi == true ) ||
                 ( "$os_version_pretty_name" == Orange* ) ||
+                ( "$(uname -a)" =~ "FreeBSD" ) ||
                 ( "$(uname -r)" =~ "linuxkit" ) ||
                 ( "$(uname -r)" =~ "rockchip64" ) ||
                 ( "$(uname -r)" =~ "amzn" ) ||
@@ -4818,14 +4820,14 @@ if ($dostep_bashrc); then
             if grep -Eqe "^\. $opt_install_dir/$hercules_barename-init-$shell.sh" ~/$profile_name ; then
                 note_msg "The same Hercules profile commands are already present in your ~/$profile_name. Skipping"
             else
-		if grep -Fqe "$hercules_barename-init-$shell.sh" ~/$profile_name ; then
-		    # FIXME create beep() function
-		    echo -ne '\a'; sleep 0.2; echo -ne '\a'
-		    note_msg " "
-		    note_msg "Different Hercules profile commands are already present in your ~/$profile_name"
-		    note_msg "Please examine your ~/$profile_name carefully"
-		    note_msg " "
-		    echo   # output a newline
+                if grep -Fqe "$hercules_barename-init-$shell.sh" ~/$profile_name ; then
+                    # FIXME create beep() function
+                    echo -ne '\a'; sleep 0.2; echo -ne '\a'
+                    note_msg " "
+                    note_msg "Different Hercules profile commands are already present in your ~/$profile_name"
+                    note_msg "Please examine your ~/$profile_name carefully"
+                    note_msg " "
+                    echo   # output a newline
                 fi
 
                 verbose_msg "Adding Hercules profile commands to your ~/$profile_name"

@@ -1,5 +1,5 @@
---- configure.old	2023-10-03 16:34:30.044308063 -0400
-+++ configure	2023-10-03 16:36:38.300824166 -0400
+--- configure.old	2024-06-04 00:08:35.286935000 +0000
++++ configure	2024-06-04 00:19:26.220556000 +0000
 @@ -3477,7 +3477,8 @@
  #
  # Now do platform specific tests
@@ -10,12 +10,12 @@
  gcc_32bit="-m32"
  on_osx="no"
  osis64bit=no
-@@ -3516,12 +3517,12 @@
+@@ -3516,14 +3517,14 @@
        ;;
     *linux* | *kfreebsd*-gnu*)
        mach="`uname -m`"
 -      if test "$mach" = "x86_64" -o "$mach" = "ia86" -o "$mach" = "alpha" -o "$mach" = "ppc64" -o "$mach" = "s390x"; then
-+      if test "$mach" = "x86_64" -o "$mach" = "ia86" -o "$mach" = "alpha" -o "$mach" = "ppc64" -o "$mach" = "ppc64le" -o "$mach" = "s390x" -o "$mach" = "aarch64" -o "$mach" = "e2k"; then
++      if test "$mach" = "x86_64" -o "$mach" = "ia86" -o "$mach" = "alpha" -o "$mach" = "ppc64" -o "$mach" = "ppc64le" -o "$mach" = "s390x" -o "$mach" = "aarch64" -o "$mach" = "arm64" -o "$mach" = "e2k"; then
           bitflag="64"
           osis64bit=yes
        fi
@@ -23,5 +23,8 @@
 -   *-freebsd* | *-openbsd*)
 +   *-freebsd* | *-openbsd* | *-netbsd*)
        mach="`uname -m`"
-       if test "$mach" = "amd64"; then
+-      if test "$mach" = "amd64"; then
++      if test "$mach" = "amd64" -o "$mach" = "arm64"; then
           bitflag="64"
+          osis64bit=yes
+       fi

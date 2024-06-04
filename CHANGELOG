@@ -4,6 +4,12 @@
 
 # Changelog:
 #
+# Updated: 04 JUN 2024
+# - Correct bitness test for FreeBSD 64-bit on Raspberry Pi
+#   Thanks to Aike (Asmid2002) for this improvement
+# - Correct Regina configure for FreeBSD and 64-bit on Pi
+# - Correct Reinga related typos in FreeBSD special config file
+#
 # Updated: 05 MAY 2024
 # - Add support for Amazon Linux (thanks to Gregory Rudolph)
 #
