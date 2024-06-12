@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 04 JUN 2024
+# Updated: 11 JUN 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -1363,6 +1363,15 @@ detect_system()
                 echo "Apple macOS version $os_version_str (Sonoma) on ARM CPU found"
             else
                 echo "Apple macOS version $os_version_str (Sonoma) found"
+            fi
+        elif [[ $version_major -eq 15 ]]; then
+            os_is_supported=true
+            os_version_pretty_name="macOS Sequoia"
+
+            if [[ "$(uname -m)" =~ ^arm64 ]]; then
+                echo "Apple macOS version $os_version_str (Sequoia) on ARM CPU found"
+            else
+                echo "Apple macOS version $os_version_str (Sequoia) found"
             fi
         else
             os_is_supported=false

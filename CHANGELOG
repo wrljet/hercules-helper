@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 11 JUN 2024
+# - Added support for Apple macOS 15 Sequoia (Beta)
+#
 # Updated: 04 JUN 2024
 # - Correct bitness test for FreeBSD 64-bit on Raspberry Pi
 #   Thanks to Aike (Asmid2002) for this improvement
