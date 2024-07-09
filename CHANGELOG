@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 09 JUL 2024
+# - Add Android detection and allow the script to run (not yet supported)
+#
 # Updated: 11 JUN 2024
 # - Added support for Apple macOS 15 Sequoia (Beta)
 #

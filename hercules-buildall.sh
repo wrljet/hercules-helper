@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 11 JUN 2024
+# Updated: 09 JUL 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -569,6 +569,10 @@ detect_darwin()
 detect_system()
 {
 
+# 27 JUL 2021
+# Android 11 LineageOS 18.1 on Raspberry Pi 4B
+# Linux localhost 5.4.132-v7l-gfc76364e6fe8 #1 SMP PREEMPT Tue Jul 20 15:55:44 EEST 2021 armv7l Android
+
 # 31 JAN 2021
 #
 # /etc/os-release
@@ -663,6 +667,25 @@ detect_system()
         os_version_pretty_name="??? unknown ???"
         os_version_str="??? unknown ???"
 
+        # First, we look for Android!
+        #
+        # LineageOS 18.1 Android 11 on Raspberry Pi 4B
+        # Linux localhost 5.4.132-v7l-gfc76364e6fe8 #1 SMP PREEMPT Tue Jul 20 15:55:44 EEST 2021 armv7l Android
+        #
+        # Moshix, Samsung phone
+        # Linux localhost 4.14.113-21644994 #1 SMP PREEMPT Fri Jun 18 16:26:54 KST 2021 aarch64 Android
+
+        # verbose_msg "  uname -a        : $(uname -a)"
+        version_uname="$(uname -a)"
+        if [[ "$version_uname" =~ Android ]]; then
+            version_id="android"
+            version_id_like="android"
+            version_pretty_name="Android"
+            version_str="??? unknown ???"
+
+            os_is_supported=true
+        fi
+        
         if [ -f /etc/os-release ]; then
             # awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release
             os_version_id=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
@@ -2886,6 +2909,13 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
     return
   fi
 
+#-----------------------------------------------------------------------------
+  # Android
+  
+  if [[ $version_id == android* ]]; then
+     verbose_msg "Not yet fully supported under Android"
+  fi
+  
 #-----------------------------------------------------------------------------
   # Slackware
 
