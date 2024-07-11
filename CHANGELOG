@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 11 JUL 2024
+# - Make helper-build-regina.sh aware of Macports
+#
 # Updated: 09 JUL 2024
 # - Add Android detection and allow the script to run (not yet supported)
 #

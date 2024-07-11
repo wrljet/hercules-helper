@@ -17,10 +17,10 @@
 #
 # This works for me, but should be considered just an example
 #
-# Updated: 11 APR 2024 WRL
+# Updated: 11 JUL 2024 WRL
 
 #-----------------------------------------------------------------------------
-set -e # Stop on errors
+# set -e # Stop on errors
 
 #-----------------------------------------------------------------------------
 # Configuration
@@ -79,16 +79,24 @@ if [ "$uname_system" == "Linux" ]; then
     pwd > /dev/null
 fi
 
+# Check for Apple macOS and prerequisites
+
+darwin_have_homebrew=false
+darwin_have_macports=false
+
 if [ "$uname_system" == "Darwin" ]; then
-    echo "Checking for Xcode command line tools ..."
+    darwin_need_prereqs=false
+
+  # echo "Checking for Xcode command line tools ..."
     xcode-select -p 1>/dev/null 2>/dev/null
     if [[ $? == 2 ]] ; then
         darwin_need_prereqs=true
     else
-        echo "    Xcode command line tools appear to be installed"
+  #     echo "    Command line tools are already installed"
+        echo "Xcode command line tools appear to be installed"
 
         if (cc --version 2>&1 | head -n 1 | grep -Fiqe "xcrun: error: invalid active developer path"); then
-            error_msg "    But the C compiler does not work"
+            error_msg "But the C compiler does not work"
             echo "$(cc --version 2>&1)"
             exit 1
         fi
@@ -97,19 +105,31 @@ if [ "$uname_system" == "Darwin" ]; then
     echo "Checking for Homebrew package manager ..."
     which -s brew
     if [[ $? != 0 ]] ; then
-        darwin_need_prereqs=true
         echo "    Homebrew is not installed"
     else
         darwin_need_prereqs=false
+        darwin_have_homebrew=true
         echo "    Homebrew is already installed"
+    fi
+
+    echo "Checking for MacPorts package manager ..."
+    which -s port
+    if [[ $? != 0 ]] ; then
+        echo "    MacPorts is not installed"
+    else
+        darwin_need_prereqs=false
+        darwin_have_macports=true
+        echo "    MacPorts is already installed"
     fi
 
     if ( $darwin_need_prereqs == true ) ; then
         echo   # output a newline
-        echo "Please run prerequisites-macOS.sh from Hercules-Helper first"
+        echo "Please run prerequisites-macOS.sh first"
         echo   # output a newline
         exit 1
     fi
+
+    echo   # output a newline
 fi
 
 #-----------------------------------------------------------------------------
@@ -120,15 +140,19 @@ if [ "$uname_system" == "Linux" ]; then
 fi
 
 if [ "$uname_system" == "Darwin" ]; then
-    echo "---"
-    echo "Step: Updating Homebrew and installing required packages"
-    echo "      cmake svn"
-    echo
-    read -r -p "Hit return to continue..." response
+    if ( $darwin_have_homebrew == true ) ; then
+        brew update
+        brew install curl svn
+        brew upgrade
+    fi
 
-    brew update
-    brew install curl
-    brew upgrade
+    if ( $darwin_have_macports == true ) ; then
+        verbose_msg "installing package: curl"
+        $HH_SUDOCMD port install curl
+
+        verbose_msg "installing package: subversion"
+        $HH_SUDOCMD port install subversion
+    fi
 fi
 
 #-----------------------------------------------------------------------------
