@@ -4499,7 +4499,9 @@ cd build
 # Use 1.5 times as many processes as CPUs unless there's low memory
 # But limit to 4 maximum
 
-if [[ $os_version_multicore_with_low_memory == true ]]; then
+if [[ $os_version_multicore_with_low_memory == true ||
+      $os_version_memory_size -lt 2000 ]]; then
+    verbose_msg "Parallel compiles (-j) limited to 1 due to low memory"
     nprocs="1"
     nprocs_real=$nprocs
 elif [[ $os_version_id == freebsd* || $os_version_id == netbsd* || $os_version_id == openbsd* ||

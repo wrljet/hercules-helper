@@ -6,6 +6,7 @@
 #
 # Updated: 01 AUG 2024
 # - Make various info and warnings around 'make check' more readable
+# - Limit 'make -j' to 1 if memory size is less than 2000
 #
 # Updated: 11 JUL 2024
 # - Make helper-build-regina.sh aware of Macports
