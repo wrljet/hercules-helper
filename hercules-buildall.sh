@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 09 JUL 2024
+# Updated: 01 AUG 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -4575,10 +4575,12 @@ verbose_msg "-----------------------------------------------------------------
 if (! $dostep_tests); then
     verbose_msg "Skipping step: make check (--no-tests)"
 else
-    status_prompter "Step: tests:"
+    verbose_msg "Step: tests:"
+    verbose_msg    # output a newline
     verbose_msg "Be patient, this can take a while with no output."
     verbose_msg    # output a newline
-    verbose_msg "If you check top/htop and nothing seems to be happening, try hitting Return."
+    verbose_msg "If you check top/htop and nothing seems to be happening, "
+    verbose_msg "try hitting Return or CTRL+D."
 
     if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ]]; then
         make_check_cmd="gmake check"
@@ -4604,6 +4606,8 @@ else
             mv ../tests/mainsize.tst ../tests/mainsize.tst.skipped
         fi
     fi
+
+    status_prompter "Step: tests:"
 
     add_build_entry "time $make_check_cmd"
     eval "time $make_check_cmd"

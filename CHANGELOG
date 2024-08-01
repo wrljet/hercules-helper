@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 01 AUG 2024
+# - Make various info and warnings around 'make check' more readable
+#
 # Updated: 11 JUL 2024
 # - Make helper-build-regina.sh aware of Macports
 #
