@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 01 AUG 2024
+# Updated: 25 AUG 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -164,6 +164,9 @@ opt_usesudo=${opt_usesudo:-false}
 # Use 'sudo -A' askpass helper
 opt_askpass=${opt_askpass:-false}
 
+# Accept root user 
+opt_accept_root=${opt_accept_root:-false}
+
 # Sub-functions, in order of operation
 #
 # --no-packages  skip installing required packages
@@ -258,7 +261,15 @@ LDFLAGS=${LDFLAGS:-""}
 
 #-----------------------------------------------------------------------------
 
-if [ "$EUID" -eq 0 ]; then
+if [[ "$*" == *"--accept-root"* ]]
+then
+    opt_accept_root=true
+else
+    opt_accept_root=false
+fi
+
+if [[ $opt_accept_root == false ]] ; then
+  if [[ "$EUID" -eq 0 ]]; then
     echo    # print a new line
     echo "Running this as root is dangerous and can cause misconfiguration issues"
     echo "or damage to your system.  Run as a normal user, and the parts that need"
@@ -272,6 +283,7 @@ if [ "$EUID" -eq 0 ]; then
     read -p "Hit return to exit" -n 1 -r
     echo    # print a new line
     exit 1
+  fi
 fi
 
 #-----------------------------------------------------------------------------
@@ -371,6 +383,7 @@ Options:
        --config=FILE  specify config file containing options
   -s,  --sudo         use 'sudo' for installing
        --askpass      use 'sudo -A' askpass helper
+       --accept-root  accept running as root user
   -a,  --auto         run everything, with --verbose (but not --prompts),
                       and create a full log file (this is the default)
        --homebrew     assume Homebrew package manager on MacOS
@@ -1708,6 +1721,7 @@ opt_override_prompts=false
 opt_override_beeps=false
 opt_override_usesudo=false
 opt_override_askpass=false
+opt_override_accept_root=false
 opt_override_auto=true
 
 opt_override_detect_only=false    # Run detection only and exit
@@ -1794,6 +1808,11 @@ case $key in
 
   --askpass)
     opt_override_askpass=true
+    shift # past argument
+    ;;
+
+  --accept-root)
+    opt_override_accept_root=true
     shift # past argument
     ;;
 
@@ -2058,6 +2077,7 @@ if [ $opt_override_prompts     == true ]; then opt_prompts=true; fi
 if [ $opt_override_beeps       == true ]; then opt_beeps=true; fi
 if [ $opt_override_usesudo     == true ]; then opt_usesudo=true; fi
 if [ $opt_override_askpass     == true ]; then opt_askpass=true; fi
+if [ $opt_override_accept_root == true ]; then opt_accept_root=true; fi
 if [ $opt_override_auto        == true ]; then opt_auto=true; fi
 
 if [ $opt_override_detect_only == true ]; then opt_detect_only=true; fi
@@ -3015,6 +3035,7 @@ verbose_msg "  --prompts       : $opt_prompts"
 verbose_msg "  --beeps         : $opt_beeps"
 verbose_msg "  --sudo          : $opt_usesudo"
 verbose_msg "  --askpass       : $opt_askpass"
+verbose_msg "  --accept-root   : $opt_accept_root"
 
 if ( $opt_askpass ) ; then
     HH_SUDO_ASKPASS="-A"

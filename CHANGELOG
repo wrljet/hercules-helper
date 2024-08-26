@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 25 AUG 2024
+# - Add --accept-root to allow running the script as root user
+#
 # Updated: 01 AUG 2024
 # - Make various info and warnings around 'make check' more readable
 # - Limit 'make -j' to 1 if memory size is less than 2000
