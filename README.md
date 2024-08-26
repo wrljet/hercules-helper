@@ -60,6 +60,7 @@ Options:
        --config=FILE  specify config file containing options
   -s,  --sudo         use 'sudo' for installing
        --askpass      use 'sudo -A' askpass helper
+       --accept-root  accept running as root user
   -a,  --auto         run everything, with --verbose (but not --prompts),
                       and create a full log file (this is the default)
        --homebrew     assume Homebrew package manager on MacOS
