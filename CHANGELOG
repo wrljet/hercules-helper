@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 17 SEP 2024
+# - Update config.{guess,sub} to latest from GNU
+#
 # Updated: 25 AUG 2024
 # - Add --accept-root to allow running the script as root user
 #
