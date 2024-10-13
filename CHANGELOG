@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 12 OCT 2024
+# - Fix 'dnf list' command for Fedora
+#
 # Updated: 17 SEP 2024
 # - Update config.{guess,sub} to latest from GNU
 #

@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 25 AUG 2024
+# Updated: 12 OCT 2024
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -2357,7 +2357,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           for package in "${fedora_packages[@]}"; do
               echo "-----------------------------------------------------------------"
 
-              dnf list installed $package
+              dnf list --installed $package
               status=$?
 
               # install if missing

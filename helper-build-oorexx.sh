@@ -17,7 +17,7 @@
 #
 # This works for me, but should be considered just an example
 #
-# Updated: 11 APR 2024 WRL
+# Updated: 13 OCT 2024 WRL
 
 #-----------------------------------------------------------------------------
 set -e # Stop on errors
@@ -113,6 +113,11 @@ fi
 
 # Install required packages
 
+# FIXME Fedora
+# sudo dnf install svn
+# sudo dnf install ncurses-devel
+# sudo dnf install gcc-c++
+
 if [ "$uname_system" == "Linux" ]; then
     echo
 fi
@@ -162,7 +167,7 @@ read -r -p "Hit return to continue..." response
     mkdir -p oorexx-build
     pushd oorexx-build >/dev/null
 
-    cmake ../oorexx-code -DCMAKE_INSTALL_PREFIX=$opt_rexx_install_dir
+    cmake ../oorexx-code -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=$opt_rexx_install_dir
 
     make clean
     make
