@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 12 OCT 2024
+# Updated: 01 JAN 2025
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -1757,6 +1757,16 @@ case $key in
     shift # past --flavor=xxx option
     ;;
 
+  --git-branch=*)
+    opt_branch="${1#*--git-branch=}"
+    shift # past --git-branch=xxx option
+    ;;
+
+  --git-commit=*)
+    opt_commit="${1#*--git-commit=}"
+    shift # past --git-commit=xxx option
+    ;;
+
   --config=*)
     opt_config_file="${1#*--config=}"
     CONFIG_FILE=$(cd "$(dirname "$opt_config_file")" && pwd)/$(basename "$opt_config_file")
@@ -3289,6 +3299,26 @@ verbose_msg "OPT_INSTALL_DIR      : $opt_install_dir"
 verbose_msg "OPT_REGINA_DIR       : $opt_regina_dir"
 verbose_msg "OPT_REGINA_TARFILE   : $opt_regina_tarfile"
 verbose_msg "OPT_REGINA_URL       : $opt_regina_url"
+
+verbose_msg "***************"
+opt_branch=${opt_branch:-""}
+
+if [ -z "$opt_branch" ] ; then
+    verbose_msg "GIT_BRANCH_HERCULES : $opt_branch [default branch]"
+else
+    verbose_msg "GIT_BRANCH_HERCULES : $opt_branch [checkout $opt_branch]"
+    git_branch_hercules="$opt_branch"
+fi
+
+opt_commit=${opt_commit:-""}
+
+if [ -z "$opt_commit" ] ; then
+    verbose_msg "GIT_COMMIT_HERCULES : $opt_commit [default commit]"
+else
+    verbose_msg "GIT_COMMIT_HERCULES : $opt_commit [checkout $opt_commit]"
+    git_commit_hercules="$opt_commit"
+fi
+verbose_msg "***************"
 
 if [ -z "$git_branch_hercules" ] ; then
     verbose_msg "GIT_REPO_HERCULES    : $git_repo_hercules [default branch]"

@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 01 JAN 2025
+# - Add new --git-branch and --git-commit command line options
+#
 # Updated: 12 OCT 2024
 # - Fix 'dnf list' command for Fedora
 #
