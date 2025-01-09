@@ -1,8 +1,11 @@
 # This file is part of the Hercules-Helper project.
 #
-# (C) Copyright William R. Lewis, 2020-2024
+# (C) Copyright William R. Lewis, 2020-2025
 
 # Changelog:
+#
+# Updated: 09 JAN 2025
+# - Updated the README
 #
 # Updated: 01 JAN 2025
 # - Add new --git-branch and --git-commit command line options

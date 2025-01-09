@@ -55,6 +55,8 @@ Options:
   -v,  --verbose      print lots of messages
        --version      prints version info and exits
        --flavor=      specify major flavor: aethra, sdl-hyperion, etc.
+       --git-branch=  specify repo branch to checkout
+       --git-commit=  specify repo commit to checkout
        --beeps        beep at each prompt
   -p,  --prompts      print a prompt before each major step
        --config=FILE  specify config file containing options
@@ -90,7 +92,7 @@ Email bug reports, questions, etc. to <bill@wrljet.com>
 ```
 
 To use, create a build directory and cd to it, then run this script.
-First timers, it is recommended to use the --auto option.
+First timers, it is recommended to use the `--auto` option.
 
 Note, while it works, it is not recommended to build directly into
 the directory you've cloned Hercules-Helper into.
@@ -115,14 +117,14 @@ Or for your first run, for finer control:
 $ ~/hercules-helper/hercules-buildall.sh --verbose --prompts
 ```
 
-To control where Hercules is installed, use the --prefix= switch.
+To control where Hercules is installed, use the `--prefix=` switch.
 Such as:
 ```
 --prefix=/usr/local/hercules
 ```
 
 You may build Hercules from either Fish's SDL-Hercules-390 or Jay Maynard's Aethra repo
-using the --flavor= switch.
+using the `--flavor=` switch.
 
 ```
 --flavor=aethra
@@ -132,14 +134,25 @@ or
 --flavor=sdl-hyperion
 ```
 
-Aethra is used by default if --flavor isn't specified.
---flavor will select from a canned config for the repo selected.
+`--flavor` will select from a canned config for the repo selected.
 Some directory and filenames will be altered to "aethra" vs "hyperion"
 
-You can still use the --config= to point to a local config for fine tuning.
+For finer control of what gets built, you can use:
+
+```
+--git-branch=
+```
+and/or
+```
+--git-commit=
+```
+
+Such as `--git-branch=develop --git-commit=c84cda3`
+
+You can still use the `--config=` to point to a local config for fine tuning.
 
 On MacOS, either Homebrew or MacPorts may be used.
-Supply either the --homebrew or --macports option accordingly.
+Supply either the `--homebrew` or `--macports` option accordingly.
 
 For MacOS and Homebrew, be sure /opt/homebrew/bin appears at the front of your
 search PATH, so newer packages from Brew override older defaults from MacOS or

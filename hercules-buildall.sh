@@ -2,13 +2,13 @@
 
 # This file is part of the Hercules-Helper project.
 #
-# (C) Copyright William R. Lewis, 2020-2024
+# (C) Copyright William R. Lewis, 2020-2025
 #
 # This software is released under the terms of the MIT License.
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 01 JAN 2025
+# Updated: 09 JAN 2025
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
