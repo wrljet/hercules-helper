@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 09 JAN 2025
+# Updated: 16 JAN 2025
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -4662,6 +4662,21 @@ else
 
     status_prompter "Step: tests:"
 
+    # Patch runtest4.tst to add 'MAXRATES'
+    runtest4="../tests/runtest4.tst"
+
+    if (grep -Fiqe "maxrates" $runtest4); then
+        verbose_msg "Found \"MAXRATES\" already present in $runtest4"
+    else
+        verbose_msg "\"MAXRATES\" not present in $runtest4.  Adding..."
+                cat <<-HH_MAXRATES >> $runtest4
+
+# Added by Hercules-Helper
+maxrates
+
+HH_MAXRATES
+    fi
+
     add_build_entry "time $make_check_cmd"
     eval "time $make_check_cmd"
 
@@ -4682,6 +4697,25 @@ else
     # HHC02204I ARCHLVL        set to S/370
     # HHC02204I LPARNUM        set to BASIC
     # HHC01603I *Info 1 HHC17006W MAINSIZE decreased to 2G architectural maximim
+
+    verbose_msg    # output a newline
+    mips_rate=0
+
+    if (grep -Fiqe "MIPS:" ./allTests.out); then
+        verbose_msg "Found MAXRATES MIPS: in test output"
+
+        mips_rate=$(grep 'MIPS:' ./allTests.out | sort --reverse -k 4 -n | head -1 | awk '{ print $NF }')
+        verbose_msg "MAXRATES MIPS: $mips_rate"
+
+        if (( $(echo $mips_rate 10 | awk '{ if ($1 > $2) print 1;}') )); then
+            echo "MIPS > 10.  Allowing more exhaustive tests.";
+        else
+            echo "MIPS < 10.  Skipping further tests.";
+        fi
+    else
+        verbose_msg "MAXRATES MIPS: missing in test output. Skipping further tests."
+        mips_rate=0
+    fi
 
     # Quickie test to see if hercules works at all
     # sudo ./hercules
@@ -4961,6 +4995,12 @@ fi
 verbose_msg "Done!"
 
 add_build_entry "cd \$opwd"
+
+# Quickie test
+verbose_msg " "  # output a newline
+hash -r
+hercules --version
+verbose_msg " "  # output a newline
 
 } # End of I/O redirection function
 #-----------------------------------------------------------------------------
