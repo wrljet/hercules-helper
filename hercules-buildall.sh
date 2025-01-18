@@ -525,6 +525,7 @@ function check_pi_version()
     [c03140]="CM4       1.0     4GB     Sony UK"
     [d03140]="CM4       1.0     8GB     Sony UK"
     [d04170]="5B        1.0     8GB            "
+    [e04171]="5B        1.1    16GB            "
   )
 
     verbose_msg "Raspberry Pi     : ${RPI_REVISIONS[$RPI_REVCODE]} ($RPI_REVCODE)"
