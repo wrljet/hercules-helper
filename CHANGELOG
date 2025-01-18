@@ -7,6 +7,7 @@
 # Updated: 16 JAN 2025
 # - Add MAXRATES detection to control extra testing
 # - Add entry for Raspberry Pi 5B 16GB
+# - Add --no-zshrc as synonym for --no-bashrc
 #
 # Updated: 09 JAN 2025
 # - Updated the README

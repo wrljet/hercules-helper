@@ -407,7 +407,8 @@ Sub-functions (in order of operation):
        --no-install   skip 'make install' after building
        --no-setcap    skip running 'setcap'
        --no-envscript skip creating script to set environment variables
-       --no-bashrc    skip modifying .bashrc to set environment variables
+       --no-bashrc    skip modifying .bashrc/.zshrc to set environment variables
+       --no-zshrc     skip modifying .bashrc/.zshrc to set environment variables
 
 Please email bug reports, questions, etc. to: <bill@wrljet.com>
 "
@@ -1907,7 +1908,7 @@ case $key in
     shift # past argument
     ;;
 
-  --no-bashrc) # skip modifying .bashrc to set environment variables
+  --no-bashrc|--no-zshrc) # skip modifying .bashrc to set environment variables
     opt_override_no_bashrc=true
     shift # past argument
     ;;
