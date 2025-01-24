@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 24 JAN 2025
+# - Fix bug in Android detection
+#
 # Updated: 16 JAN 2025
 # - Add MAXRATES detection to control extra testing
 # - Add entry for Raspberry Pi 5B 16GB (thanks to James Stephens)

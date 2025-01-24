@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 16 JAN 2025
+# Updated: 24 JAN 2025
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -2944,7 +2944,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 #-----------------------------------------------------------------------------
   # Android
   
-  if [[ $version_id == android* ]]; then
+  if [[ $os_version_id == android* ]]; then
      verbose_msg "Not yet fully supported under Android"
   fi
   
