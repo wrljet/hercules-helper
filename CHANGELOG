@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 31 JAN 2025
+# - Add 'hercules --version' test after the build
+#
 # Updated: 24 JAN 2025
 # - Fix bug in Android detection
 #

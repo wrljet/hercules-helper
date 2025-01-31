@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 24 JAN 2025
+# Updated: 31 JAN 2025
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -5000,9 +5000,12 @@ add_build_entry "cd \$opwd"
 
 # Quickie test
 verbose_msg " "  # output a newline
-hash -r
-hercules --version
-verbose_msg " "  # output a newline
+
+    hash -r
+    pushd $opt_build_dir/$hercules_barename/build
+    ./hercules --version
+    popd
+    verbose_msg " "  # output a newline
 
 } # End of I/O redirection function
 #-----------------------------------------------------------------------------
