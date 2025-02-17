@@ -4,6 +4,12 @@
 
 # Changelog:
 #
+# Updated: 17 FEB 2025
+# - Add Pi CM5 4GB code C04180
+
+# Updated: 09 FEB 2025
+# - Add Pi 5B 4GB code C04170
+#
 # Updated: 31 JAN 2025
 # - Add 'hercules --version' test after the build
 #
