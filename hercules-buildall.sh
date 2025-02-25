@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 17 FEB 2025
+# Updated: 24 FEB 2025
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -3200,10 +3200,10 @@ if ($opt_no_bashrc    ); then dostep_bashrc=false;      fi
 
 #-----------------------------------------------------------------------------
 
-if [[ $os_version_rpidesktop -eq 1 ]]; then
-    error_msg "Running on Raspberry Pi Desktop (for PC) is not supported!"
-    exit 1
-fi
+#if [[ $os_version_rpidesktop -eq 1 ]]; then
+#    error_msg "Running on Raspberry Pi Desktop (for PC) is not supported!"
+#    exit 1
+#fi
 
 if [[ $os_version_wsl -eq 1 ]]; then
     error_msg "Not supported on Windows WSL1!"
@@ -3601,10 +3601,10 @@ if ($opt_no_bashrc    ); then dostep_bashrc=false;      fi
 
 #-----------------------------------------------------------------------------
 
-if [[ $os_version_rpidesktop -eq 1 ]]; then
-    error_msg "Running on Raspberry Pi Desktop (for PC) is not supported!"
-    exit 1
-fi
+#if [[ $os_version_rpidesktop -eq 1 ]]; then
+#    error_msg "Running on Raspberry Pi Desktop (for PC) is not supported!"
+#    exit 1
+#fi
 
 if [[ $os_version_wsl -eq 1 ]]; then
     error_msg "Not supported on Windows WSL1!"
