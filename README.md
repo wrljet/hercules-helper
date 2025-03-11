@@ -13,6 +13,8 @@ or, if you don't have git, or simply prefer:
    wget https://github.com/wrljet/hercules-helper/archive/master.zip
 ```
 
+Please read everything before doing anything.
+
 You shouldn't have to mark the bash scripts as executable before running them.
 They hopefully will clone ready to run.
 
@@ -163,6 +165,11 @@ If packages need to be installed you may be asked to supply your sudo password.
 
 You will be prompted a number of times between the major steps, to give you a chance
 to see the results of the last step, and to clue you into what will be happening next.
+
+For Raspberry Pi Desktop on a x86_64 PC, prefix the command with `linux32`, for example:
+```
+$ linux32 ~/hercules-helper/hercules-buildall.sh --verbose --prompts
+```
 
 Hercules will be "installed" (unless you include the --no-install option), defaulting
 into ~/herctest/herc4x
