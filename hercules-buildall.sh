@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 24 FEB 2025
+# Updated: 19 MAR 2025
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -3365,24 +3365,7 @@ verbose_msg "CFLAGS           : $CFLAGS"
 verbose_msg "CPPFLAGS         : $CPPFLAGS"
 verbose_msg "LDFLAGS          : $LDFLAGS"
 verbose_msg "LD_LIBRARY_PATH  : ${LD_LIBRARY_PATH:-""}"
-
-# If we're on macOS, DYLD_* environment variables are purged when
-# launching protected processes.  So we'll just set it up here to
-# the usual suspects.
-
-if [ "$version_distro" == "darwin" ]; then
-    if [ -z "${DYLD_LIBRARY_PATH:-""}" ] ; then
-        echo "macOS: Adding /usr/local/lib to DYLD_LIBRARY_PATH"
-        export DYLD_LIBRARY_PATH="/usr/local/lib"
-    fi
-
-    if [ ! -z "${LD_LIBRARY_PATH:-""}" ] ; then
-        echo "macOS: Adding LD_LIBRARY_PATH to DYLD_LIBRARY_PATH"
-        export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$LD_LIBRARY_PATH"
-    fi
-
-    verbose_msg "DYLD_LIBRARY_PATH: ${DYLD_LIBRARY_PATH:-""}"
-fi
+verbose_msg "DYLD_LIBRARY_PATH: ${DYLD_LIBRARY_PATH:-""}"
 
 #-----------------------------------------------------------------------------
 
@@ -4226,6 +4209,26 @@ verbose_msg "-----------------------------------------------------------------
 add_build_entry # newline
 add_build_entry "cd \$opt_build_dir/$hercules_barename"
 cd $opt_build_dir/$hercules_barename
+
+# FIXME moved down here below extpkgs to avoid Moshix libpng bug
+
+# If we're on macOS, DYLD_* environment variables are purged when
+# launching protected processes.  So we'll just set it up here to
+# the usual suspects.
+
+if [ "$version_distro" == "darwin" ]; then
+    if [ -z "${DYLD_LIBRARY_PATH:-""}" ] ; then
+        echo "macOS: Adding /usr/local/lib to DYLD_LIBRARY_PATH"
+        export DYLD_LIBRARY_PATH="/usr/local/lib"
+    fi
+
+    if [ ! -z "${LD_LIBRARY_PATH:-""}" ] ; then
+        echo "macOS: Adding LD_LIBRARY_PATH to DYLD_LIBRARY_PATH"
+        export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$LD_LIBRARY_PATH"
+    fi
+
+    verbose_msg "DYLD_LIBRARY_PATH: ${DYLD_LIBRARY_PATH:-""}"
+fi
 
 # FIXME filter out FreeBSD and Apple Darwin here also
 

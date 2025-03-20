@@ -4,6 +4,10 @@
 
 # Changelog:
 #
+# Updated: 30 MAR 2025
+# - Moved macOS, DYLD_* environment variables after extpkgs build
+#   This works around a bug with Homebrew libpng
+#
 # Updated: 24 FEB 2025
 # - Preliminary support for Raspberry Pi Desktop (x86)
 #
