@@ -4,6 +4,10 @@
 
 # Changelog:
 #
+# Updated: 29 FEB 2025
+# - Add Pi 500 8GB code D04190 (thanks to Don Isenstadt)
+    FIXME a fix for unbound variable on missing codes is needed
+#
 # Updated: 30 MAR 2025
 # - Moved macOS, DYLD_* environment variables after extpkgs build
 #   This works around a bug with Homebrew libpng
