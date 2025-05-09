@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 29 MAR 2025
+# Updated: 09 MAY 2025
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -2995,10 +2995,10 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
 
           declare -a gentoo_packages=( \
               "dev-vcs/git" "sys-process/time" "net-misc/wget" \
-              "sys-devel/autoconf" "sys-devel/automake" \
-              "dev-util/cmake" "sys-devel/flex" "sys-apps/gawk" "sys-devel/m4" \
+              "dev-build/autoconf" "dev-build/automake" \
+              "dev-build/cmake" "sys-devel/flex" "sys-apps/gawk" "sys-devel/m4" \
               "app-arch/bzip2" \
-              "sys-devel/make" "sys-devel/libtool"
+              "dev-build/make" "dev-build/libtool" "dev-build/libltdl"
           )
 
           echo "Required packages: "

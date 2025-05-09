@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 09 MAY 2025
+# - Correction to Gentoo package requirements (thanks to Vladimir @vmisev)
+#
 # Updated: 29 FEB 2025
 # - Add Pi 500 8GB code D04190 (thanks to Don Isenstadt)
     FIXME a fix for unbound variable on missing codes is needed
