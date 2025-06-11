@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 11 JUN 2025
+# - Add macOS 26 Tahoe to supported list
+#
 # Updated: 09 MAY 2025
 # - Correction to Gentoo package requirements (thanks to Vladimir @vmisev)
 #
