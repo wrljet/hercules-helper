@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 12 AUG 2025
+# - Add packages to Apline: linux-headers, libtool, libltdl
+#
 # Updated: 11 JUN 2025
 # - Add macOS 26 Tahoe to supported list
 #
