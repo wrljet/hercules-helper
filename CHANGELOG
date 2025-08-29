@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 29 AUG 2025
+# - Add flags --force-os, --force-like (thanks to Rudi for this improvement)
+#
 # Updated: 12 AUG 2025
 # - Add packages to Apline: linux-headers, libtool, libltdl
 #

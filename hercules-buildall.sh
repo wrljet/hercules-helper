@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 13 AUG 2025
+# Updated: 29 AUG 2025
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -396,9 +396,9 @@ Options:
                       and create a full log file (this is the default)
        --force-os     force os by name if it isn't detected
        --force-like   force os like if it isn't detected
+       --force-pi     process for a Raspberry Pi
        --homebrew     assume Homebrew package manager on MacOS
        --macports     assume MacPorts package manager on MacOS
-       --force-pi     process for a Raspberry Pi
        --prefix       installation dir prefix for configure
 
 Sub-functions (in order of operation):
@@ -592,7 +592,7 @@ detect_darwin()
 }
 
 #------------------------------------------------------------------------------
-#                               detect_systema
+#                               detect_system
 #------------------------------------------------------------------------------
 detect_system()
 {
