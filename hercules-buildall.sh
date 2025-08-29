@@ -217,6 +217,14 @@ opt_no_bashrc=${opt_no_bashrc:-false}
 
 # --force-pi     force use of Raspberry Pi code (for systems that may conceal the CPU type)
 opt_force_pi=${opt_force_pi:-false}
+# --force-os     force specific os name
+opt_force_os=${opt_force_os:-""}
+# flag gets set when OS is forced to ignore parts of detection
+opt_force_os_flag=${opt_force_os_flag:-false}
+# --force-like.  force specific os-like
+opt_force_like=${opt_force_like:-""}
+# flag gets set when os-like is forced to ignore parts of detection
+opt_force_like_flag=${opt_force_like_flag:-false}
 
 # Optional steps we perform
 #
@@ -386,6 +394,8 @@ Options:
        --accept-root  accept running as root user
   -a,  --auto         run everything, with --verbose (but not --prompts),
                       and create a full log file (this is the default)
+       --force-os     force os by name if it isn't detected
+       --force-like   force os like if it isn't detected
        --homebrew     assume Homebrew package manager on MacOS
        --macports     assume MacPorts package manager on MacOS
        --force-pi     process for a Raspberry Pi
@@ -582,7 +592,7 @@ detect_darwin()
 }
 
 #------------------------------------------------------------------------------
-#                               detect_system
+#                               detect_systema
 #------------------------------------------------------------------------------
 detect_system()
 {
@@ -708,13 +718,19 @@ detect_system()
             # awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release
             os_version_id=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
             # echo "VERSION_ID is $os_version_id"
-
+            if [opt_force_os_flag]; then
+                os_version_id=$opt_force_os
+            fi
             os_version_id_like=$(awk -F= '$1=="ID_LIKE" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
             # echo "VERSION_ID_LIKE is $os_version_id_like"
-
+            if [opt_force_like_flag]; then
+                os_version_id_like=$opt_force_like
+            fi
             os_version_pretty_name=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
             # echo "VERSION_STR is $os_os_version_str"
-
+            if [opt_force_os_flag]; then
+                os_version_pretty_name=$opt_force_os
+            fi
             os_version_str=$(awk -F= '$1=="VERSION_ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
             # echo "VERSION_STR is $os_version_str"
         fi
@@ -1767,6 +1783,18 @@ do
 key="$1"
 
 case $key in
+  --force-os=*)
+    opt_force_os="${1#*--force-os=}"
+    opt_force_os_flag=true
+    shift # past --force-os=xxx option
+    ;;
+
+  --force-like=*)
+    opt_force_like="${1#*--force-like=}"
+    opt_force_like_flag=true
+    shift # past --force-os=xxx option
+    ;;
+
   --flavor=*)
     opt_flavor="${1#*--flavor=}"
     shift # past --flavor=xxx option
