@@ -5,6 +5,9 @@
 # Changelog:
 #
 # Updated: 29 AUG 2025
+# - Update Regina REXX standalone build to 3.9.6 (for newer gcc in Sparky)
+#
+# Updated: 29 AUG 2025
 # - Add flags --force-os, --force-like (thanks to Rudi for this improvement)
 #
 # Updated: 12 AUG 2025
