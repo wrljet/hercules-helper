@@ -539,7 +539,7 @@ function check_pi_version()
     [c04170]="5B        1.0     4GB            "
     [d04170]="5B        1.0     8GB            "
     [e04171]="5B        1.1    16GB            "
-    [c04180]="CM5       1.0     4GB            "
+    [c04180]="CM5       1.0    16GB            "
   )
 
     verbose_msg "Raspberry Pi     : ${RPI_REVISIONS[$RPI_REVCODE]} ($RPI_REVCODE)"
@@ -596,6 +596,22 @@ detect_darwin()
 #------------------------------------------------------------------------------
 detect_system()
 {
+
+# 29 AUG 2025
+# PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
+# NAME="Debian GNU/Linux"
+# VERSION_ID="12"
+# VERSION="12 (bookworm)"
+# VERSION_CODENAME=bookworm
+# ID=debian
+# 
+# PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+# NAME="Debian GNU/Linux"
+# VERSION_ID="13"
+# VERSION="13 (trixie)"
+# VERSION_CODENAME=trixie
+# DEBIAN_VERSION_FULL=13.0
+# ID=debian
 
 # 27 JUL 2021
 # Android 11 LineageOS 18.1 on Raspberry Pi 4B
@@ -718,19 +734,25 @@ detect_system()
             # awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release
             os_version_id=$(awk -F= '$1=="ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
             # echo "VERSION_ID is $os_version_id"
-            if [opt_force_os_flag]; then
+
+            if [[ $opt_force_os_flag == true ]]; then
                 os_version_id=$opt_force_os
             fi
+
             os_version_id_like=$(awk -F= '$1=="ID_LIKE" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
             # echo "VERSION_ID_LIKE is $os_version_id_like"
-            if [opt_force_like_flag]; then
+
+            if [[ $opt_force_like_flag == true ]]; then
                 os_version_id_like=$opt_force_like
             fi
+
             os_version_pretty_name=$(awk -F= '$1=="PRETTY_NAME" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
-            # echo "VERSION_STR is $os_os_version_str"
-            if [opt_force_os_flag]; then
+            # echo "PRETTY_NAME is $os_version_pretty_name"
+
+            if [[ $opt_force_os_flag == true ]]; then
                 os_version_pretty_name=$opt_force_os
             fi
+
             os_version_str=$(awk -F= '$1=="VERSION_ID" { gsub(/"/, "", $2); print $2 ;}' /etc/os-release)
             # echo "VERSION_STR is $os_version_str"
         fi
