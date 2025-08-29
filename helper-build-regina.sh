@@ -17,7 +17,7 @@
 #
 # This works for me, but should be considered just an example
 #
-# Updated: 11 JUL 2024 WRL
+# Updated: 22 AUG 2025 WRL
 
 #-----------------------------------------------------------------------------
 # set -e # Stop on errors
@@ -25,8 +25,8 @@
 #-----------------------------------------------------------------------------
 # Configuration
 
-# SVN Regina 3.9.5
-opt_regina_dir="Regina-REXX-3.9.5"
+# SVN Regina 3.9.6
+opt_regina_dir="Regina-REXX-3.9.6"
 opt_regina_svn_url="https://svn.code.sf.net/p/regina-rexx/code/"
 opt_regina_svn_revision="113"
 opt_regina_install_dir="/usr/local/regina"
@@ -62,7 +62,7 @@ SCRIPT_DIR="$(dirname $SCRIPT_PATH)"
 
 msg="$(basename "$0"):
 
-This script will download, build and install Regina-REXX 3.9.5
+This script will download, build and install Regina-REXX 3.9.6
 into $opt_regina_install_dir
 
 Your sudo password will be required.
