@@ -2,13 +2,13 @@
 
 # This file is part of the Hercules-Helper project.
 #
-# (C) Copyright William R. Lewis, 2020-2025
+# (C) Copyright William R. Lewis, 2020-2026
 #
 # This software is released under the terms of the MIT License.
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 07 NOV 2025
+# Updated: 18 FEB 2026
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
@@ -3765,6 +3765,8 @@ else
         rm -f "$opt_regina_tarfile"
         rm -rf "$opt_regina_dir"
 
+        verbose_msg "Downloading Regina from: $opt_regina_url"
+        verbose_msg    # output a newline
         add_build_entry "curl -LJO \$opt_regina_url"
         curl -LJO "$opt_regina_url"
         if [ ${PIPESTATUS[0]} -ne 0 ]; then
@@ -3856,7 +3858,10 @@ else
                 ( "$(uname -a)" =~ "Linux g6sbc01" ) ||
                 ( "$(uname -a)" =~ "Linux penguin" ) ]]; then
 
-            if [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
+            if [[ "$opt_regina_dir" =~ "3.9.7" ]]; then
+              verbose_msg "Attempting Regina 3.9.7 source for aarch64 without patching"
+              verbose_msg    # output a newline
+            elif [[ "$opt_regina_dir" =~ "3.9.3" ]]; then
               verbose_msg "Patching Regina 3.9.3 source for aarch64"
               patch -u configure -i "$SCRIPT_DIR/patches/regina-rexx-3.9.3.patch"
               verbose_msg    # output a newline
@@ -3952,6 +3957,10 @@ else
     verbose_msg    # output a newline
     verbose_msg "which rexx: $(which rexx)"
     built_regina_from_source=1
+
+    #hash -r
+    verbose_msg "which -a regina: $(which -a regina)"
+    regina -v
 fi
 
 #

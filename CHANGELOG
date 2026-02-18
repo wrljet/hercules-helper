@@ -1,8 +1,11 @@
 # This file is part of the Hercules-Helper project.
 #
-# (C) Copyright William R. Lewis, 2020-2025
+# (C) Copyright William R. Lewis, 2020-2026
 
 # Changelog:
+#
+# Updated: 18 FEB 2026
+# - Bump Regina REXX to 3.9.7, to fix strcasecmp on 32-bit Raspbbery Pi
 #
 # Updated: 07 NOV 2025
 # - Add Pi 500+ 16GB code E04190 (thanks to dliloch)
