@@ -30,9 +30,8 @@ read -p "Ctrl+C to abort here, or hit return to continue"
 set -e
 set -x
 
-# FIXME: this doesn't work if this script is running off a symlink
-SCRIPT_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")
-SCRIPT_DIR="$(dirname $SCRIPT_PATH)"
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+source "$SCRIPT_DIR/lib/hercules-helper/common.sh"
 
 sudo apt install libssl-dev libreadline-dev libxaw7-dev xfonts-100dpi libncurses5-dev
 sudo apt install libexpat-dev tcl-dev m4
@@ -41,8 +40,9 @@ sudo apt install libexpat-dev tcl-dev m4
 mkdir -p $HOME/tools
 pushd $HOME/tools
 
-wget http://x3270.bgp.nu/download/04.02/suite3270-4.2ga7-src.tgz
-tar xfz suite3270-4.2ga7-src.tgz 
+hh_download_verified "https://x3270.bgp.nu/download/04.02/suite3270-4.2ga7-src.tgz" \
+    suite3270-4.2ga7-src.tgz 68f16dd3bc75f50c054e8482711e76fcf5b4984aacc47a359fd94f01c9c0a429
+hh_extract_tar_gz suite3270-4.2ga7-src.tgz .
 cd suite3270-4.2/
 
 # Configure package, enabling c3270 x3270, etc

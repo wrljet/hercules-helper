@@ -1,0 +1,23 @@
+name: Shell checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax-and-smoke:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Bash syntax
+        shell: bash
+        run: bash -n ./*.sh lib/hercules-helper/*.sh tests/*.sh packagers/debian/*.sh
+      - name: Security smoke tests
+        shell: bash
+        run: tests/security-smoke.sh

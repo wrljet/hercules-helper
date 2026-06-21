@@ -106,15 +106,12 @@ echo    # print a newline
 
 which -s brew
 if [[ $? != 0 ]] ; then
-    echo "Installing Homebrew"
-    read -p "Hit return to continue (Ctrl+C to abort)"
-
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    echo "Homebrew is not installed."
+    echo "Install it separately from https://brew.sh, review its installer, then rerun this script."
+    echo "Hercules Helper does not execute a mutable remote installer."
+    exit 1
 else
-    echo "Updating Homebrew"
-    read -p "Hit return to continue (Ctrl+C to abort)"
-
-    brew update
+    echo "Homebrew is already installed; unrelated formulae will not be upgraded."
 fi
 echo    # print a newline
 
@@ -130,9 +127,8 @@ if false ; then
     read -p "Hit return to continue (Ctrl+C to abort)"
 
     brew install bash
-    sudo bash -c 'echo /usr/local/bin/bash >> /etc/shells'
-    chsh -s /usr/local/bin/bash
-    ln -s /usr/local/bin/bash /usr/local/bin/bash-terminal-app
+    brew_bash="$(brew --prefix)/bin/bash"
+    printf '%s\n' "$brew_bash" | sudo tee -a /etc/shells >/dev/null
+    chsh -s "$brew_bash"
     which -a bash
 fi
-

@@ -4,6 +4,18 @@
 
 # Changelog:
 #
+# Updated: 21 JUN 2026
+# - Pin Hercules, external packages, Regina, and standalone helper sources
+# - Verify downloaded archives with SHA-256 and inspect members before extraction
+# - Detect custom Regina installations with regina-config and expose loader errors
+# - Build Regina serially to avoid its upstream parallel Makefile object races
+# - Keep --auto noninteractive when Regina is unavailable on macOS
+# - Stage libregina.dylib temporarily so macOS testcase 3211 runs correctly
+# - Remove broad package-manager upgrades and mutable Homebrew installer execution
+# - Remove eval from active helpers and retire the broken Debian 4.4 packager
+# - Remove fixed Apple Silicon/Homebrew paths from the PW3270 helper
+# - Add macOS warning compatibility patch, shell CI, and security smoke tests
+#
 # Updated: 18 FEB 2026
 # - Bump Regina REXX to 3.9.7, to fix strcasecmp on 32-bit Raspbbery Pi
 #
@@ -814,4 +826,3 @@
 #
 # Updated: 30 NOV 2020
 # - initial commit to GitHub
-
