@@ -80,13 +80,17 @@ fi
 shopt -s nullglob
 shopt -s extglob # Required for MacOS
 
-require(){ hash "$@" || exit 127; }
-
 current_time=$(date "+%Y-%m-%d")
 
-# Find and read in the helper functions
+# Resolve the physical checkout directory before sourcing adjacent code.
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+source "$SCRIPT_DIR/lib/hercules-helper/common.sh"
+source "$SCRIPT_DIR/lib/hercules-helper/regina.sh"
 
-fns_dir="$(dirname "$0")"
+require(){ hh_require_command "$@" || exit 127; }
+
+# Find and read in the helper functions
+fns_dir="$SCRIPT_DIR"
 fns_file="$fns_dir/helper-fns.sh"
 
 if test -f "$fns_file" ; then
@@ -133,11 +137,16 @@ git_repo_extpkgs=${git_repo_extpkgs:-https://github.com/SDL-Hercules-390}
 # Git checkout branch for Hercules External Packages
 git_branch_extpkgs=${git_extpkgs_extpkgs:-""}
 # git_branch_extpkgs="build-mods-i686"
+git_commit_extpkg_crypto=${git_commit_extpkg_crypto:-""}
+git_commit_extpkg_decNumber=${git_commit_extpkg_decNumber:-""}
+git_commit_extpkg_SoftFloat=${git_commit_extpkg_SoftFloat:-""}
+git_commit_extpkg_telnet=${git_commit_extpkg_telnet:-""}
 
 # Regina download
-opt_regina_dir=${opt_regina_dir:-"Regina-REXX-3.6"}
-opt_regina_tarfile=${opt_regina_tarfile:-"Regina-REXX-3.6.tar.gz"}
-opt_regina_url=${opt_regina_url:-"https://gist.github.com/wrljet/053c3bab74910d42f8775841fcc6fd3f/raw/fe7d723509356ebb77d1eb4593f15dda941949da/Regina-REXX-3.6.tar.gz"}
+opt_regina_dir=${opt_regina_dir:-"regina-rexx-3.9.7"}
+opt_regina_tarfile=${opt_regina_tarfile:-"Regina-REXX-3.9.7.tar.gz"}
+opt_regina_url=${opt_regina_url:-"https://gist.github.com/wrljet/8581fda46d64392fc6874f0142ad5a80/raw/0f943d464acda87fb34882277a20dde770f77d0c/Regina-REXX-3.9.7.tar.gz"}
+opt_regina_sha256=${opt_regina_sha256:-"f13701ebd542e74d0fc83b2a7876a812b07d21e43400275ed65b1ac860204bd4"}
 # opt_regina_dir="Regina-REXX-3.9.3"
 # opt_regina_tarfile="Regina-REXX-3.9.3.tar.gz"
 # opt_regina_url="https://gist.github.com/wrljet/dd19076064da7c3dea1aa9614fc37511/raw/e842479d63fae7af79d4aec467b8fdb148ca196a/Regina-REXX-3.9.3.tar.gz"
@@ -269,12 +278,13 @@ LDFLAGS=${LDFLAGS:-""}
 
 #-----------------------------------------------------------------------------
 
-if [[ "$*" == *"--accept-root"* ]]
-then
-    opt_accept_root=true
-else
-    opt_accept_root=false
-fi
+opt_accept_root=false
+for hh_arg in "$@"; do
+    if [ "$hh_arg" = "--accept-root" ]; then
+        opt_accept_root=true
+        break
+    fi
+done
 
 if [[ $opt_accept_root == false ]] ; then
   if [[ "$EUID" -eq 0 ]]; then
@@ -357,8 +367,7 @@ fi
 # SCRIPT_PATH=$(dirname $(realpath -s $0))
 
 # FIXME: this doesn't work if this script is running off a symlink
-SCRIPT_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")
-SCRIPT_DIR="$(dirname $SCRIPT_PATH)"
+SCRIPT_PATH="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
 
 pushd "$(dirname "$0")" >/dev/null;
     which_git=$(which git 2>/dev/null) || true
@@ -428,7 +437,22 @@ Please email bug reports, questions, etc. to: <bill@wrljet.com>
 #------------------------------------------------------------------------------
 finish()
 {
-  echo "finish() called, exit status = $?"
+  local status=$?
+  hh_regina_unstage_macos_tests
+  echo "finish() called, exit status = $status"
+  return "$status"
+}
+
+restore_test_sources()
+{
+    if [ -n "${HH_RUNTEST4_BACKUP:-}" ] && [ -f "$HH_RUNTEST4_BACKUP" ]; then
+        mv -f "$HH_RUNTEST4_BACKUP" "$runtest4"
+        HH_RUNTEST4_BACKUP=
+    fi
+    if [ -n "${HH_MAINSIZE_BACKUP:-}" ] && [ -f "$HH_MAINSIZE_BACKUP" ]; then
+        mv -f "$HH_MAINSIZE_BACKUP" ../tests/mainsize.tst
+        HH_MAINSIZE_BACKUP=
+    fi
 }
 
 #------------------------------------------------------------------------------
@@ -1588,14 +1612,14 @@ detect_regina()
 
     version_regina=0
 
-    which_regina=$(which regina) || true
-    which_status=$?
+    hh_regina_prepare_environment >/dev/null 2>&1 || true
+    which_regina=$(command -v regina 2>/dev/null || true)
 
     # echo
     # echo "(which rexx) status: $which_status"
     # echo "(which rexx)       : $which_regina"
 
-    if [ -z $which_regina ]; then
+    if [ -z "$which_regina" ]; then
         verbose_msg "nope"
         # verbose_msg "Regina-REXX      : is not installed"
     else
@@ -1607,23 +1631,30 @@ detect_regina()
         # echo $(regina -v 2>&1)
         # echo $(regina -v 2>&1 | grep "Regina")
         # echo $(regina -v 2>&1 | grep "Regina" | sed "s#^regina: ##")
-        regina_v=$(regina -v 2>&1 | grep "Regina" | sed "s#^regina: ##")
+        regina_output="$(hh_regina_version)"
+        regina_status=$?
+        if [ "$regina_status" -ne 0 ]; then
+            verbose_msg "unusable"
+            error_msg "$regina_output"
+            return
+        fi
+        regina_v=$(printf '%s\n' "$regina_output" | grep "Regina" | sed "s#^regina: ##")
         if [ -z "$regina_v" ]; then
             verbose_msg "nope"
         else
             verbose_msg " "  # output a newline
             verbose_msg "Found REXX       : $regina_v"
 
-            regina_name=$(echo $regina_v | cut -f1 -d_)
+                regina_name=$(echo "$regina_v" | cut -f1 -d_)
 
             if [[ $regina_name == "REXX-Regina" ]]; then
                 # echo "we have Regina REXX"
 
-                regina_verstr=$(echo {$regina_v | cut -f2 -d_)
+                regina_verstr=$(echo "$regina_v" | cut -f2 -d_)
                 # echo "regina ver string: $regina_verstr"
-                version_regina=$(echo $regina_verstr | cut -f1 -d.)
+                version_regina=$(echo "$regina_verstr" | cut -f1 -d.)
                 # echo "regina version major: $version_regina"
-                regina_verminor=$(echo $regina_verstr | cut -f2 -d. | cut -f1 -d' ')
+                regina_verminor=$(echo "$regina_verstr" | cut -f2 -d. | cut -f1 -d' ')
                 # echo "regina version minor: $regina_verminor"
                 verbose_msg "Regina version   : $version_regina.$regina_verminor"
             else
@@ -2118,7 +2149,7 @@ if (! $opt_override_detect_only); then
         verbose_msg "--config specified.  Overriding default for build flavor \"$opt_flavor\""
     else
         verbose_msg "No --config specified.  Using default for build flavor $opt_flavor"
-        config_dir="$(dirname "$0")"
+        config_dir="$SCRIPT_DIR"
         CONFIG_FILE="$config_dir/$opt_flavor.conf"
     fi
     verbose_msg    # print a newline
@@ -2134,7 +2165,7 @@ if [ ! -z "$CONFIG_FILE" ]; then
         exit 3
     fi
 else
-    config_dir="$(dirname "$0")"
+    config_dir="$SCRIPT_DIR"
     CONFIG_FILE="$config_dir/hercules-helper.conf"
 fi
 
@@ -2650,11 +2681,11 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
                   mkdir -p ~/tools
                   pushd ~/tools > /dev/null;
 
-                  if [ ! -f cmake-3.12.3.tar.gz ]; then
-                      wget https://cmake.org/files/v3.12/cmake-3.12.3.tar.gz
-                  fi
-
-                  tar xfz cmake-3.12.3.tar.gz
+                  hh_download_verified \
+                      "https://cmake.org/files/v3.12/cmake-3.12.3.tar.gz" \
+                      cmake-3.12.3.tar.gz \
+                      acbf13af31a741794106b76e5d22448b004a66485fc99f6d7df4d22e99da164a
+                  hh_extract_tar_gz cmake-3.12.3.tar.gz .
                   cd cmake-3.12.3/
                   ./bootstrap --prefix=/usr/local
                   make -j$(nproc)
@@ -2793,9 +2824,6 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
           "bzip2" "libbz2" \
           "zlib" "zlib-dev"
       )
-
-      echo "sudo apk -U upgrade"
-      $HH_SUDOCMD apk -U upgrade
 
       for package in "${alpine_packages[@]}"; do
           echo "-----------------------------------------------------------------"
@@ -3469,7 +3497,12 @@ verbose_msg "  libtool        : $libtool_str"
 verbose_msg "  m4             : $(m4   --version 2>&1 | head -n 1 | sed 's/.*illegal option.*/BSD version of m4/')"
 verbose_msg "  make           : $(make --version 2>&1 | head -n 1 | sed 's/^usage: make.*/BSD version of make/')"
 verbose_msg "  compiler       : $($CC --version 2>&1 | head -n 1)"
-verbose_msg "  linker         : $($LD --version 2>&1 | head -n 1)"
+if [[ $os_version_id == darwin* ]]; then
+    linker_version="$($LD -v 2>&1 | head -n 1)"
+else
+    linker_version="$($LD --version 2>&1 | head -n 1)"
+fi
+verbose_msg "  linker         : $linker_version"
 verbose_msg "  gcc presence   : $(which gcc 2>/dev/null || true)"
 verbose_msg "  g++ presence   : $(which g++ 2>/dev/null || true)"
 verbose_msg    # print a newline
@@ -3750,8 +3783,22 @@ else
     if [[ $os_version_id == darwin* ]]; then
         helper_file="$fns_dir/helper-build-regina.sh"
 
-        if test -f "$helper_file" ; then
-            source "$helper_file"
+        if (! $opt_prompts); then
+            error_msg "Regina REXX is required but was not detected."
+            error_msg "For non-interactive runs, install Regina first, set HERCULES_REGINA_PREFIX, or use --no-rexx."
+            exit 2
+        elif test -f "$helper_file" ; then
+            regina_helper_args=(
+                --prefix="${HERCULES_REGINA_PREFIX:-$HOME/.local/regina-3.9.7}"
+                --work-dir="$opt_build_dir/regina-build"
+            )
+            if (! $dostep_packages); then
+                regina_helper_args+=(--no-packages)
+            fi
+            "$helper_file" "${regina_helper_args[@]}"
+            HERCULES_REGINA_PREFIX="${HERCULES_REGINA_PREFIX:-$HOME/.local/regina-3.9.7}"
+            export HERCULES_REGINA_PREFIX
+            hh_regina_prepare_environment || exit 1
         else
             echo "Regina buidl helper script file ( $helper_file ) not found!"
             exit 1
@@ -3762,21 +3809,21 @@ else
         add_build_entry "# Build Regina-REXX"
         add_build_entry "rm -f \$opt_regina_tarfile"
         add_build_entry "rm -rf \$opt_regina_dir"
-        rm -f "$opt_regina_tarfile"
-        rm -rf "$opt_regina_dir"
+        rm -f -- "$opt_regina_tarfile"
+        hh_safe_rm_rf "$opt_build_dir" "$opt_regina_dir"
 
         verbose_msg "Downloading Regina from: $opt_regina_url"
         verbose_msg    # output a newline
-        add_build_entry "curl -LJO \$opt_regina_url"
-        curl -LJO "$opt_regina_url"
-        if [ ${PIPESTATUS[0]} -ne 0 ]; then
-            error_msg "curl -LJO $opt_regina_url failed!"
+        add_build_entry "hh_download_verified \$opt_regina_url \$opt_regina_tarfile \$opt_regina_sha256"
+        hh_download_verified "$opt_regina_url" "$opt_regina_tarfile" "$opt_regina_sha256"
+        if [ $? -ne 0 ]; then
+            error_msg "Verified download of $opt_regina_url failed!"
             exit 1
         fi
 
-        add_build_entry "tar xfz \$opt_regina_tarfile"
-        tar xfz "$opt_regina_tarfile"
-        if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        add_build_entry "hh_extract_tar_gz \$opt_regina_tarfile ."
+        hh_extract_tar_gz "$opt_regina_tarfile" .
+        if [ $? -ne 0 ]; then
             error_msg "tar failed!"
             exit 1
         fi
@@ -3831,7 +3878,7 @@ else
     #       regina_configure_cmd="CFLAGS=\"-Wno-error=implicit-function-declaration\" ./configure"
             # regina_configure_cmd="CFLAGS=\"$CFLAGS -Wno-error=implicit-function-declaration\" ./configure"
             # Added -Wno-incompatible-function-pointers for FreeBSD 14 and Clang 16
-            regina_configure_cmd="CFLAGS=\"$CFLAGS -Wno-error=implicit-function-declaration -Wno-incompatible-function-pointer-types\" $regina_configure_cmd"
+            export CFLAGS="$CFLAGS -Wno-error=implicit-function-declaration -Wno-incompatible-function-pointer-types"
         fi
 
         # If this is a RPIOS 64-bit, aarch64 Chromebook, RISC-V, or ppc64le:
@@ -3901,7 +3948,8 @@ else
         verbose_msg    # output a newline
         add_build_entry # newline
         add_build_entry "$regina_configure_cmd"
-        eval "$regina_configure_cmd"
+        hh_words_from_string "$regina_configure_cmd" || exit 2
+        "${HH_WORDS[@]}"
 
         if [ ${PIPESTATUS[0]} -ne 0 ]; then
             error_msg "configure failed!"
@@ -3975,22 +4023,26 @@ else
     add_build_entry # newline
     add_build_entry "# git clone required repos"
     add_build_entry "cd \$opt_build_dir"
-    cd $opt_build_dir
-
-    # Grab unmodified Hercules repo
-    add_build_entry "rm -rf $hercules_barename"
-    rm -rf $hercules_barename
+    cd "$opt_build_dir" || exit 1
 
     if [ -z "$git_repo_hercules" ] ; then
         error_msg "git_repo_hercules variable is not set!"
         exit 1
     fi
+    if ! hh_validate_git_commit "$git_commit_hercules"; then
+        error_msg "Set git_commit_hercules to an immutable full commit in the selected config."
+        exit 1
+    fi
+
+    # Grab unmodified Hercules repo
+    add_build_entry "rm -rf $hercules_barename"
+    hh_safe_rm_rf "$opt_build_dir" "$hercules_barename"
 
     if [ -z "$git_branch_hercules" ] ; then
         verbose_msg "git clone $git_repo_hercules"
         add_build_entry "git clone \$git_repo_hercules"
 
-        git clone $git_repo_hercules
+        git clone "$git_repo_hercules"
         if [[ $? != 0 ]] ; then
             error_msg "git clone failed!"
             exit 1
@@ -4014,9 +4066,14 @@ else
 
         add_build_entry "git checkout \$git_commit_hercules"
 
-        git checkout "$git_commit_hercules"
+        git checkout --detach "$git_commit_hercules"
         if [[ $? != 0 ]] ; then
             error_msg "git checkout failed!"
+            exit 1
+        fi
+        resolved_hercules_commit="$(git rev-parse HEAD)" || exit 1
+        if [ "$resolved_hercules_commit" != "$git_commit_hercules" ]; then
+            error_msg "Hercules resolved to $resolved_hercules_commit, expected $git_commit_hercules"
             exit 1
         fi
 
@@ -4024,21 +4081,13 @@ else
         popd
     fi
 
+    if [[ $os_version_id == darwin* && $opt_flavor == sdl-hyperion && -f "$opt_build_dir/$hercules_barename/hostinfo.c" ]]; then
+        patch -d "$opt_build_dir/$hercules_barename" -p1 --forward \
+            -i "$SCRIPT_DIR/patches/hyperion-macos-warnings.patch" || exit 1
+        rm -f "$opt_build_dir/$hercules_barename"/{hostinfo,hsccmd,maketape,scescsi}.c.orig
+    fi
+
     #-------
-
-    add_build_entry "cd \$opt_build_dir"
-    cd $opt_build_dir
-    add_build_entry "rm -rf extpkgs"
-    rm -rf extpkgs
-    add_build_entry "mkdir extpkgs"
-    mkdir extpkgs
-    add_build_entry "cd extpkgs/"
-    cd extpkgs/
-
-    # add_build_entry "mkdir repos && cd repos"
-    # mkdir repos && cd repos
-    add_build_entry "rm -rf *"
-    rm -rf *
 
     if [ -z "$git_repo_extpkgs" ] ; then
         error_msg "git_repo_extpkgs variable is not set!"
@@ -4046,6 +4095,22 @@ else
     fi
 
     declare -a pgms=("crypto" "decNumber" "SoftFloat" "telnet")
+    for pgm in "${pgms[@]}"; do
+        commit_variable="git_commit_extpkg_$pgm"
+        hh_validate_git_commit "${!commit_variable}" || exit 1
+    done
+
+    add_build_entry "cd \$opt_build_dir"
+    cd "$opt_build_dir" || exit 1
+    add_build_entry "rm -rf extpkgs"
+    hh_safe_rm_rf "$opt_build_dir" extpkgs
+    add_build_entry "mkdir extpkgs"
+    mkdir extpkgs
+    add_build_entry "cd extpkgs/"
+    cd extpkgs/ || exit 1
+
+    # add_build_entry "mkdir repos && cd repos"
+    # mkdir repos && cd repos
 
     for pgm in "${pgms[@]}"; do
         verbose_msg "-----------------------------------------------------------------
@@ -4069,6 +4134,20 @@ else
                 exit 1
             fi
         fi
+
+        commit_variable="git_commit_extpkg_$pgm"
+        extpkg_commit="${!commit_variable}"
+        if ! hh_validate_git_commit "$extpkg_commit"; then
+            error_msg "No immutable commit configured for external package $pgm"
+            exit 1
+        fi
+        git -C "$pgm" checkout --detach "$extpkg_commit" || exit 1
+        resolved_extpkg_commit="$(git -C "$pgm" rev-parse HEAD)" || exit 1
+        if [ "$resolved_extpkg_commit" != "$extpkg_commit" ]; then
+            error_msg "External package $pgm resolved to $resolved_extpkg_commit, expected $extpkg_commit"
+            exit 1
+        fi
+        add_build_entry "git -C $pgm checkout --detach $extpkg_commit"
     done
 fi
 
@@ -4081,7 +4160,7 @@ else
     status_prompter "Step: util/bldlvlck:"
 
     add_build_entry "cd \$opt_build_dir/$hercules_barename"
-    cd $opt_build_dir/$hercules_barename
+    cd "$opt_build_dir/$hercules_barename" || exit 1
 
     # Check for required packages and minimum versions.
     # Inspect the output carefully and do not continue if there are
@@ -4218,7 +4297,7 @@ else
     esac
 
     add_build_entry "rm -rf lib/"
-    rm -rf lib/
+    hh_safe_rm_rf "$opt_build_dir/extpkgs" lib
 
     for pkg in crypto decNumber SoftFloat telnet; do
         verbose_msg "Building extpkg: $pkg"
@@ -4242,23 +4321,22 @@ else
 
             #cmake $opt_cmake_defines -D INSTALL_PREFIX=$opt_build_dir/extpkgs  -DLIB_INSTALL_DIR=lib$hc_cv_pkg_lib_subdir  $opt_build_dir/extpkgs/$pkg
 
-            cmake_cmd=$(cat <<-END-CMAKE
-cmake $opt_cmake_defines \
-    -D INSTALL_PREFIX=$opt_build_dir/extpkgs \
-    -DLIB_INSTALL_DIR=lib$hc_cv_pkg_lib_subdir \
-    $opt_build_dir/extpkgs/$pkg
-END-CMAKE
-)
+            cmake_args=(cmake -Wno-deprecated)
+            hh_words_from_string "$opt_cmake_defines" || exit 2
+            cmake_args+=("${HH_WORDS[@]}")
+            cmake_args+=("-DINSTALL_PREFIX=$opt_build_dir/extpkgs")
+            cmake_args+=("-DLIB_INSTALL_DIR=lib$hc_cv_pkg_lib_subdir")
+            cmake_args+=("$opt_build_dir/extpkgs/$pkg")
 
             add_build_entry "rm -f CMakeCache.txt"
-            add_build_entry "$cmake_cmd"
+            add_build_entry "cmake [validated arguments]"
             add_build_entry "make clean"
             add_build_entry "make -j 4 all"
             add_build_entry "make install"
 
-            verbose_msg $cmake_cmd
+            hh_print_command "${cmake_args[@]}"
             verbose_msg    # output a newline
-            eval "$cmake_cmd"
+            "${cmake_args[@]}"
 
             rc=$?
             if (( $rc != 0 )); then
@@ -4280,7 +4358,15 @@ verbose_msg "-----------------------------------------------------------------
 
 add_build_entry # newline
 add_build_entry "cd \$opt_build_dir/$hercules_barename"
-cd $opt_build_dir/$hercules_barename
+have_hercules_tree=false
+if [ -d "$opt_build_dir/$hercules_barename" ]; then
+    cd "$opt_build_dir/$hercules_barename" || exit 1
+    have_hercules_tree=true
+elif $dostep_autogen || $dostep_configure || $dostep_clean || $dostep_make || $dostep_tests || $dostep_install; then
+    error_msg "Hercules source directory not found: $opt_build_dir/$hercules_barename"
+    error_msg "Do not use --no-gitclone unless a usable source tree already exists."
+    exit 1
+fi
 
 # FIXME moved down here below extpkgs to avoid Moshix libpng bug
 
@@ -4289,14 +4375,9 @@ cd $opt_build_dir/$hercules_barename
 # the usual suspects.
 
 if [ "$version_distro" == "darwin" ]; then
-    if [ -z "${DYLD_LIBRARY_PATH:-""}" ] ; then
-        echo "macOS: Adding /usr/local/lib to DYLD_LIBRARY_PATH"
-        export DYLD_LIBRARY_PATH="/usr/local/lib"
-    fi
-
     if [ ! -z "${LD_LIBRARY_PATH:-""}" ] ; then
         echo "macOS: Adding LD_LIBRARY_PATH to DYLD_LIBRARY_PATH"
-        export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$LD_LIBRARY_PATH"
+        export DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH:+$DYLD_LIBRARY_PATH:}$LD_LIBRARY_PATH"
     fi
 
     verbose_msg "DYLD_LIBRARY_PATH: ${DYLD_LIBRARY_PATH:-""}"
@@ -4505,7 +4586,8 @@ echo
 
         if [[ $cc_status -eq 0 ]]; then
             verbose_msg "C compiler accepts -frecord-gcc-switches"
-            frecord_gcc_switches_option="CFLAGS=\"$CFLAGS -frecord-gcc-switches\""
+            export CFLAGS="$CFLAGS -frecord-gcc-switches"
+            frecord_gcc_switches_option="CFLAGS=\"$CFLAGS\""
         else
             verbose_msg "C compiler does not accept -frecord-gcc-switches"
             frecord_gcc_switches_option="CFLAGS=\"$CFLAGS\""
@@ -4552,6 +4634,9 @@ echo
     else
         without_included_ltdl_option=""
     fi
+    if [[ $os_version_id == darwin* ]]; then
+        export CFLAGS="$CFLAGS -DSUPPRESS_PARTIAL_KEEPALIVE_WARNING"
+    fi
 
     add_build_entry # newline
     add_build_entry "# Do an out-of-source build"
@@ -4563,21 +4648,6 @@ echo
     pushd $opt_build_dir/$hercules_barename
     mkdir -p build
     cd build
-
-    configure_cmd=$(cat <<-END-CONFIGURE
-$frecord_gcc_switches_option ../configure \
-    $opt_configure \
-    $config_opt_optimization \
-    --enable-extpkgs=$opt_build_dir/extpkgs \
-    --prefix=$opt_install_dir \
-    --enable-custom="$opt_custom_build_msg (version: $hercules_helper_version)" \
-    $enable_regina_option \
-    $enable_oorexx_option \
-    $enable_ipv6_option \
-    $enable_getoptwrapper_option \
-    $without_included_ltdl_option
-END-CONFIGURE
-)
 
 # Spit the command to our build log
 add_build_entry # newline
@@ -4598,13 +4668,33 @@ add_build_entry "    $without_included_ltdl_option"
     verbose_msg "CFLAGS=$CFLAGS"
     verbose_msg "LDFLAGS=$LDFLAGS"
 
-    verbose_msg $configure_cmd
+    configure_args=(../configure)
+    hh_words_from_string "$opt_configure" || exit 2
+    configure_args+=("${HH_WORDS[@]}")
+    if [ -n "$config_opt_optimization" ]; then
+        configure_args+=("${config_opt_optimization//\"/}")
+    fi
+    configure_args+=("--enable-extpkgs=$opt_build_dir/extpkgs")
+    configure_args+=("--prefix=$opt_install_dir")
+    configure_args+=("--enable-custom=$opt_custom_build_msg (version: $hercules_helper_version)")
+    for configure_option in "$enable_regina_option" "$enable_oorexx_option" "$enable_ipv6_option" "$enable_getoptwrapper_option" "$without_included_ltdl_option"; do
+        [ -n "$configure_option" ] && configure_args+=("$configure_option")
+    done
+    hh_print_command "${configure_args[@]}"
     verbose_msg    # output a newline
-    eval "$configure_cmd"
+    if [[ $os_version_id == darwin* ]]; then
+        export lt_cv_apple_cc_single_mod=no
+    fi
+    "${configure_args[@]}"
 
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
         error_msg "configure failed!"
         exit 1
+    fi
+
+    if [[ $os_version_id == darwin* && -f libtool ]]; then
+        sed -i.bak '/func_append.*dylib_file/s/^/# Hercules-Helper macOS: /' libtool
+        rm -f libtool.bak
     fi
 
     # Print the configuration we wound up with
@@ -4624,7 +4714,15 @@ verbose_msg "-----------------------------------------------------------------
 "
 
 add_build_entry "cd build"
-cd build
+have_hercules_build=false
+if $have_hercules_tree && [ -d build ]; then
+    cd build || exit 1
+    have_hercules_build=true
+elif $dostep_clean || $dostep_make || $dostep_tests || $dostep_install; then
+    error_msg "Hercules build directory not found: $opt_build_dir/$hercules_barename/build"
+    error_msg "Run configure first or do not skip the clone/configure steps."
+    exit 1
+fi
 
 # Use 1.5 times as many processes as CPUs unless there's low memory
 # But limit to 4 maximum
@@ -4674,7 +4772,13 @@ else
 
     verbose_msg "$make_clean_cmd"
     add_build_entry "$make_clean_cmd"
-    eval "$make_clean_cmd"
+    if [[ $os_version_id == freebsd* || $os_version_id == openbsd* || $os_version_id == netbsd* ]]; then
+        gmake clean
+    elif [[ $os_version_id == darwin* ]]; then
+        env MACOSX_DEPLOYMENT_TARGET="$version_major.$version_minor" make clean
+    else
+        make clean
+    fi
 
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
         error_msg "Make clean failed!"
@@ -4693,7 +4797,13 @@ else
     verbose_msg    # output a newline
     verbose_msg "$make_cmd"
     add_build_entry "$make_cmd"
-    eval "$make_cmd"
+    if [[ $os_version_id == freebsd* || $os_version_id == openbsd* || $os_version_id == netbsd* ]]; then
+        time gmake -j "$nprocs"
+    elif [[ $os_version_id == darwin* ]]; then
+        time env MACOSX_DEPLOYMENT_TARGET="$version_major.$version_minor" make -j "$nprocs"
+    else
+        time make -j "$nprocs"
+    fi
 
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
         error_msg "Make failed!"
@@ -4714,7 +4824,7 @@ else
     verbose_msg "If you check top/htop and nothing seems to be happening, "
     verbose_msg "try hitting Return or CTRL+D."
 
-    if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ]]; then
+    if [[ $os_version_id == freebsd* || $os_version_id == openbsd* || $os_version_id == netbsd* ]]; then
         make_check_cmd="gmake check"
     else
         make_check_cmd="make check"
@@ -4735,7 +4845,9 @@ else
         verbose_msg    # output a newline
 
         if [ -f ../tests/mainsize.tst ]; then
-            mv ../tests/mainsize.tst ../tests/mainsize.tst.skipped
+            HH_MAINSIZE_BACKUP="$(mktemp ../tests/.mainsize.hercules-helper.XXXXXX)" || exit 1
+            rm -f "$HH_MAINSIZE_BACKUP"
+            mv ../tests/mainsize.tst "$HH_MAINSIZE_BACKUP"
         fi
     fi
 
@@ -4748,6 +4860,8 @@ else
         verbose_msg "Found \"MAXRATES\" already present in $runtest4"
     else
         verbose_msg "\"MAXRATES\" not present in $runtest4.  Adding..."
+        HH_RUNTEST4_BACKUP="$(mktemp ../tests/.runtest4.hercules-helper.XXXXXX)" || exit 1
+        cp "$runtest4" "$HH_RUNTEST4_BACKUP"
                 cat <<-HH_MAXRATES >> $runtest4
 
 # Added by Hercules-Helper
@@ -4757,7 +4871,21 @@ HH_MAXRATES
     fi
 
     add_build_entry "time $make_check_cmd"
-    eval "time $make_check_cmd"
+    hh_regina_stage_macos_tests "$(pwd)" || exit 1
+    trap 'hh_regina_unstage_macos_tests; restore_test_sources; exit 130' HUP INT TERM
+    if [[ $os_version_id == freebsd* || $os_version_id == openbsd* || $os_version_id == netbsd* ]]; then
+        time gmake check
+    else
+        time make check
+    fi
+    make_check_status=$?
+    hh_regina_unstage_macos_tests
+    restore_test_sources
+    trap - HUP INT TERM
+    if [ "$make_check_status" -ne 0 ]; then
+        error_msg "Tests failed!"
+        exit 1
+    fi
 
     # time ./tests/runtest ./tests
 
@@ -4805,7 +4933,7 @@ verbose_msg "-----------------------------------------------------------------
 if (! $dostep_install); then
     verbose_msg "Skipping step: install (--no-install)"
 else
-    if [[ $os_version_id == freebsd* || $os_version_id == openbsd* ]]; then
+    if [[ $os_version_id == freebsd* || $os_version_id == openbsd* || $os_version_id == netbsd* ]]; then
         make_install_cmd="time gmake install 2>&1"
     else
         make_install_cmd="time make install 2>&1"
@@ -4814,11 +4942,25 @@ else
     if ($opt_usesudo); then
         status_prompter "Step: install [with sudo]:"
         add_build_entry "\$HH_SUDOCMD $make_install_cmd"
-        eval "$HH_SUDOCMD $make_install_cmd"
+        if [[ $os_version_id == freebsd* || $os_version_id == openbsd* || $os_version_id == netbsd* ]]; then
+            if [ "$HH_SUDOCMD" = "sudo -A" ]; then
+                sudo -A time gmake install
+            else
+                $HH_SUDOCMD time gmake install
+            fi
+        elif [ "$HH_SUDOCMD" = "sudo -A" ]; then
+            sudo -A time make install
+        else
+            $HH_SUDOCMD time make install
+        fi
     else
         status_prompter "Step: install [without sudo]:"
         add_build_entry "$make_install_cmd"
-        eval "$make_install_cmd"
+        if [[ $os_version_id == freebsd* || $os_version_id == openbsd* || $os_version_id == netbsd* ]]; then
+            time gmake install
+        else
+            time make install
+        fi
     fi
 
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
@@ -5078,10 +5220,14 @@ add_build_entry "cd \$opwd"
 # Quickie test
 verbose_msg " "  # output a newline
 
-    hash -r
-    pushd $opt_build_dir/$hercules_barename/build
-    ./hercules --version
-    popd
+    if [ -x "$opt_build_dir/$hercules_barename/build/hercules" ]; then
+        hash -r
+        pushd "$opt_build_dir/$hercules_barename/build" >/dev/null || exit 1
+        ./hercules --version
+        popd >/dev/null || exit 1
+    else
+        verbose_msg "Skipping executable version check: no built Hercules executable is present."
+    fi
     verbose_msg " "  # output a newline
 
 } # End of I/O redirection function
@@ -5103,6 +5249,7 @@ fi
 
 trap finish EXIT
 the_works 2>&1 | tee "$logfile.log"
+run_status=${PIPESTATUS[0]}
+exit "$run_status"
 
 # ---- end of script ----
-

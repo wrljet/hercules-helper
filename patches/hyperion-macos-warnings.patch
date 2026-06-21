@@ -1,0 +1,76 @@
+diff --git a/hostinfo.c b/hostinfo.c
+--- a/hostinfo.c
++++ b/hostinfo.c
+@@ -271,11 +271,13 @@ static void linux_init_hostinfo( HOST_INFO* pHostInfo )
+ //-----------------------------------------------------------------
+ //                Parse a line of LSCPU output
+ //-----------------------------------------------------------------
+ 
++#if !defined( __APPLE__ ) && !(defined( FREEBSD_OR_NETBSD ) && !defined( __OpenBSD__ ))
+ static int parse_lscpu_value(  char* line, int txtlen, char* text )
+ {
+     return (str_caseless_eq_n( line, text, txtlen )) ?
+         atoi( RTRIM( LTRIM( line + txtlen ))) : 0;
+ }
++#endif
+ 
+ //-----------------------------------------------------------------
+ //                Retrieve Host CPU Information...
+diff --git a/hsccmd.c b/hsccmd.c
+--- a/hsccmd.c
++++ b/hsccmd.c
+@@ -10019,7 +10019,9 @@ int qproc_cmd( int argc, char* argv[], char* cmdline )
+     int   i, j;
+     int   cpupct = 0;
+     U32   mipsrate = 0;
++#if !defined( __APPLE__ )
+     char  msgbuf[128];
++#endif
+ 
+     UNREFERENCED( cmdline );
+     UNREFERENCED( argv );
+@@ -10071,7 +10073,8 @@ int qproc_cmd( int argc, char* argv[], char* cmdline )
+         if (IS_CPU_ONLINE( i ))
+         {
+-            struct rusage  rusage;
+             char*          pmsg     = "";
+ 
++#if !defined( __APPLE__ )
++            struct rusage  rusage;
+             if (getrusage( (int) sysblk.cputid[i], &rusage ) == 0)
+             {
+@@ -10130,6 +10133,7 @@ int qproc_cmd( int argc, char* argv[], char* cmdline )
+                         udays, (int) uhh, (int) umm, (int) uss, (int) ums);
+ 
+                 pmsg = msgbuf;
+             }
++#endif
+ 
+             mipsrate = sysblk.regs[i]->mipsrate;
+diff --git a/maketape.c b/maketape.c
+--- a/maketape.c
++++ b/maketape.c
+@@ -86,8 +86,8 @@ char  volSer[6];                   /* volume serial number (no end NULL!)  */
+-char  inFileID[ MAXFILES ][ FILENAME_MAX + 5 ];  /* array of MAXFILES files
++char  inFileID[ MAXFILES ][ FILENAME_MAX + 5 ] = {{0}}; /* input files
+                                                     to read/include        */
+-bool  inBINopt[ MAXFILES ];        /* array of "BIN" flags for each file   */
++bool  inBINopt[ MAXFILES ] = {false}; /* array of "BIN" flags for each file */
+ 
+-char  buf[ MAXAWSBUFF ];           /* output AWSTAPE buffer                */
++char  buf[ MAXAWSBUFF ] = {0};     /* output AWSTAPE buffer                */
+ 
+ /*-------------------------------------------------------------------------*/
+ /*                           Error exit                                    */
+diff --git a/scescsi.c b/scescsi.c
+--- a/scescsi.c
++++ b/scescsi.c
+@@ -505,7 +505,7 @@ SCCB_HWL_BK     *hwl_bk  = (SCCB_HWL_BK*)(evd_hdr + 1);
+     WRMSG( HHC00661, "I",
+         SCCB_HWL_TYPE_INFO == hwl_bk->type ? "INFO" :
+         SCCB_HWL_TYPE_LOAD == hwl_bk->type ? "LOAD" : "unknown",
+-        (BYTE*)sccb - (BYTE*)sysblk.mainstor );
++        (U64)((BYTE*)sccb - (BYTE*)sysblk.mainstor) );
+ 
+     if( ARCH_DEP(hwl_request)(SCLP_WRITE_EVENT_DATA, evd_hdr) )
+     {

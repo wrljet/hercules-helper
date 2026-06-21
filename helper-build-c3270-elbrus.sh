@@ -33,16 +33,16 @@ read -p "Ctrl+C to abort here, or hit return to continue"
 set -e
 set -x
 
-# FIXME: this doesn't work if this script is running off a symlink
-SCRIPT_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")
-SCRIPT_DIR="$(dirname $SCRIPT_PATH)"
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+source "$SCRIPT_DIR/lib/hercules-helper/common.sh"
 
 # Create our work directory
 mkdir -p ~/tools
 cd ~/tools
 
-wget http://x3270.bgp.nu/download/04.00/suite3270-4.0ga13-src.tgz
-tar xfz suite3270-4.0ga13-src.tgz 
+hh_download_verified "https://x3270.bgp.nu/download/04.00/suite3270-4.0ga13-src.tgz" \
+    suite3270-4.0ga13-src.tgz eb39f1b65dfdc9b912301d7a7f269f4d92043223a5196bcfd7e8d7bdf2c95fcf
+hh_extract_tar_gz suite3270-4.0ga13-src.tgz .
 cd suite3270-4.0/
 
 # Patch/replace config.guess with ones from Hercules-Helper
@@ -60,4 +60,3 @@ cp $SCRIPT_DIR/patches/config.{guess,sub} .
 
 make clean && make -j 2
 make install
-

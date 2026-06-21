@@ -1,298 +1,108 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-# helper-build-pw3270-macm1.sh
-#
-# Helper to build PW3270 on macOS (Apple Silicon)
-#
-# The most recent version of this project can be obtained with:
-#   git clone https://github.com/wrljet/hercules-helper.git
-# or:
-#   wget https://github.com/wrljet/hercules-helper/archive/master.zip
-#
-# Please report errors in this to me so everyone can benefit.
-#
-# Bill Lewis  bill@wrljet.com
-#
-#-----------------------------------------------------------------------------
-#
-# This works for me, but should be considered just an example
-#
-# WRL 05 MAR 2024
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+source "$SCRIPT_DIR/lib/hercules-helper/common.sh"
 
-msg="$(basename "$0"):
+work_dir="${PW3270_WORK_DIR:-$PWD/pw3270-build}"
+install_prefix="${PW3270_PREFIX:-$HOME/.local/pw3270}"
+assume_yes=false
 
-This script will build and install PW3270 on macOS (Apple Silicon).
+usage()
+{
+    cat <<'EOF'
+Usage: helper-build-pw3270-macm1.sh [OPTIONS]
 
-Your sudo password will be required.
-"
-echo "$msg"
-read -p "Ctrl+C to abort here, or hit return to continue"
-
-#-----------------------------------------------------------------------------
-# Stop on errors
-set -e
-
-#------------------------------------------------------------------------------
-#                              confirm
-#------------------------------------------------------------------------------
-confirm() {
-    echo -ne '\a'
-
-    # call with a prompt string or use a default
-    read -r -p "${1:-Are you sure? [y/N]} " response
-    case "$response" in 
-        [yY][eE][sS]|[yY])
-            true
-            ;; 
-        *)     
-            false
-            ;; 
-    esac
+  --work-dir=DIR  source and artifact workspace (default: ./pw3270-build)
+  --prefix=DIR    private dependency prefix (default: ~/.local/pw3270)
+  --yes           run without confirmation
+  -h, --help      show this help
+EOF
 }
 
-#------------------------------------------------------------------------------
-#                              main
-#------------------------------------------------------------------------------
+for arg in "$@"; do
+    case "$arg" in
+        --work-dir=*) work_dir="${arg#*=}" ;;
+        --prefix=*) install_prefix="${arg#*=}" ;;
+        --yes) assume_yes=true ;;
+        -h|--help) usage; exit 0 ;;
+        *) hh_die "Unknown option: $arg"; usage >&2; exit 2 ;;
+    esac
+done
 
-echo
-echo "This script will build PW3270 on macOS (for Apple Silicon)"
-echo
-read -r -p "Hit return to continue, or Ctrl+C to quit..." response
+[ "$(uname -s)" = Darwin ] || hh_die "This helper supports macOS only"
+[ "$(uname -m)" = arm64 ] || hh_die "This helper supports Apple Silicon only"
+hh_require_command xcode-select
+hh_require_command brew
+xcode-select -p >/dev/null
 
-echo
-echo "Checking for Xcode command line tools ..."
-xcode-select -p 1>/dev/null 2>/dev/null
-if [[ $? == 2 ]] ; then
-    darwin_need_prereqs=true
-else
-    echo "    Xcode command line tools appear to be installed"
+case "$work_dir" in /*) ;; *) work_dir="$PWD/$work_dir" ;; esac
+case "$install_prefix" in /*) ;; *) install_prefix="$PWD/$install_prefix" ;; esac
 
-    if (cc --version 2>&1 | head -n 1 | grep -Fiqe "xcrun: error: invalid active developer path"); then
-        error_msg "    But the C compiler does not work"
-        echo "$(cc --version 2>&1)"
-        exit 1
+printf 'PW3270 workspace: %s\nPrivate dependency prefix: %s\n' "$work_dir" "$install_prefix"
+if ! $assume_yes; then
+    read -r -p 'Press Return to continue, or Ctrl+C to abort: ' _
+fi
+
+brew install xz automake binutils coreutils curl gettext libtool openssl pkgconfig adwaita-icon-theme imagemagick gtk+3
+
+brew_prefix="$(brew --prefix)"
+libtool_gnubin="$(brew --prefix libtool)/libexec/gnubin"
+PATH="$libtool_gnubin:$PATH"
+CPPFLAGS="-I$brew_prefix/include${CPPFLAGS:+ $CPPFLAGS}"
+LDFLAGS="-L$brew_prefix/lib${LDFLAGS:+ $LDFLAGS}"
+PKG_CONFIG_PATH="$install_prefix/lib/pkgconfig:$install_prefix/lib64/pkgconfig:$(brew --prefix curl)/lib/pkgconfig:$(brew --prefix openssl)/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+export PATH CPPFLAGS LDFLAGS PKG_CONFIG_PATH
+
+mkdir -p "$work_dir" "$install_prefix"
+cd "$work_dir"
+
+clone_project()
+{
+    local name="$1" repository="$2" commit="$3" replace=false
+    if [ -e "$name" ]; then
+        if $assume_yes; then
+            replace=true
+        else
+            read -r -p "$name exists. Replace it? [y/N] " response
+            case "$response" in [yY]|[yY][eE][sS]) replace=true ;; esac
+        fi
+        if $replace; then
+            hh_safe_rm_rf "$work_dir" "$name"
+        fi
     fi
-fi
+    if [ ! -d "$name/.git" ]; then
+        git clone "$repository" "$name"
+    fi
+    git -C "$name" checkout --detach "$commit"
+    [ "$(git -C "$name" rev-parse HEAD)" = "$commit" ] || hh_die "Unexpected commit for $name"
+}
 
-echo "Checking for Homebrew package manager ..."
-which -s brew
-if [[ $? != 0 ]] ; then
-    darwin_need_prereqs=true
-    echo "    Homebrew is not installed"
-else
-    darwin_need_prereqs=false
-    echo "    Homebrew is already installed"
-fi
+clone_project lib3270 https://github.com/PerryWerneck/lib3270.git 5a295e862cdb151eab05f5aad1d321be412dd5d9
+clone_project libv3270 https://github.com/PerryWerneck/libv3270.git b290a714b7b6ca4dd0f556dfae278c3a939ae458
+clone_project pw3270 https://github.com/PerryWerneck/pw3270.git 88fc0c73b343188b3455770686dbc18f7536dc06
 
-if ( $darwin_need_prereqs == true ) ; then
-    echo   # output a newline
-    echo "Please run prerequisites-macOS.sh from Hercules-Helper first"
-    echo   # output a newline
-    exit 1
-fi
-
-# All this assumes it's running in a ~/tools directory,
-# so we make one in case it's not there already.
-
-mkdir -p ~/tools
-cd ~/tools
-
-# Install required packages
-
-echo
-echo "---"
-echo "Step: Updating Brew and installing required packages"
-echo
-read -r -p "Hit return to continue..." response
-
-brew update
-brew install xz automake binutils coreutils curl gettext libtool openssl pkgconfig
-brew upgrade
-
-brew unlink gettext && brew link --force gettext
-
-brew install adwaita-icon-theme imagemagick
-brew install gtk+3
-
-newpath="/usr/local/opt/libtool/libexec/gnubin"
-if [ -d "\$newpath" ] && [[ ":\$PATH:" != *":\$newpath:"* ]]; then
-  export PATH="\${PATH:+"\$PATH:"}\$newpath"
-fi
-
-echo
-echo "---"
-echo
-export PKG_CONFIG_PATH="$(brew --prefix curl)/lib/pkgconfig:$(brew --prefix openssl)/lib/pkgconfig"
-echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
-
-#export CFLAGS="$CFLAGS -I$(find $(brew --cellar libtool) -type d -name "include" | sort -n | tail -n 1)"
-#export LDFLAGS="$LDFLAGS -L$(find $(brew --cellar libtool) -type d -name "lib" | sort -n | tail -n 1)"
-
-# Clone the project repos
-
-echo
-echo "---"
-echo
-echo "Step: Cloning project repos..."
-echo
-
-if [ -d ./libv3270 ]; then
-  if confirm "libv3270 directory already exists.  overwrite? [y/N]" ; then
-    rm -rf libv3270/
-    git clone https://github.com/PerryWerneck/libv3270.git
-  else
-    echo "Using existing libv3270 directory"
-#   echo "Quitting"
-#   exit 1
-  fi
-else
-    git clone https://github.com/PerryWerneck/libv3270.git
-fi
-
-if [ -d ./lib3270 ]; then
-  if confirm "lib3270 directory already exists.  overwrite? [y/N]" ; then
-    rm -rf lib3270/
-    git clone https://github.com/PerryWerneck/lib3270.git
-  else
-    echo "Using existing lib3270 directory"
-#   echo "Quitting"
-#   exit 1
-  fi
-else
-    git clone https://github.com/PerryWerneck/lib3270.git
-fi
-
-if [ -d ./pw3270 ]; then
-  if confirm "pw3270 directory already exists.  overwrite? [y/N]" ; then
-    rm -rf pw3270
-    git clone https://github.com/PerryWerneck/pw3270.git
-  else
-    echo "Using existing pw3270 directory"
-#   echo "Quitting"
-#   exit 1
-  fi
-else
-    git clone https://github.com/PerryWerneck/pw3270.git
-fi
-
-# Build the lib3270 project
-
-echo
-echo "---"
-echo "Step: Build the lib3270 project"
-echo
-read -r -p "Hit return to continue..." response
-
-rm -rf /opt/homebrew/Cellar/lib3270
-cd lib3270
-
-# FIXME Uncomment these if the compiler/linker fails to find them
-# FIXME echo "find /opt -name 'libintl*'"
-# FIXME find /opt -name 'libintl*'
-
-export CFLAGS="-I /opt/homebrew/include" LDFLAGS="-L /opt/homebrew/lib"
-echo
-echo "CFLAGS=$CFLAGS"
-echo
-echo "./autogen --prefix=$(brew --cellar)/lib3270/5.4 --with-libiconv-prefix=$(brew --prefix gettext)"
-echo
-./autogen.sh --prefix="$(brew --cellar)/lib3270/5.4" --with-libiconv-prefix=$(brew --prefix gettext)
-
-make all
+cd "$work_dir/lib3270"
+./autogen.sh --prefix="$install_prefix" --with-libiconv-prefix="$(brew --prefix gettext)"
+make -j "$(sysctl -n hw.logicalcpu)"
 make install
 
-echo "brew unlink && brew link lib3270"
-brew unlink lib3270
-brew link lib3270
-
-cd ..
-
-# Build libv3270 project
-
-echo
-echo "---"
-echo "Step: Build the libv3270 project"
-echo
-read -r -p "Hit return to continue..." response
-
-rm -rf /opt/homebrew/Cellar/libv3270
-cd libv3270
-CFLAGS="-I /opt/homebrew/include" LDFLAGS="-L /opt/homebrew/lib" ./autogen.sh --prefix="$(brew --cellar)/libv3270/5.4"
-make all
+cd "$work_dir/libv3270"
+./autogen.sh --prefix="$install_prefix"
+make -j "$(sysctl -n hw.logicalcpu)"
 make install
 
-echo
-echo "brew link libv3270 && brew link libv3270"
-brew unlink libv3270
-brew link libv3270
-cd ..
-
-# Build the main pw3270 project
-
-echo
-echo "Step: Build the main pw3270 project"
-echo
-read -r -p "Hit return to continue..." response
-
-cd pw3270
-
-# Used to be branch macos which conflicted with the directory of the same name
-git checkout develop
-
-# FIXME use my updated autogen.sh, which will use glibtoolize
-# FIXME no longer needed with commit 3d70bc0
-# cp ../pw3270-autogen.sh ./autogen.sh
-
-# Fix possibly missing executable bit on 'bundle'
-ls -l mac/bundle
+cd "$work_dir/pw3270"
 chmod +x mac/bundle
+./autogen.sh --prefix="$install_prefix"
+make -j "$(sysctl -n hw.logicalcpu)"
 
-CFLAGS="-I /opt/homebrew/include" LDFLAGS="-L /opt/homebrew/lib" ./autogen.sh
-make all
-
-echo
-echo "---"
-echo "Step: Bundle the project"
-echo
-read -r -p "Hit return to continue..." response
-
-# Create macOS app bundle
-# FIXME directory name changed with commit b5df356
 cd mac
-
-# This no longer needed -- has been added to upstream repo
-# Copy in fixed 'bundle' from AndreBreves
-# mv bundle bundle-orig
-# cp ../../pw3270-andrebreves/macos/bundle .
-
-# Reset Stop on errors
-set +e
-
-ls -ltrh
 ./bundle
-
-echo "---"
-echo "Resulting bundle: $(pwd)/bundle"
-du -sh pw3270.app
-
-cp -r pw3270.app ..
-
-# cd up to pw3270
+[ -d pw3270.app ] || hh_die "PW3270 bundle was not created"
+hh_safe_rm_rf "$work_dir/pw3270" pw3270.app
+cp -R pw3270.app ..
 cd ..
-
-echo "---"
-echo "Step: Zipping the bundled app..."
-echo "pwd: $(pwd)"
-zip -r ../pw3270-macos-m1.zip pw3270.app
-
-echo
-echo "Done!"
-
-pushd "$(pwd)/../" >/dev/null
-zipdir=$(pwd)
-popd >/dev/null
-echo
-echo "The bundled and zipped app is in: $zipdir/pw3270-macos-m1.zip"
-echo
-
-# end
+rm -f "$work_dir/pw3270-macos-arm64.zip"
+zip -r "$work_dir/pw3270-macos-arm64.zip" pw3270.app
+printf 'Bundle: %s\nArchive: %s\n' "$work_dir/pw3270/pw3270.app" "$work_dir/pw3270-macos-arm64.zip"

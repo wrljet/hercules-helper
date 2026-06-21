@@ -17,6 +17,9 @@
 #
 # This works for me, but should be considered just an example
 
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/hercules-helper/common.sh"
+
 msg="$(basename "$0"):
 
 This script will download, build and install ncat.
@@ -33,8 +36,9 @@ read -p "Ctrl+C to abort here, or hit return to continue"
 mkdir -p ~/tools
 pushd ~/tools
 
-wget "https://nmap.org/dist/nmap-7.91.tar.bz2"
-bzip2 -cd nmap-7.91.tar.bz2 | tar xvf -
+hh_download_verified "https://nmap.org/dist/nmap-7.91.tar.bz2" \
+    nmap-7.91.tar.bz2 18cc4b5070511c51eb243cdd2b0b30ff9b2c4dc4544c6312f75ce3a67a593300
+hh_extract_tar_gz nmap-7.91.tar.bz2 .
 cd nmap-7.91/
 
 ./configure
@@ -47,4 +51,3 @@ cd ..
 ncat --version
 
 popd
-

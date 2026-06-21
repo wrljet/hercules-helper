@@ -29,7 +29,7 @@ uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
 
 if [ "$uname_system" == "Linux" ]; then
     opt_rexx_work_dir=${opt_rexx_work_dir:-"./ooRexx"}
-    opt_rexx_install_dir=${opt_rexx_install_dir:-"/usr/local/ooRexx"}
+    opt_rexx_install_dir=${opt_rexx_install_dir:-"$HOME/.local/ooRexx"}
 fi
 
 # Installation directory:
@@ -42,7 +42,9 @@ fi
 #-----------------------------------------------------------------------------
 # Find and read in our helper functions
 
-fns_dir="$(dirname "$0")"
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+source "$SCRIPT_DIR/lib/hercules-helper/common.sh"
+fns_dir="$SCRIPT_DIR"
 fns_file="$fns_dir/helper-fns.sh"
 
 if test -f "$fns_file" ; then
@@ -51,10 +53,6 @@ else
     echo "Helper functions script file $fns_file not found!"
     exit 1
 fi
-
-# FIXME: this doesn't work if this script is running off a symlink
-SCRIPT_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")
-SCRIPT_DIR="$(dirname $SCRIPT_PATH)"
 
 #------------------------------------------------------------------------------
 #                              main
@@ -129,17 +127,16 @@ if [ "$uname_system" == "Darwin" ]; then
     echo
     read -r -p "Hit return to continue..." response
 
-    brew update
     brew install cmake svn
-    brew upgrade
 fi
 
 #-----------------------------------------------------------------------------
 
 # All this assumes it's running in $opt_rexx_dir directory,
 
-mkdir -p $opt_rexx_work_dir
-pushd $opt_rexx_work_dir >/dev/null
+mkdir -p "$opt_rexx_work_dir"
+opt_rexx_work_dir="$(cd -P "$opt_rexx_work_dir" && pwd)"
+pushd "$opt_rexx_work_dir" >/dev/null
 
 # Clone the project repos
 
@@ -151,9 +148,9 @@ note_msg "This will overwrite any existing oorexx-code directory!"
 echo
 read -r -p "Hit return to continue..." response
 
-    rm -rf oorexx-code
-echo "svn checkout --quiet svn://svn.code.sf.net/p/oorexx/code-0/main/trunk oorexx-code"
-    svn checkout --quiet svn://svn.code.sf.net/p/oorexx/code-0/main/trunk oorexx-code
+    hh_safe_rm_rf "$opt_rexx_work_dir" oorexx-code
+echo "svn checkout --quiet -r 13169 https://svn.code.sf.net/p/oorexx/code-0/main/trunk oorexx-code"
+    svn checkout --quiet -r 13169 https://svn.code.sf.net/p/oorexx/code-0/main/trunk oorexx-code
 
 # Building ooRexx
 
@@ -167,7 +164,7 @@ read -r -p "Hit return to continue..." response
     mkdir -p oorexx-build
     pushd oorexx-build >/dev/null
 
-    cmake ../oorexx-code -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=$opt_rexx_install_dir
+    cmake ../oorexx-code -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX="$opt_rexx_install_dir"
 
     make clean
     make
@@ -179,7 +176,7 @@ echo "Step: Installing ooRexx..."
 echo
 read -r -p "Hit return to continue..." response
 
-    sudo make install
+    make install
 
     popd >/dev/null # back to $opt_rexx_work_dir
 
@@ -296,4 +293,3 @@ echo
 # $ cat install_manifest.txt | tr '\n' '\0' | xargs -0 rm
 #
 # should work (have not tested)
-

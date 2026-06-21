@@ -2,6 +2,10 @@
 
 Utility scripts to help with building and deploying the Hercules emulator
 
+The current hardened workflow uses checksum-verified source archives and exact
+Git commits for Hercules and its external packages. See
+[`DEPENDENCIES.md`](DEPENDENCIES.md) for the maintained source identities.
+
 For Windows, go [here](https://github.com/wrljet/hercules-helper-windows)
 
 The most recent version of this project can be obtained with:
@@ -23,9 +27,9 @@ These scripts will prompt for your sudo password where required.
 
 Report errors in this to me so everyone can benefit.
 
-Note: by default, this will build the Hercules-Aethra flavor, "develop"
-branch.  You may change this using the hercules-helper.conf
-config file.  Or use the --flavor= option.
+By default, this builds the SDL Hyperion flavor selected by
+`hercules-helper.conf`. You may select Aethra with `--flavor=aethra`, select
+SDL Hyperion explicitly with `--flavor=sdl-hyperion`, or supply `--config=FILE`.
 
 ## hercules-buildall.sh
 
@@ -96,6 +100,10 @@ Email bug reports, questions, etc. to <bill@wrljet.com>
 To use, create a build directory and cd to it, then run this script.
 First timers, it is recommended to use the `--auto` option.
 
+`--auto` is noninteractive. On macOS it will not invoke an interactive Regina
+installer when Regina is missing or unusable. Install Regina first, set
+`HERCULES_REGINA_PREFIX` to its prefix, or use `--no-rexx`.
+
 Note, while it works, it is not recommended to build directly into
 the directory you've cloned Hercules-Helper into.
 
@@ -149,12 +157,57 @@ and/or
 --git-commit=
 ```
 
-Such as `--git-branch=develop --git-commit=c84cda3`
+Use a full immutable commit, for example
+`--git-branch=develop --git-commit=5744d9b216a3dc38f6c4f96849b1eb94abe7a6c6`.
 
 You can still use the `--config=` to point to a local config for fine tuning.
 
 On MacOS, either Homebrew or MacPorts may be used.
 Supply either the `--homebrew` or `--macports` option accordingly.
+
+### Regina REXX on macOS
+
+The build detects a custom Regina installation through `regina-config`. Set
+`HERCULES_REGINA_PREFIX` if that command is not already on `PATH`:
+
+```bash
+export HERCULES_REGINA_PREFIX="$HOME/.local/regina-3.9.7"
+./hercules-buildall.sh --auto --homebrew --flavor=sdl-hyperion
+```
+
+The standalone installer builds the verified Regina 3.9.7 source into a
+user-owned prefix by default:
+
+```bash
+./helper-build-regina.sh --yes
+```
+
+Regina is intentionally compiled serially because its upstream Makefile has
+object-renaming races under parallel `make`.
+
+During `make check` on macOS, Helper temporarily exposes `libregina.dylib` in
+Hyperion's libtool `.libs` directory. This prevents the protected `/bin/sh`
+test-launch boundary from incorrectly skipping testcase 3211. The temporary
+link is removed after the test run.
+
+### Operational safeguards
+
+- Remote archives require a maintained SHA-256 value before extraction.
+- Hercules and external-package checkouts are detached at exact commits.
+- Package helpers install named prerequisites only; they do not perform broad
+  Homebrew, Alpine, or openSUSE upgrades.
+- Archive members and links are checked before extraction.
+- Recursive cleanup is constrained to the selected build workspace.
+- Extra configure/CMake option strings reject shell control syntax.
+- `--accept-root` is recognized only as an exact command-line option.
+
+Custom configurations must provide matching `opt_regina_sha256`,
+`git_commit_hercules`, and all four `git_commit_extpkg_*` values. Updating a
+dependency is therefore an explicit lock update, not an implicit branch move.
+
+The legacy Debian Hyperion 4.4 packager is retired because its package template
+is absent and its original implementation depended on unsafe dynamic command
+execution and fixed local paths.
 
 For MacOS and Homebrew, be sure /opt/homebrew/bin appears at the front of your
 search PATH, so newer packages from Brew override older defaults from MacOS or
@@ -195,4 +248,3 @@ Your repair attempts may destroy evidence that would be useful in improving
 this process for others.
 
 Enjoy!
-

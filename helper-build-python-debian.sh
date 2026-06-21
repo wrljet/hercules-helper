@@ -17,6 +17,9 @@
 #
 # This works for me, but should be considered just an example
 
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/hercules-helper/common.sh"
+
 msg="$(basename "$0"):
 
 This script will install prerequisite packages, and download, build
@@ -40,8 +43,9 @@ sudo apt-get install openssl libssl-dev
 mkdir -p ~/tools
 pushd ~/tools
 
-wget "https://www.python.org/ftp/python/3.9.5/Python-3.9.5.tgz"
-tar xfz Python-3.9.5.tgz 
+hh_download_verified "https://www.python.org/ftp/python/3.9.5/Python-3.9.5.tgz" \
+    Python-3.9.5.tgz e0fbd5b6e1ee242524430dee3c91baf4cbbaba4a72dd1674b90fda87b713c7ab
+hh_extract_tar_gz Python-3.9.5.tgz .
 cd Python-3.9.5/
 
 ./configure
@@ -55,4 +59,3 @@ which -a python3
 python3 -V
 
 popd
-

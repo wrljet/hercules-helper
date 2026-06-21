@@ -32,9 +32,9 @@ read -p "Ctrl+C to abort here, or hit return to continue"
 # 'realpath' doesn't exist on MacOS or BSDs
 # SCRIPT_PATH=$(dirname $(realpath -s $0))
 
-# FIXME: this doesn't work if this script is running off a symlink
-SCRIPT_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")
-SCRIPT_DIR="$(dirname $SCRIPT_PATH)"
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+SCRIPT_PATH="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
+source "$SCRIPT_DIR/lib/hercules-helper/common.sh"
 WORK_DIR="$(pwd)"
 
 if test "$WORK_DIR" = "$SCRIPT_DIR"; then
@@ -67,9 +67,10 @@ It will install locally.
 
 # Building Regina REXX
 
-    wget "http://www.wrljet.com/ibm360/regina-rexx-3.9.3.tar.gz"
-    tar xfz regina-rexx-3.9.3.tar.gz
-    cd regina-rexx-3.9.3
+    hh_download_verified "https://gist.github.com/wrljet/8581fda46d64392fc6874f0142ad5a80/raw/0f943d464acda87fb34882277a20dde770f77d0c/Regina-REXX-3.9.7.tar.gz" \
+        Regina-REXX-3.9.7.tar.gz f13701ebd542e74d0fc83b2a7876a812b07d21e43400275ed65b1ac860204bd4
+    hh_extract_tar_gz Regina-REXX-3.9.7.tar.gz .
+    cd regina-rexx-3.9.7
 
     cp $SCRIPT_DIR/patches/config.* common/
 
@@ -92,4 +93,3 @@ It will install locally.
 # test the installation
     which regina
     regina -v
-
