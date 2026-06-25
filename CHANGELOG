@@ -4,6 +4,9 @@
 
 # Changelog:
 #
+# Updated: 25 JUN 2026
+# - Correct Bash 3.2 empty-array nounset probe and clear inherited nounset
+#
 # Updated: 21 JUN 2026
 # - Pin Hercules, external packages, Regina, and standalone helper sources
 # - Verify downloaded archives with SHA-256 and inspect members before extraction

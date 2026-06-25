@@ -14,12 +14,13 @@
 
 #-----------------------------------------------------------------------------
 
-if test "$BASH" == "" || "$BASH" -uc "a=();true \"${a[@]}\"" 2>/dev/null; then
+if test "$BASH" == "" || "$BASH" -uc 'a=();true "${a[@]}"' 2>/dev/null; then
     # Bash 4.4+, Zsh
     # Treat unset variables as an error when substituting
     set -uo pipefail
 else
     # Bash 4.3 and older chokes on empty arrays with set -u
+    set +u
     set -o pipefail
 fi
 
