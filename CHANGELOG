@@ -5,6 +5,7 @@
 # Changelog:
 #
 # Updated: 25 JUN 2026
+# - Add --rexx=auto|regina|oorexx|none to explicitly select Hercules REXX support
 # - Correct Bash 3.2 empty-array nounset probe and clear inherited nounset
 #
 # Updated: 21 JUN 2026

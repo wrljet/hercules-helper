@@ -187,6 +187,10 @@ opt_no_packages=${opt_no_packages:-false}
 # Do not build Regina REXX
 opt_no_rexx=${opt_no_rexx:-false}
 
+# --rexx=auto|regina|oorexx|none
+# Select which REXX implementation is built into Hercules
+opt_rexx=${opt_rexx:-"auto"}
+
 # --no-gitclone  skip \'git clone\' steps
 # Do not 'git clone' if true
 opt_no_gitclone=${opt_no_gitclone:-false}
@@ -268,6 +272,9 @@ os_version_freebsd_model=""
 os_version_memory_size=""
 os_version_multicore_with_low_memory=false
 version_regina=0
+version_oorexx=0
+rexxsaa_h_present=false
+oorexx_h_present=false
 
 uname_system="$( (uname -s) 2>/dev/null)" || uname_system="unknown"
 
@@ -415,6 +422,8 @@ Sub-functions (in order of operation):
        --detect-only  run detection only and exit
        --no-packages  skip installing required packages
        --no-rexx      skip building Regina REXX, no REXX support in Hercules
+       --rexx=NAME    select REXX support: auto, regina, oorexx, or none
+                      regina: classic REXX; oorexx: Object Rexx
        --no-gitclone  skip 'git clone' steps
        --no-bldlvlck  skip 'util/bldlvlck' steps
        --no-extpkgs   skip building Hercules external packages
@@ -1670,6 +1679,27 @@ detect_regina()
 #                              detect_oorexx
 #------------------------------------------------------------------------------
 
+hh_oorexx_prepare_environment()
+{
+    local prefix lib_dir
+    [ -n "${HERCULES_OOREXX_PREFIX:-}" ] || return 0
+    prefix="$HERCULES_OOREXX_PREFIX"
+    lib_dir="$prefix/lib"
+    [ -x "$prefix/bin/rexx" ] && [ -d "$prefix/include" ] && [ -d "$lib_dir" ] || return 1
+
+    PATH="$prefix/bin:$PATH"
+    CPPFLAGS="-I$prefix/include${CPPFLAGS:+ $CPPFLAGS}"
+    LDFLAGS="-L$lib_dir${LDFLAGS:+ $LDFLAGS}"
+    export PATH CPPFLAGS LDFLAGS
+    if [ "$(uname -s)" = Darwin ]; then
+        DYLD_LIBRARY_PATH="$lib_dir${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+        export DYLD_LIBRARY_PATH
+    else
+        LD_LIBRARY_PATH="$lib_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        export LD_LIBRARY_PATH
+    fi
+}
+
 detect_oorexx()
 {
     echo    # print a newline
@@ -1677,12 +1707,17 @@ detect_oorexx()
 
     version_oorexx=0
 
-    which_rexx=$(which rexx) || true
-    which_status=$?
+    if ! hh_oorexx_prepare_environment >/dev/null 2>&1; then
+        verbose_msg "unusable"
+        error_msg "HERCULES_OOREXX_PREFIX does not contain a usable ooRexx installation: ${HERCULES_OOREXX_PREFIX:-}"
+        return
+    fi
+
+    which_rexx=$(command -v rexx 2>/dev/null || true)
 
     # echo "(which rexx) status: $which_status"
 
-    if [ -z $which_rexx ]; then
+    if [ -z "$which_rexx" ]; then
         verbose_msg "nope"
         # verbose_msg "ooRexx           : is not installed"
     else
@@ -1721,42 +1756,55 @@ detect_oorexx()
 
 detect_rexx()
 {
-    which_rexx=$(which rexx) || true
-    which_status=$?
+    which_rexx=$(command -v rexx 2>/dev/null || true)
+    version_regina=0
+    version_oorexx=0
+    rexxsaa_h_present=false
+    oorexx_h_present=false
 
+    verbose_msg "REXX selection   : $opt_rexx"
     verbose_msg "REXX via (\$PATH):  $which_rexx"
-    # echo "(which rexx) status: $which_status"
 
-    detect_regina
+    if [[ "$opt_rexx" == "none" ]]; then
+        verbose_msg "REXX support declined."
+        return
+    fi
 
-  if ($dostep_regina_rexx); then
-    # See if the compiler can find the Regina-REXX include file(s)
-    if [[ $version_regina -ge 3 ]]; then
-        echo "#include \"rexxsaa.h\"" | $CC $CPPFLAGS $CFLAGS -dI -E -x c - >/dev/null 2>&1
-        cc_status=$?
+    if [[ "$opt_rexx" == "oorexx" ]]; then
+        verbose_msg "Regina not selected; ooRexx REXX will be used."
+    else
+        detect_regina
 
-        # #include "rexx.h"
-        # # 1 "/usr/include/rexx.h" 1 3 4
+        if [[ "$opt_rexx" == "regina" ]]; then
+            verbose_msg "ooRexx not selected; Regina REXX will be used."
+        fi
 
-        # cc returns exit code 1 if this fails
-        # <stdin>:1:10: fatal error: rexx.h: No such file or directory
-        # compilation terminated.
-        # #include "rexx.h"
+        if ($dostep_regina_rexx); then
+            # See if the compiler can find the Regina-REXX include file(s)
+            if [[ $version_regina -ge 3 ]]; then
+                echo "#include \"rexxsaa.h\"" | $CC $CPPFLAGS $CFLAGS -dI -E -x c - >/dev/null 2>&1
+                cc_status=$?
 
-        cc_find_h=$(echo "#include \"rexxsaa.h\"" | $CC $CPPFLAGS $CFLAGS -dI -E -x c - 2>&1 | grep "rexxsaa.h" )
-        if [[ $cc_status -eq 0 ]]; then
-            verbose_msg "compiler exit status = $cc_status"
-            verbose_msg "rexxsaa.h is found in $CC search path"
-            log_extra_info "$cc_find_h"
-            rexxsaa_h_present=true
-        else
-            verbose_msg "compiler exit status = $cc_status"
-            error_msg "rexxsaa.h is not found in $CC search path"
-            log_extra_info "$cc_find_h"
-            rexxsaa_h_present=false
+                # cc returns exit code 1 if this fails
+                cc_find_h=$(echo "#include \"rexxsaa.h\"" | $CC $CPPFLAGS $CFLAGS -dI -E -x c - 2>&1 | grep "rexxsaa.h" )
+                if [[ $cc_status -eq 0 ]]; then
+                    verbose_msg "compiler exit status = $cc_status"
+                    verbose_msg "rexxsaa.h is found in $CC search path"
+                    log_extra_info "$cc_find_h"
+                    rexxsaa_h_present=true
+                else
+                    verbose_msg "compiler exit status = $cc_status"
+                    error_msg "rexxsaa.h is not found in $CC search path"
+                    log_extra_info "$cc_find_h"
+                    rexxsaa_h_present=false
+                fi
+            fi
         fi
     fi
-  fi
+
+    if [[ "$opt_rexx" == "regina" ]]; then
+        return
+    fi
 
     detect_oorexx
 
@@ -1773,16 +1821,18 @@ detect_rexx()
         # compilation terminated.
         # #include "rexx.h"
 
-        cc_find_h=$(echo "#include \"rexx.h\"" | cc $CPPFLAGS $CFLAGS -dI -E -x c - 2>&1 | grep "rexx.h" )
+        cc_find_h=$(echo "#include \"rexx.h\"" | $CC $CPPFLAGS $CFLAGS -dI -E -x c - 2>&1 | grep "rexx.h" )
 
         if [[ $cc_status -eq 0 ]]; then
             verbose_msg "compiler exit status = $cc_status"
             verbose_msg "rexx.h is found in $CC search path"
             log_extra_info "$cc_find_h"
+            oorexx_h_present=true
         else
             verbose_msg "compiler exit status = $cc_status"
             error_msg "rexx.h is not found in $CC search path"
             log_extra_info "$cc_find_h"
+            oorexx_h_present=false
         fi
     fi
 }
@@ -1814,6 +1864,7 @@ opt_override_auto=true
 opt_override_detect_only=false    # Run detection only and exit
 opt_override_no_packages=false    # Check for required system packages
 opt_override_no_rexx=false        # Build Regina REXX, include Hercules REXX support
+opt_override_rexx=""              # Select REXX implementation
 opt_override_no_gitclone=false    # Git clone Hercules and external packages
 opt_override_no_bldlvlck=false    # Run bldlvlck
 opt_override_no_extpkgs=false     # Build Hercules external packages
@@ -1937,7 +1988,13 @@ case $key in
 
   --no-rexx) # skip building Regina REXX, or adding support to Hercules
     opt_override_no_rexx=true
+    opt_override_rexx=none
     shift # past argument
+    ;;
+
+  --rexx=*)
+    opt_override_rexx="${1#*--rexx=}"
+    shift # past --rexx=xxx option
     ;;
 
   --no-clone|--noclone|--no-gitclone) # skip 'git clone' of sources
@@ -2192,6 +2249,7 @@ if [ $opt_override_auto        == true ]; then opt_auto=true; fi
 if [ $opt_override_detect_only == true ]; then opt_detect_only=true; fi
 if [ $opt_override_no_packages == true ]; then opt_no_packages=true; fi
 if [ $opt_override_no_rexx     == true ]; then opt_no_rexx=true; fi
+if [ -n "$opt_override_rexx" ]; then opt_rexx="$opt_override_rexx"; fi
 if [ $opt_override_no_gitclone == true ]; then opt_no_gitclone=true; fi
 if [ $opt_override_no_bldlvlck == true ]; then opt_no_bldlvlck=true; fi
 if [ $opt_override_no_extpkgs  == true ]; then opt_no_extpkgs=true; fi
@@ -2211,6 +2269,21 @@ if [ $opt_override_no_install   == true ]; then opt_no_install=true; fi
 if [ $opt_override_no_setcap    == true ]; then opt_no_setcap=true; fi
 if [ $opt_override_no_envscript == true ]; then opt_no_envscript=true; fi
 if [ $opt_override_no_bashrc    == true ]; then opt_no_bashrc=true; fi
+
+opt_rexx="$(printf '%s' "$opt_rexx" | tr '[:upper:]' '[:lower:]')"
+case "$opt_rexx" in
+    auto|regina|oorexx|none) ;;
+    oo-rexx|objectrexx|object-rexx|orexx) opt_rexx=oorexx ;;
+    classic) opt_rexx=regina ;;
+    no|off|disabled|disable) opt_rexx=none ;;
+    *)
+        error_msg "--rexx=$opt_rexx is not supported. Use auto, regina, oorexx, or none."
+        exit 1
+        ;;
+esac
+if [ "$opt_rexx" = none ]; then
+    opt_no_rexx=true
+fi
 
 if [[ $TRACE == true ]]; then
     set -x # For debugging, show all commands as they are being run
@@ -3164,6 +3237,7 @@ fi
 verbose_msg "  --detect-only   : $opt_detect_only"
 verbose_msg "  --no-packages   : $opt_no_packages"
 verbose_msg "  --no-rexx       : $opt_no_rexx"
+verbose_msg "  --rexx          : $opt_rexx"
 verbose_msg "  --no-gitclone   : $opt_no_gitclone"
 verbose_msg "  --no-bldlvlck   : $opt_no_bldlvlck"
 verbose_msg "  --no-autogen    : $opt_no_autogen"
@@ -3275,6 +3349,7 @@ verbose_msg    # print a newline
 
 if ($opt_no_packages  ); then dostep_packages=false;    fi
 if ($opt_no_rexx      ); then dostep_regina_rexx=false; fi
+if [[ "$opt_rexx" == "oorexx" ]]; then dostep_regina_rexx=false; fi
 if ($opt_no_gitclone  ); then dostep_gitclone=false;    fi
 if ($opt_no_bldlvlck  ); then dostep_bldlvlck=false;    fi
 if ($opt_no_extpkgs   ); then dostep_extpkgs=false;     fi
@@ -3465,7 +3540,12 @@ verbose_msg "DYLD_LIBRARY_PATH: ${DYLD_LIBRARY_PATH:-""}"
 verbose_msg    # print a newline
 verbose_msg "Performing Steps:"
 set_run_or_skip $dostep_packages;    verbose_msg "$run_or_skip : Check for required system packages"
-set_run_or_skip $dostep_regina_rexx; verbose_msg "$run_or_skip : Include REXX support, build Regina REXX if needed"
+case "$opt_rexx" in
+    regina) set_run_or_skip true; verbose_msg "$run_or_skip : Include Regina REXX support, build Regina REXX if needed" ;;
+    oorexx) set_run_or_skip true; verbose_msg "$run_or_skip : Include ooRexx support" ;;
+    none) set_run_or_skip false; verbose_msg "$run_or_skip : Include REXX support" ;;
+    *) set_run_or_skip $dostep_regina_rexx; verbose_msg "$run_or_skip : Include REXX support, build Regina REXX if needed" ;;
+esac
 set_run_or_skip $dostep_gitclone;    verbose_msg "$run_or_skip : Git clone Hercules and external packages"
 set_run_or_skip $dostep_bldlvlck;    verbose_msg "$run_or_skip : Run bldlvlck"
 set_run_or_skip $dostep_extpkgs;     verbose_msg "$run_or_skip : Build Hercules external packages"
@@ -3664,6 +3744,7 @@ fi
 
 if ($opt_no_packages  ); then dostep_packages=false;    fi
 if ($opt_no_rexx      ); then dostep_regina_rexx=false; fi
+if [[ "$opt_rexx" == "oorexx" ]]; then dostep_regina_rexx=false; fi
 if ($opt_no_gitclone  ); then dostep_gitclone=false;    fi
 if ($opt_no_bldlvlck  ); then dostep_bldlvlck=false;    fi
 if ($opt_no_extpkgs   ); then dostep_extpkgs=false;     fi
@@ -3769,10 +3850,20 @@ verbose_msg "-----------------------------------------------------------------
 built_regina_from_source=0
 
 if (! $dostep_regina_rexx); then
-    verbose_msg "Skipping step: build Regina-REXX from source (--no-rexx)."
+    if [[ "$opt_rexx" == "oorexx" ]]; then
+        if [[ $version_oorexx -ge 4 ]]; then
+            verbose_msg "ooRexx REXX is selected and present. Skipping Regina build from source."
+        else
+            error_msg "ooRexx REXX is selected but was not detected."
+            error_msg "Install ooRexx first, set HERCULES_OOREXX_PREFIX, or use --rexx=regina/--no-rexx."
+            exit 2
+        fi
+    else
+        verbose_msg "Skipping step: build Regina-REXX from source (--no-rexx or --rexx=none)."
+    fi
 elif [[  $version_regina -ge 3 ]]; then
     verbose_msg "Regina REXX is present.  Skipping build Regina from source."
-elif [[  $version_oorexx -ge 4 ]]; then
+elif [[ "$opt_rexx" == "auto" && $version_oorexx -ge 4 ]]; then
     verbose_msg "ooRexx is present.  Skipping build ooRexx from source."
 else
     status_prompter "Step: Build Regina Rexx [used for test scripts]:"
@@ -3787,7 +3878,7 @@ else
 
         if (! $opt_prompts); then
             error_msg "Regina REXX is required but was not detected."
-            error_msg "For non-interactive runs, install Regina first, set HERCULES_REGINA_PREFIX, or use --no-rexx."
+            error_msg "For non-interactive runs, install Regina first, set HERCULES_REGINA_PREFIX, use --rexx=oorexx, or use --no-rexx."
             exit 2
         elif test -f "$helper_file" ; then
             regina_helper_args=(
@@ -4457,7 +4548,13 @@ else
         enable_regina_option=""
         enable_oorexx_option=""
 
-        if [[ $version_regina -ge 3 ]]; then
+        if [[ "$opt_rexx" == "regina" ]]; then
+            enable_oorexx_option="--disable-object-rexx"
+        elif [[ "$opt_rexx" == "oorexx" ]]; then
+            enable_regina_option="--disable-regina-rexx"
+        fi
+
+        if [[ "$opt_rexx" != "oorexx" && $version_regina -ge 3 ]]; then
             if [ $rexxsaa_h_present == true ]; then
                 verbose_msg "Regina REXX is present. Using configure option: --enable-regina-rexx"
                 enable_regina_option="--enable-regina-rexx"
@@ -4484,9 +4581,21 @@ for example, in Debian: sudo apt install libregina3-dev
             enable_regina_option="--enable-regina-rexx"
         fi
 
-        if [[ $version_oorexx -ge 4 ]]; then
-            verbose_msg "ooRexx is present. Using configure option: --enable-object-rexx"
-            enable_oorexx_option="--enable-object-rexx"
+        if [[ "$opt_rexx" != "regina" && $version_oorexx -ge 4 ]]; then
+            if [ $oorexx_h_present == true ]; then
+                verbose_msg "ooRexx is present. Using configure option: --enable-object-rexx"
+                enable_oorexx_option="--enable-object-rexx"
+            else
+                error_msg "ooRexx is present, but rexx.h is not found.
+ooRexx support will not be built into Hercules.
+"
+                if [[ "$opt_rexx" == "oorexx" ]]; then
+                    exit 1
+                fi
+            fi
+        elif [[ "$opt_rexx" == "oorexx" ]]; then
+            error_msg "ooRexx REXX is selected but was not detected."
+            exit 1
         fi
     fi
 
