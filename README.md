@@ -34,7 +34,7 @@ SDL Hyperion explicitly with `--flavor=sdl-hyperion`, or supply `--config=FILE`.
 ## hercules-buildall.sh
 
 This script will perform a complete build of Hercules and its external
-packages, plus Regina REXX (if no existing REXX is found), run all the
+packages, optionally include the selected REXX implementation, run all the
 automated tests, and optionally install.
 
 If you already have REXX installed, you will need to have the development
@@ -79,7 +79,9 @@ Options:
 Sub-functions (in order of operation):
        --detect-only  run detection only and exit
        --no-packages  skip installing required packages
-       --no-rexx      skip building Regina REXX, and no REXX support in Hercules
+       --no-rexx      no integrated REXX support in Hercules
+       --rexx=NAME    select REXX support: auto, regina, oorexx, or none
+                      regina: classic REXX; oorexx: Object Rexx
        --no-gitclone  skip 'git clone' steps
        --no-bldlvlck  skip 'util/bldlvlck' steps
        --no-extpkgs   skip building Hercules external packages
@@ -101,8 +103,9 @@ To use, create a build directory and cd to it, then run this script.
 First timers, it is recommended to use the `--auto` option.
 
 `--auto` is noninteractive. On macOS it will not invoke an interactive Regina
-installer when Regina is missing or unusable. Install Regina first, set
-`HERCULES_REGINA_PREFIX` to its prefix, or use `--no-rexx`.
+installer when Regina is missing or unusable. Install the selected REXX runtime
+first, set `HERCULES_REGINA_PREFIX` or `HERCULES_OOREXX_PREFIX` to its prefix,
+or use `--no-rexx`.
 
 Note, while it works, it is not recommended to build directly into
 the directory you've cloned Hercules-Helper into.
@@ -165,6 +168,32 @@ You can still use the `--config=` to point to a local config for fine tuning.
 On MacOS, either Homebrew or MacPorts may be used.
 Supply either the `--homebrew` or `--macports` option accordingly.
 
+### REXX selection
+
+Use `--rexx=` to control which REXX implementation is built into Hercules:
+
+```bash
+./hercules-buildall.sh --auto --homebrew --flavor=sdl-hyperion --rexx=regina
+./hercules-buildall.sh --auto --homebrew --flavor=sdl-hyperion --rexx=oorexx
+./hercules-buildall.sh --auto --homebrew --flavor=sdl-hyperion --rexx=none
+```
+
+Supported values:
+
+- `auto`: historical behavior; detect available REXX runtimes.
+- `regina`: enable Regina REXX and explicitly disable Object Rexx.
+- `oorexx`: enable Object Rexx and explicitly disable Regina REXX.
+- `none`: disable integrated REXX support; equivalent to `--no-rexx`.
+
+Selecting `regina` suppresses ooRexx probing, so a Regina build no longer emits
+the misleading `Found REXX, but not ooRexx` diagnostic. Selecting `oorexx`
+suppresses Regina probing and requires a usable ooRexx installation.
+
+The direct Helper script does not install ooRexx. For the local macOS workflow,
+use the wrapper in `hercules-scripts/update-hercules-helper.sh`; it maintains
+both workspace-local Regina and ooRexx installations and then invokes Helper
+with the selected `--rexx=` value.
+
 ### Regina REXX on macOS
 
 The build detects a custom Regina installation through `regina-config`. Set
@@ -173,6 +202,15 @@ The build detects a custom Regina installation through `regina-config`. Set
 ```bash
 export HERCULES_REGINA_PREFIX="$HOME/.local/regina-3.9.7"
 ./hercules-buildall.sh --auto --homebrew --flavor=sdl-hyperion
+```
+
+For a direct ooRexx build, set `HERCULES_OOREXX_PREFIX` to a prefix that
+contains `bin/rexx`, `include/rexx.h`, `include/oorexxapi.h`, and the ooRexx
+runtime libraries:
+
+```bash
+export HERCULES_OOREXX_PREFIX="$HOME/.local/oorexx-5.2.0"
+./hercules-buildall.sh --auto --homebrew --flavor=sdl-hyperion --rexx=oorexx
 ```
 
 The standalone installer builds the verified Regina 3.9.7 source into a
