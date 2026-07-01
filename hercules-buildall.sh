@@ -541,6 +541,7 @@ function check_pi_version()
     [d04170]="5B        1.0     8GB            "
     [e04171]="5B        1.1    16GB            "
     [c04180]="CM5       1.0    16GB            "
+    [e04180]="CM5       1.0    16GB            "
   )
 
     verbose_msg "Raspberry Pi     : ${RPI_REVISIONS[$RPI_REVCODE]} ($RPI_REVCODE)"
