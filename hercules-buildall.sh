@@ -8,7 +8,7 @@
 #
 # https://github.com/wrljet/hercules-helper/blob/master/LICENSE
 
-# Updated: 18 FEB 2026
+# Updated: 30 JUN 2026
 VERSION_STR=v0.9.14+
 #
 # The most recent version of this project can be obtained with:
