@@ -904,7 +904,7 @@ check_packages()
       echo    # print a newline
 
       # split cases between Homebrew and MacPorts
-      if ( $darwin_have_macports == true ) ; then
+      if [[ ${darwin_have_macports:-false} == true ]] ; then
 
           for package in "${packages[@]}"; do
               echo -n "Checking for package: $package ... "
@@ -919,7 +919,7 @@ check_packages()
               fi
           done
 
-      elif ( $darwin_have_homebrew == true ) ; then
+      elif [[ ${darwin_have_homebrew:-false} == true ]] ; then
 
           for package in "${packages[@]}"; do
               echo -n "Checking for package: $package ... "

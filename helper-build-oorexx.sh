@@ -99,7 +99,7 @@ if [ "$uname_system" == "Darwin" ]; then
         echo "    Homebrew is already installed"
     fi
 
-    if ( $darwin_need_prereqs == true ) ; then
+    if [[ ${darwin_need_prereqs:-false} == true ]] ; then
         echo   # output a newline
         echo "Please run prerequisites-macOS.sh from Hercules-Helper first"
         echo   # output a newline

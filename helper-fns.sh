@@ -58,8 +58,8 @@ note_msg()
 #------------------------------------------------------------------------------
 trace_msg()
 {
-  if [ -n $debug ]  || \
-     [ -n $DEBUG ]; then
+  if [ -n "${debug:-}" ]  || \
+     [ -n "${DEBUG:-}" ]; then
     echo  "++ $1"
   fi
 }
@@ -71,7 +71,7 @@ yes_or_no="no"
 
 set_yes_or_no()
 {
-    if ($1 == true); then
+    if [[ ${1:-false} == true ]]; then
         yes_or_no="yes"
     else
         yes_or_no="no "

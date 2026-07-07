@@ -359,7 +359,7 @@ if [ "$uname_system" == "Darwin" ]; then
         echo "    MacPorts is already installed"
     fi
 
-    if ( $darwin_need_prereqs == true ) ; then
+    if [[ ${darwin_need_prereqs:-false} == true ]] ; then
         echo   # output a newline
         echo "Please run prerequisites-macOS.sh first"
         echo   # output a newline
@@ -472,7 +472,7 @@ run_or_skip="no"
 
 set_run_or_skip()
 {
-    if ($1 == true); then
+    if [[ ${1:-false} == true ]]; then
         run_or_skip="run "
     else
         run_or_skip="skip"
@@ -2941,7 +2941,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
       add_build_entry "# Install required packages: "
 
       # split cases between Homebrew and MacPorts
-      if ( $darwin_have_macports == true ) ; then
+      if [[ ${darwin_have_macports:-false} == true ]] ; then
           add_build_entry "# sudo port install ${darwin_packages[*]}"
           add_build_entry "$SCRIPT_DIR/helper-check-packages.sh"
 
@@ -2967,7 +2967,7 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               fi
           done
 
-      elif ( $darwin_have_homebrew == true ) ; then
+      elif [[ ${darwin_have_homebrew:-false} == true ]] ; then
           add_build_entry "# brew install ${darwin_packages[*]}"
           add_build_entry "$SCRIPT_DIR/helper-check-packages.sh"
 
