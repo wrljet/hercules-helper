@@ -1215,7 +1215,7 @@ detect_system()
             verbose_msg "nope"
 
             verbose_msg -n "Checking for Windows WSL1... "
-            if [[ "$(< /proc/version)" == *@(Microsoft|WSL)* ]]; then
+            if [[ "$(< /proc/version)" == *Microsoft* || "$(< /proc/version)" == *WSL* ]]; then
                 verbose_msg "running on WSL1"
                 os_version_wsl=1
             else
@@ -1234,7 +1234,7 @@ detect_system()
         RPI_CPUS=0
 
         if [ -f /etc/rpi-issue ]; then
-            if [[ "$(< /etc/rpi-issue)" == *@(Raspberry Pi reference)* &&
+            if [[ "$(< /etc/rpi-issue)" == *"Raspberry Pi reference"* &&
                   "$machine" == "x86_64" ]];
             then
                 verbose_msg "Running on Raspberry Pi Desktop (for PC)"

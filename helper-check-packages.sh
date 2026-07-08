@@ -407,7 +407,7 @@ detect_system()
         RPI_CPUS=0
 
         if [ -f /etc/rpi-issue ]; then
-            if [[ "$(< /etc/rpi-issue)" == *@(Raspberry Pi reference)* &&
+            if [[ "$(< /etc/rpi-issue)" == *"Raspberry Pi reference"* &&
                   "$machine" == "x86_64" ]];
             then
                 echo "Running on Raspberry Pi Desktop (for PC)"

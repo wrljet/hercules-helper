@@ -42,8 +42,20 @@ if hh_archive_is_safe "$tmp/link.tar.gz" 2>/dev/null; then
     exit 1
 fi
 
-if rg -n '\beval\b|curl[^\n]*\|[^\n]*(sh|bash)|brew (update|upgrade)|apk (-U )?upgrade|zypper update' \
-    "$repo_dir" --glob '*.sh' --glob '!tests/security-smoke.sh' >/dev/null; then
+prohibited_pattern='(^|[^[:alnum:]_])eval([^[:alnum:]_]|$)|curl.*\|.*(sh|bash)|brew (update|upgrade)|apk (-U )?upgrade|zypper update'
+if command -v rg >/dev/null 2>&1; then
+    prohibited_scan_found() {
+        rg -n "$prohibited_pattern" "$repo_dir" --glob '*.sh' --glob '!tests/security-smoke.sh' >/dev/null
+    }
+else
+    prohibited_scan_found() {
+        find "$repo_dir" -type f -name '*.sh' \
+            ! -path "$repo_dir/tests/security-smoke.sh" \
+            -exec grep -E -n "$prohibited_pattern" {} + >/dev/null
+    }
+fi
+
+if prohibited_scan_found; then
     echo "prohibited dynamic execution or broad package upgrade found" >&2
     exit 1
 fi
