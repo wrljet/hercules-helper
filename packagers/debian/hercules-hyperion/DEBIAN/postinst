@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+setcap cap_net_admin+ep /usr/local/bin/hercifc
+
+ldconfig

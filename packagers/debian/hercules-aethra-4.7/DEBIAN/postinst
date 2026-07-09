@@ -1,8 +1,0 @@
-#!/bin/sh
-set -e
-setcap cap_sys_nice=eip /usr/bin/hercules
-setcap cap_sys_nice=eip /usr/bin/herclin
-setcap cap_net_admin+ep /usr/bin/hercifc
-
-ldconfig
-
