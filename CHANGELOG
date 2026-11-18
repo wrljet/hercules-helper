@@ -23,7 +23,7 @@
 # - Keep --auto noninteractive when Regina is unavailable on macOS
 # - Stage libregina.dylib temporarily so macOS testcase 3211 runs correctly
 # - Remove broad package-manager upgrades and mutable Homebrew installer execution
-# - Remove eval from active helpers and retire the broken Debian 4.4 packager
+# - Remove eval from active helpers
 # - Remove fixed Apple Silicon/Homebrew paths from the PW3270 helper
 # - Add macOS warning compatibility patch, shell CI, and security smoke tests
 #

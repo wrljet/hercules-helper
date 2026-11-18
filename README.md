@@ -243,10 +243,6 @@ Custom configurations must provide matching `opt_regina_sha256`,
 `git_commit_hercules`, and all four `git_commit_extpkg_*` values. Updating a
 dependency is therefore an explicit lock update, not an implicit branch move.
 
-The legacy Debian Hyperion 4.4 packager is retired because its package template
-is absent and its original implementation depended on unsafe dynamic command
-execution and fixed local paths.
-
 For MacOS and Homebrew, be sure /opt/homebrew/bin appears at the front of your
 search PATH, so newer packages from Brew override older defaults from MacOS or
 the Xcode command line tools. (this may only be a requirement for Apple M1
