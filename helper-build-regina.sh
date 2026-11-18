@@ -25,10 +25,12 @@
 #-----------------------------------------------------------------------------
 # Configuration
 
-# SVN Regina 3.9.6
-opt_regina_dir="Regina-REXX-3.9.6"
-opt_regina_svn_url="https://svn.code.sf.net/p/regina-rexx/code/"
-opt_regina_svn_revision="113"
+# Regina 3.9.7 release tarball from SourceForge (same file and SHA-256 as
+# the Homebrew regina-rexx formula). No svn checkout is needed.
+opt_regina_dir="regina-rexx-3.9.7"
+opt_regina_tarfile="regina-rexx-3.9.7.tar.gz"
+opt_regina_url="https://downloads.sourceforge.net/project/regina-rexx/regina-rexx/3.9.7/regina-rexx-3.9.7.tar.gz"
+opt_regina_sha256="f13701ebd542e74d0fc83b2a7876a812b07d21e43400275ed65b1ac860204bd4"
 opt_regina_install_dir="/usr/local/regina"
 
 # Regina download
@@ -62,7 +64,7 @@ SCRIPT_DIR="$(dirname $SCRIPT_PATH)"
 
 msg="$(basename "$0"):
 
-This script will download, build and install Regina-REXX 3.9.6
+This script will download, build and install Regina-REXX 3.9.7
 into $opt_regina_install_dir
 
 Your sudo password will be required.
@@ -142,16 +144,13 @@ fi
 if [ "$uname_system" == "Darwin" ]; then
     if ( $darwin_have_homebrew == true ) ; then
         brew update
-        brew install curl svn
+        brew install curl
         brew upgrade
     fi
 
     if ( $darwin_have_macports == true ) ; then
         verbose_msg "installing package: curl"
         $HH_SUDOCMD port install curl
-
-        verbose_msg "installing package: subversion"
-        $HH_SUDOCMD port install subversion
     fi
 fi
 
@@ -167,35 +166,39 @@ echo
 read -r -p "Hit return to continue..." response
 echo
 
-#   curl -LJO "$opt_regina_url"
-#   if [ ${PIPESTATUS[0]} -ne 0 ]; then
-#       error_msg "curl -LJO $opt_regina_url failed!"
-#       exit 1
-#   fi
-#
-#   tar xfz "$opt_regina_tarfile"
-#   if [ ${PIPESTATUS[0]} -ne 0 ]; then
-#       error_msg "tar failed!"
-#       exit 1
-#   fi
+rm -rf "$opt_regina_dir" "$opt_regina_tarfile"
 
-rm -rf $opt_regina_dir
-echo "svn checkout --quiet $opt_regina_svn_url $opt_regina_dir"
-svn checkout --quiet $opt_regina_svn_url $opt_regina_dir
-
-if [ ${PIPESTATUS[0]} -ne 0 ]; then
-    error_msg "svn checkout $opt_regina_svn_url failed!"
+echo "Downloading $opt_regina_url"
+if command -v curl >/dev/null 2>&1; then
+    curl --fail --location --output "$opt_regina_tarfile" "$opt_regina_url"
+else
+    wget --output-document="$opt_regina_tarfile" "$opt_regina_url"
+fi
+if [ $? -ne 0 ]; then
+    error_msg "Download of $opt_regina_url failed!"
     exit 1
 fi
 
-pushd $opt_regina_dir/interpreter/trunk >/dev/null
-
-svn up -r $opt_regina_svn_revision
-
-if [ ${PIPESTATUS[0]} -ne 0 ]; then
-    error_msg "svn up -r  $opt_regina_svn_revision failed!"
+if command -v sha256sum >/dev/null 2>&1; then
+    actual_sha256=$(sha256sum "$opt_regina_tarfile" | awk '{print $1}')
+else
+    actual_sha256=$(shasum -a 256 "$opt_regina_tarfile" | awk '{print $1}')
+fi
+if [ "$actual_sha256" != "$opt_regina_sha256" ]; then
+    error_msg "SHA-256 mismatch for $opt_regina_tarfile"
+    error_msg "  expected: $opt_regina_sha256"
+    error_msg "  got:      $actual_sha256"
     exit 1
 fi
+echo "SHA-256 OK: $actual_sha256"
+
+tar xfz "$opt_regina_tarfile"
+if [ $? -ne 0 ]; then
+    error_msg "tar failed!"
+    exit 1
+fi
+
+pushd "$opt_regina_dir" >/dev/null
 
 # wget "http://www.wrljet.com/ibm360/Regina-REXX-3.6.tar.gz"
 # tar xfz Regina-REXX-3.6.tar.gz
@@ -216,8 +219,10 @@ echo "Replacing config.{guess,sub}"
 cp "$(dirname "$0")/patches/config.guess" ./common/
 cp "$(dirname "$0")/patches/config.sub" ./common/
 
-echo "Fix missing rxstack.conf.etc"
-cp rxstack.conf rxstack.conf.etc
+if [ ! -f rxstack.conf.etc ]; then
+    echo "Fix missing rxstack.conf.etc"
+    cp rxstack.conf rxstack.conf.etc
+fi
 
 echo
 echo "---"
