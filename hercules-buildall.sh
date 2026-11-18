@@ -1498,6 +1498,17 @@ detect_system()
             else
                 echo "Apple macOS version $os_version_str (Tahoe) found"
             fi
+        elif [[ $version_major -gt 26 ]]; then
+            # Newer than the last release known to this script. Proceed
+            # instead of refusing, so a macOS update does not block builds.
+            os_is_supported=true
+            os_version_pretty_name="macOS $version_major"
+
+            if [[ "$(uname -m)" =~ ^arm64 ]]; then
+                echo "Apple macOS version $os_version_str on ARM CPU found (newer than tested; continuing)"
+            else
+                echo "Apple macOS version $os_version_str found (newer than tested; continuing)"
+            fi
         else
             os_is_supported=false
             echo "Apple macOS version $version_major.$version_minor found, is currently unsupported"
@@ -4175,9 +4186,18 @@ else
     fi
 
     if [[ $os_version_id == darwin* && $opt_flavor == sdl-hyperion && -f "$opt_build_dir/$hercules_barename/hostinfo.c" ]]; then
-        patch -d "$opt_build_dir/$hercules_barename" -p1 --forward \
-            -i "$SCRIPT_DIR/patches/hyperion-macos-warnings.patch" || exit 1
-        rm -f "$opt_build_dir/$hercules_barename"/{hostinfo,hsccmd,maketape,scescsi}.c.orig
+        # The patch only silences compiler warnings. If it no longer applies
+        # to the selected Hyperion commit, warn and build unpatched instead
+        # of aborting. Check first so a partial application never happens.
+        macos_patch="$SCRIPT_DIR/patches/hyperion-macos-warnings.patch"
+        if patch -d "$opt_build_dir/$hercules_barename" -p1 --forward --dry-run -s \
+               -i "$macos_patch" >/dev/null 2>&1; then
+            patch -d "$opt_build_dir/$hercules_barename" -p1 --forward \
+                -i "$macos_patch" || exit 1
+        else
+            error_msg "WARNING: $macos_patch does not apply to this Hyperion commit; building without it (expect extra compiler warnings)."
+        fi
+        rm -f "$opt_build_dir/$hercules_barename"/*.c.orig "$opt_build_dir/$hercules_barename"/*.c.rej
     fi
 
     #-------

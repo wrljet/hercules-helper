@@ -1,6 +1,6 @@
 # Dependency locks
 
-These identities are the repository defaults as of 2026-06-21. Archive changes
+These identities are the repository defaults as of 2026-11-18 (SDL Hyperion; others as of 2026-06-21). Archive changes
 must update the URL and SHA-256 together. Git changes must update the exact
 commit in every affected configuration.
 
@@ -8,7 +8,7 @@ commit in every affected configuration.
 
 | Component | Source identity |
 |---|---|
-| SDL Hyperion | `5744d9b216a3dc38f6c4f96849b1eb94abe7a6c6` |
+| SDL Hyperion | `08d98d0b55a325e1a91c7b705ebc3e83f3d2b19f` |
 | Hercules Aethra | `2be74b0c508bf658e12cab5a1ae164a0e6c83225` |
 | GNU Hurd Hercules | `b89456ede863428458be3c5e602c030c3fc4831c` |
 | extpkg crypto | `9ac58405c2b91fb7cd230aed474dc7059f0fcad9` |

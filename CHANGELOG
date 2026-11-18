@@ -4,6 +4,12 @@
 
 # Changelog:
 #
+# Updated: 18 NOV 2026
+# - Pin SDL Hyperion to develop 08d98d0b (2026-11-16)
+# - Drop macOS warning hunks now fixed upstream (hyperion e9e8985c); keep maketape
+# - Build unpatched with a warning instead of aborting when the patch no longer applies
+# - Accept macOS releases newer than 26 (Tahoe) instead of exiting as unsupported
+#
 # Updated: 25 JUN 2026
 # - Add --rexx=auto|regina|oorexx|none to explicitly select Hercules REXX support
 # - Correct Bash 3.2 empty-array nounset probe and clear inherited nounset

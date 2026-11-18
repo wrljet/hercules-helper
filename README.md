@@ -161,7 +161,7 @@ and/or
 ```
 
 Use a full immutable commit, for example
-`--git-branch=develop --git-commit=5744d9b216a3dc38f6c4f96849b1eb94abe7a6c6`.
+`--git-branch=develop --git-commit=08d98d0b55a325e1a91c7b705ebc3e83f3d2b19f`.
 
 You can still use the `--config=` to point to a local config for fine tuning.
 
