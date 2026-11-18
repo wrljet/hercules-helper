@@ -9,6 +9,7 @@
 # - Drop macOS warning hunks now fixed upstream (hyperion e9e8985c); keep maketape
 # - Build unpatched with a warning instead of aborting when the patch no longer applies
 # - Accept macOS releases newer than 26 (Tahoe) instead of exiting as unsupported
+# - Remove GitHub Actions workflow; checks run locally (tests/security-smoke.sh)
 #
 # Updated: 25 JUN 2026
 # - Add --rexx=auto|regina|oorexx|none to explicitly select Hercules REXX support
