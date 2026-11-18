@@ -46,16 +46,16 @@ read -p "Ctrl+C to abort here, or hit return to continue"
 set -e
 set -x
 
-# FIXME: this doesn't work if this script is running off a symlink
-SCRIPT_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")
-SCRIPT_DIR="$(dirname $SCRIPT_PATH)"
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+source "$SCRIPT_DIR/lib/hercules-helper/common.sh"
 
 # Create our work directory
 mkdir -p ~/tools
 cd ~/tools
 
 # Download and extract source package
-svn checkout svn://svn.code.sf.net/p/oorexx/code-0/main/trunk oorexx-code
+hh_safe_rm_rf "$HOME/tools" oorexx-code
+svn checkout -r 13169 https://svn.code.sf.net/p/oorexx/code-0/main/trunk oorexx-code
 
 mkdir -p oorexx-build && cd oorexx-build
 
@@ -64,4 +64,3 @@ cmake ../oorexx-code -DCMAKE_INSTALL_PREFIX=~/tools/oorexx
 
 time make
 make install
-

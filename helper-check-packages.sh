@@ -14,12 +14,13 @@
 
 #-----------------------------------------------------------------------------
 
-if test "$BASH" == "" || "$BASH" -uc "a=();true \"${a[@]}\"" 2>/dev/null; then
+if test "$BASH" == "" || "$BASH" -uc 'a=();true "${a[@]}"' 2>/dev/null; then
     # Bash 4.4+, Zsh
     # Treat unset variables as an error when substituting
     set -uo pipefail
 else
     # Bash 4.3 and older chokes on empty arrays with set -u
+    set +u
     set -o pipefail
 fi
 
@@ -406,7 +407,7 @@ detect_system()
         RPI_CPUS=0
 
         if [ -f /etc/rpi-issue ]; then
-            if [[ "$(< /etc/rpi-issue)" == *@(Raspberry Pi reference)* &&
+            if [[ "$(< /etc/rpi-issue)" == *"Raspberry Pi reference"* &&
                   "$machine" == "x86_64" ]];
             then
                 echo "Running on Raspberry Pi Desktop (for PC)"
@@ -903,7 +904,7 @@ check_packages()
       echo    # print a newline
 
       # split cases between Homebrew and MacPorts
-      if ( $darwin_have_macports == true ) ; then
+      if [[ ${darwin_have_macports:-false} == true ]] ; then
 
           for package in "${packages[@]}"; do
               echo -n "Checking for package: $package ... "
@@ -918,7 +919,7 @@ check_packages()
               fi
           done
 
-      elif ( $darwin_have_homebrew == true ) ; then
+      elif [[ ${darwin_have_homebrew:-false} == true ]] ; then
 
           for package in "${packages[@]}"; do
               echo -n "Checking for package: $package ... "

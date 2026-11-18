@@ -1,0 +1,15 @@
+diff --git a/maketape.c b/maketape.c
+--- a/maketape.c
++++ b/maketape.c
+@@ -86,8 +86,8 @@ char  volSer[6];                   /* volume serial number (no end NULL!)  */
+-char  inFileID[ MAXFILES ][ FILENAME_MAX + 5 ];  /* array of MAXFILES files
++char  inFileID[ MAXFILES ][ FILENAME_MAX + 5 ] = {{0}}; /* input files
+                                                     to read/include        */
+-bool  inBINopt[ MAXFILES ];        /* array of "BIN" flags for each file   */
++bool  inBINopt[ MAXFILES ] = {false}; /* array of "BIN" flags for each file */
+ 
+-char  buf[ MAXAWSBUFF ];           /* output AWSTAPE buffer                */
++char  buf[ MAXAWSBUFF ] = {0};     /* output AWSTAPE buffer                */
+ 
+ /*-------------------------------------------------------------------------*/
+ /*                           Error exit                                    */
