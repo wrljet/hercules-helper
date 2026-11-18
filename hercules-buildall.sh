@@ -3061,8 +3061,19 @@ https://my.velocihost.net/knowledgebase/29/Fix-the-apt-get-install-error-Media-c
               "dev-build/autoconf" "dev-build/automake" \
               "dev-build/cmake" "sys-devel/flex" "sys-apps/gawk" "sys-devel/m4" \
               "app-arch/bzip2" \
-              "dev-build/make" "dev-build/libtool" "dev-build/libltdl"
+              "dev-build/make" "dev-build/libtool" "dev-libs/libltdl"
           )
+
+          # equery (used below) is part of gentoolkit, which a fresh
+          # Gentoo install does not have (issue #51).
+          if [ ! -x /usr/bin/equery ]; then
+              echo "equery not found, installing app-portage/gentoolkit"
+              $HH_SUDOCMD /usr/bin/emerge -av app-portage/gentoolkit
+              if [ ! -x /usr/bin/equery ]; then
+                  error_msg "app-portage/gentoolkit (equery) is required to check packages"
+                  exit 1
+              fi
+          fi
 
           echo "Required packages: "
           echo "${gentoo_packages[*]}"
